@@ -1,0 +1,99 @@
+{
+  "expo": {
+    "name": "Aurafit",
+    "slug": "aurafit",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "aurafit",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f0e0c"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/c7409384-04c6-4470-b074-a2736af11a40"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.aurafit.mobile",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Aurafit uses your camera so you can take a photo for personalised styling.",
+        "NSPhotoLibraryUsageDescription": "Aurafit accesses your photo library so you can choose a photo for styling.",
+        "NSPhotoLibraryAddUsageDescription": "Aurafit saves styled outfit boards to your photo library.",
+        "NSFaceIDUsageDescription": "Aurafit uses Face ID to keep your account secure."
+      },
+      "associatedDomains": [
+        "applinks:aurafit.app"
+      ],
+      "config": {
+        "usesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f0e0c"
+      },
+      "package": "app.aurafit.mobile",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "aurafit.app",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Aurafit accesses your photos to let you choose a styling photo.",
+          "cameraPermission": "Aurafit uses your camera to take a photo for personalised styling.",
+          "microphonePermission": false
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "c7409384-04c6-4470-b074-a2736af11a40"
+      }
+    },
+    "owner": "kenzzhood"
+  }
+}

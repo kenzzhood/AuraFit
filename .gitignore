@@ -1,0 +1,44 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build
+.next
+out
+dist
+build
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.idea
+.vscode
+*.swp
+
+# OS
+.DS_Store
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal
+
+# Testing / tooling
+coverage
+.turbo
+vercel
+
+# IDE / Cursor AI debug logs
+.cursor/
+
+# Mobile secrets (never commit)
+apps/mobile/.env
+apps/mobile/google-play-key.json

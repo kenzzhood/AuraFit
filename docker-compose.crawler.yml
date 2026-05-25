@@ -1,0 +1,14 @@
+services:
+  product-crawler:
+    build:
+      context: ./services/product-crawler
+      dockerfile: Dockerfile
+    ports:
+      - "8100:8100"
+    environment:
+      CRAWLER_API_KEY: ${CRAWLER_API_KEY:-dev-crawler-key}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

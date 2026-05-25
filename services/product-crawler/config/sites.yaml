@@ -1,0 +1,11 @@
+# Per-retailer crawl hints (expand over time)
+retailers:
+  myntra:
+    search_url_template: "https://www.myntra.com/{query}"
+    engine: playwright
+  ajio:
+    search_url_template: "https://www.ajio.com/search/?text={query}"
+    engine: crawl4ai
+  generic:
+    search_url_template: "https://www.google.com/search?tbm=shop&q={query}"
+    engine: crawl4ai
