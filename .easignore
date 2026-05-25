@@ -1,13 +1,19 @@
 # EAS ignores - prevents root workspace node_modules from interfering with the mobile build
 # The mobile app is at apps/mobile/ and has its own node_modules
+#
+# IMPORTANT: leading-slash patterns are ANCHORED to the workspace root,
+# so they only match the Next.js folders and never the mobile workspace's
+# own apps/mobile/<same-name>/ directories. Without the leading slash,
+# `src/` was unintentionally stripping apps/mobile/src/ from the EAS upload
+# and breaking the cloud bundle (Metro could not find apps/mobile/src/...).
 node_modules/
 .next/
-services/
-src/
-prisma/
-scripts/
-docs/
-taste-skill/
+/services/
+/src/
+/prisma/
+/scripts/
+/docs/
+/taste-skill/
 *.md
 .env
 .env.local
