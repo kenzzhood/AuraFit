@@ -1,0 +1,13 @@
+# EAS ignores - prevents root workspace node_modules from interfering with the mobile build
+# The mobile app is at apps/mobile/ and has its own node_modules
+node_modules/
+.next/
+services/
+src/
+prisma/
+scripts/
+docs/
+taste-skill/
+*.md
+.env
+.env.local
