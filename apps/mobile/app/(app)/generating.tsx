@@ -8,15 +8,15 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
-import { Screen } from "@/components/ui/Screen";
-import { Button } from "@/components/ui/Button";
-import { useStyleSession } from "@/store/useStyleSession";
+import { Screen } from "../../src/components/ui/Screen";
+import { Button } from "../../src/components/ui/Button";
+import { useStyleSession } from "../../src/store/useStyleSession";
 import {
   startGeneration,
   getGenerationStatus,
   cancelGeneration,
-} from "@/api/client";
-import { cacheGenerationJob } from "@/storage/localDb";
+} from "../../src/api/client";
+import { cacheGenerationJob } from "../../src/storage/localDb";
 
 const STAGES = [
   { min: 0, label: "Reading your photo…" },

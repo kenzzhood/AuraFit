@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { View, Text, ScrollView, Pressable, TextInput } from "react-native";
 import { useRouter } from "expo-router";
-import { Screen } from "@/components/ui/Screen";
-import { Button } from "@/components/ui/Button";
-import { useStyleSession } from "@/store/useStyleSession";
-import { cn } from "@/lib/cn";
+import { Screen } from "../../src/components/ui/Screen";
+import { Button } from "../../src/components/ui/Button";
+import { useStyleSession } from "../../src/store/useStyleSession";
+import { cn } from "../../src/lib/cn";
 
 const VIBES = [
   "Minimal",

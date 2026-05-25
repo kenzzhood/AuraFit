@@ -1,8 +1,8 @@
-import { API_URL } from "@/config/env";
+import { API_URL } from "../config/env";
 import type {
   GenerateInput,
   GenerationJobStatus,
-} from "@/api/types";
+} from "./types";
 
 type TokenGetter = () => Promise<string | null>;
 

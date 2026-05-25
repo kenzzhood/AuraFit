@@ -2,8 +2,8 @@ import { View, Text, TextInput, ScrollView } from "react-native";
 import { useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import { useState } from "react";
-import { Screen } from "@/components/ui/Screen";
-import { Button } from "@/components/ui/Button";
+import { Screen } from "../../src/components/ui/Screen";
+import { Button } from "../../src/components/ui/Button";
 
 export default function SignUpScreen() {
   const { signUp, setActive, isLoaded } = useSignUp();

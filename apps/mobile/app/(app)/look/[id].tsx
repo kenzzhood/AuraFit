@@ -1,13 +1,13 @@
 import { View, Text, ScrollView, Pressable, Image, Linking, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Screen } from "@/components/ui/Screen";
-import { Button } from "@/components/ui/Button";
-import { useStyleSession } from "@/store/useStyleSession";
+import { Screen } from "../../../src/components/ui/Screen";
+import { Button } from "../../../src/components/ui/Button";
+import { useStyleSession } from "../../../src/store/useStyleSession";
 import {
   saveOutfit,
   trackAffiliateClick,
   requestHdRender,
-} from "@/api/client";
+} from "../../../src/api/client";
 
 export default function LookDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

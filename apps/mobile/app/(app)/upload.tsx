@@ -2,11 +2,11 @@ import { useState, useCallback } from "react";
 import { View, Text, Image, Pressable, Alert, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { Screen } from "@/components/ui/Screen";
-import { Button } from "@/components/ui/Button";
-import { useStyleSession } from "@/store/useStyleSession";
-import { saveLocalImage } from "@/storage/localFiles";
-import { uploadImage } from "@/api/client";
+import { Screen } from "../../src/components/ui/Screen";
+import { Button } from "../../src/components/ui/Button";
+import { useStyleSession } from "../../src/store/useStyleSession";
+import { saveLocalImage } from "../../src/storage/localFiles";
+import { uploadImage } from "../../src/api/client";
 
 /** Max dimension for the image sent to the server (preserves aspect ratio). */
 const MAX_UPLOAD_DIM = 1080;

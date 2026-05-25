@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { GenerateInput, GenerationJobResult } from "@/api/types";
+import type { GenerateInput, GenerationJobResult } from "../api/types";
 
 type StyleSession = {
   localPhotoUri: string | null;

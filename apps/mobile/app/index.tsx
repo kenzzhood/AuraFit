@@ -1,8 +1,8 @@
 import { View, Text, ImageBackground } from "react-native";
 import { Link, Redirect } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
-import { Screen } from "@/components/ui/Screen";
-import { Button } from "@/components/ui/Button";
+import { Screen } from "../src/components/ui/Screen";
+import { Button } from "../src/components/ui/Button";
 
 export default function LandingScreen() {
   const { isSignedIn, isLoaded } = useAuth();

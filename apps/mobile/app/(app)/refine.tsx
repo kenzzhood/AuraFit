@@ -8,8 +8,8 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { Screen } from "@/components/ui/Screen";
-import { sendChatMessage } from "@/api/client";
+import { Screen } from "../../src/components/ui/Screen";
+import { sendChatMessage } from "../../src/api/client";
 
 const SUGGESTIONS = [
   "Make this more minimal",

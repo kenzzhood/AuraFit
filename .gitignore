@@ -42,3 +42,7 @@ vercel
 # Mobile secrets (never commit)
 apps/mobile/.env
 apps/mobile/google-play-key.json
+
+# Debug instrumentation
+apps/mobile/.aurafit-debug.log
+.aurafit-debug.log

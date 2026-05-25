@@ -1,7 +1,7 @@
 import { View, Text, ScrollView, Pressable, Image } from "react-native";
 import { useRouter } from "expo-router";
-import { Screen } from "@/components/ui/Screen";
-import { useStyleSession } from "@/store/useStyleSession";
+import { Screen } from "../../src/components/ui/Screen";
+import { useStyleSession } from "../../src/store/useStyleSession";
 
 export default function ResultsScreen() {
   const router = useRouter();

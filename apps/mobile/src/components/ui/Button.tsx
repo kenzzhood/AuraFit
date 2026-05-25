@@ -4,7 +4,7 @@ import {
   type PressableProps,
   ActivityIndicator,
 } from "react-native";
-import { cn } from "@/lib/cn";
+import { cn } from "../../lib/cn";
 
 export function Button({
   label,
