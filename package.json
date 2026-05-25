@@ -70,5 +70,11 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.3",
     "vitest": "^2.1.9"
+  },
+  "overrides": {
+    "expo": "~52.0.28",
+    "react-native": "0.76.6",
+    "metro-cache": "0.81.5"
   }
 }
+
