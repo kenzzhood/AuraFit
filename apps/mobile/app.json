@@ -81,6 +81,14 @@
           "cameraPermission": "Aurafit uses your camera to take a photo for personalised styling.",
           "microphonePermission": false
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "1.9.25"
+          }
+        }
       ]
     ],
     "experiments": {
