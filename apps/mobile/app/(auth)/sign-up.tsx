@@ -1,9 +1,11 @@
-import { View, Text, TextInput, ScrollView } from "react-native";
+import { View, Text, TextInput } from "react-native";
 import { useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Screen } from "../../src/components/ui/Screen";
 import { Button } from "../../src/components/ui/Button";
+import { GoogleButton } from "../../src/components/ui/GoogleButton";
+import { useGoogleOAuth } from "../../src/auth/useGoogleOAuth";
 
 export default function SignUpScreen() {
   const { signUp, setActive, isLoaded } = useSignUp();
@@ -14,6 +16,16 @@ export default function SignUpScreen() {
   const [pendingVerification, setPendingVerification] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const goNext = useCallback(() => {
+    router.replace("/(app)/upload");
+  }, [router]);
+
+  const {
+    startGoogleOAuth,
+    loading: googleLoading,
+    error: googleError,
+  } = useGoogleOAuth(goNext);
 
   const onSignUp = async () => {
     if (!isLoaded) return;
@@ -38,7 +50,7 @@ export default function SignUpScreen() {
       const result = await signUp.attemptEmailAddressVerification({ code });
       if (result.status === "complete" && result.createdSessionId) {
         await setActive({ session: result.createdSessionId });
-        router.replace("/(app)/upload");
+        goNext();
       } else {
         setError("Verification incomplete. Try again.");
       }
@@ -82,14 +94,25 @@ export default function SignUpScreen() {
     );
   }
 
+  const formError = error ?? googleError;
+
   return (
-    <Screen className="justify-center gap-6">
+    <Screen className="justify-center gap-5">
       <View>
         <Text className="font-display text-3xl text-cream">Create account</Text>
         <Text className="mt-2 text-sm text-dim">
           Start your AI styling journey.
         </Text>
       </View>
+
+      <GoogleButton onPress={startGoogleOAuth} loading={googleLoading} />
+
+      <View className="flex-row items-center gap-3">
+        <View className="h-px flex-1 bg-border" />
+        <Text className="text-xs uppercase tracking-widest text-muted">or</Text>
+        <View className="h-px flex-1 bg-border" />
+      </View>
+
       <TextInput
         placeholder="Email"
         placeholderTextColor="#6b655c"
@@ -109,7 +132,7 @@ export default function SignUpScreen() {
         onChangeText={setPassword}
         className="rounded-2xl border border-border bg-ink px-4 py-4 text-cream"
       />
-      {error && <Text className="text-sm text-red-400">{error}</Text>}
+      {formError && <Text className="text-sm text-red-400">{formError}</Text>}
       <Button label="Create account" onPress={onSignUp} loading={loading} />
       <Link href="/(auth)/sign-in" className="text-center text-xs text-muted">
         Already have an account? Sign in

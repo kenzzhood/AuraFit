@@ -4,9 +4,12 @@ import { StatusBar } from "expo-status-bar";
 import { ClerkProvider, ClerkLoaded } from "@clerk/clerk-expo";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import * as WebBrowser from "expo-web-browser";
 import { tokenCache } from "../src/auth/tokenCache";
 import { CLERK_PUBLISHABLE_KEY } from "../src/config/env";
 import { ApiAuthBridge } from "../src/auth/ApiAuthBridge";
+
+WebBrowser.maybeCompleteAuthSession();
 
 const queryClient = new QueryClient();
 
