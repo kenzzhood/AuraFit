@@ -41,8 +41,7 @@ ENV NODE_ENV=production
 ENV SKIP_ENV_VALIDATION=1
 
 RUN npm run build \
- && ls -la .next/standalone/.next/server/app/ \
- && test -f .next/standalone/.next/server/app/generate/page.js
+ && test -f .next/server/app/generate/page.js
 
 # ── 3. runner: minimal runtime image ────────────────────────────────────────
 FROM node:${NODE_VERSION}-bookworm-slim AS runner
@@ -63,23 +62,13 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
-# Standalone tracing can drop App Router segments on some Linux builders — copy explicitly.
-COPY --from=builder --chown=nextjs:nodejs /app/.next/server/app/generate ./.next/server/app/generate
-COPY --from=builder --chown=nextjs:nodejs /app/.next/server/app/wardrobe ./.next/server/app/wardrobe
-COPY --from=builder --chown=nextjs:nodejs /app/.next/server/app/chat ./.next/server/app/chat
-COPY --from=builder --chown=nextjs:nodejs /app/.next/server/app/dashboard ./.next/server/app/dashboard
-COPY --from=builder --chown=nextjs:nodejs /app/.next/server/app/onboarding ./.next/server/app/onboarding
-COPY --from=builder --chown=nextjs:nodejs /app/.next/server/app/my-posts ./.next/server/app/my-posts
-COPY --from=builder --chown=nextjs:nodejs /app/.next/server/app/outfits ./.next/server/app/outfits
-COPY --from=builder --chown=nextjs:nodejs /app/.next/server/app-paths-manifest.json ./.next/server/app-paths-manifest.json
+# Standalone output-file-tracing can drop App Router page segments on the ACR
+# Linux builder (observed: /generate, /wardrobe, etc. returning 404 in prod even
+# though they build fine). Overlay the full compiled server tree so every page
+# handler, prerendered .html/.rsc, and manifest is guaranteed present at runtime.
+COPY --from=builder --chown=nextjs:nodejs /app/.next/server ./.next/server
 COPY --from=builder --chown=nextjs:nodejs /app/.next/routes-manifest.json ./.next/routes-manifest.json
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static/chunks/app/generate ./.next/static/chunks/app/generate
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static/chunks/app/wardrobe ./.next/static/chunks/app/wardrobe
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static/chunks/app/chat ./.next/static/chunks/app/chat
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static/chunks/app/dashboard ./.next/static/chunks/app/dashboard
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static/chunks/app/onboarding ./.next/static/chunks/app/onboarding
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static/chunks/app/my-posts ./.next/static/chunks/app/my-posts
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static/chunks/app/outfits ./.next/static/chunks/app/outfits
+COPY --from=builder --chown=nextjs:nodejs /app/.next/prerender-manifest.json ./.next/prerender-manifest.json
 
 # Prisma engines + schema for prisma migrate / queryRaw at runtime
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
