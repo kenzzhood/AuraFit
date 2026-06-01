@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 
 export function ProfileHeader({
   username,
   displayName,
   bio,
+  profileImageUrl,
   followerCount,
   followingCount,
   isFollowing,
@@ -16,6 +17,7 @@ export function ProfileHeader({
   username: string;
   displayName?: string | null;
   bio?: string | null;
+  profileImageUrl?: string | null;
   followerCount: number;
   followingCount: number;
   isFollowing: boolean;
@@ -23,6 +25,7 @@ export function ProfileHeader({
   onFollowChange?: () => void;
 }) {
   const { isSignedIn } = useAuth();
+  const { user } = useUser();
   const [busy, setBusy] = useState(false);
   const [following, setFollowing] = useState(isFollowing);
 
@@ -57,7 +60,20 @@ export function ProfileHeader({
 
   return (
     <header className="flex flex-col gap-4 border-b border-aura-border pb-8 sm:flex-row sm:items-start">
-      <div className="h-24 w-24 shrink-0 rounded-full bg-aura-highlight" />
+      {profileImageUrl || (isOwnProfile && user?.imageUrl) ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={profileImageUrl ?? user?.imageUrl ?? ""}
+          alt=""
+          className="h-24 w-24 shrink-0 rounded-full object-cover ring-1 ring-aura-border"
+        />
+      ) : (
+        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-aura-highlight ring-1 ring-aura-border">
+          <span className="font-display text-2xl text-aura-muted">
+            {(displayName ?? username).charAt(0).toUpperCase()}
+          </span>
+        </div>
+      )}
       <div className="flex-1">
         <h1 className="font-display text-3xl text-aura-foreground">
           @{username}

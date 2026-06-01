@@ -47,6 +47,7 @@ export default function ProfilePageClient({
         username={data.profile.username ?? username}
         displayName={data.profile.displayName}
         bio={data.profile.bio}
+        profileImageUrl={data.profile.profileImageUrl}
         followerCount={data.followerCount}
         followingCount={data.followingCount}
         isFollowing={data.isFollowing}

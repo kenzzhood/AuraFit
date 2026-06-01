@@ -10,8 +10,8 @@ export default function GeneratePage() {
         Generate looks
       </h1>
       <p className="mt-3 max-w-lg text-sm text-aura-dim">
-        Queue a generation job — progress streams from your worker; results
-        hydrate the outfit grid below.
+        Upload your photo, set the brief, and we&apos;ll generate six styled
+        looks with verified shop links — pick one to explore the full breakdown.
       </p>
       <div className="mt-10">
         <GenerateForm />

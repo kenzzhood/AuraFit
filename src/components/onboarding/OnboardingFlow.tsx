@@ -18,6 +18,7 @@ export function OnboardingFlow() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [profileUrl, setProfileUrl] = useState<string | null>(null);
   const [selectedAesthetics, setSelectedAesthetics] = useState<string[]>([]);
   const [palette, setPalette] = useState<string[]>(["#c9a962", "#1a1a24", "#f4eee2"]);
@@ -69,7 +70,7 @@ export function OnboardingFlow() {
       });
     } catch (e) {
       console.error(e);
-      alert("Upload failed. Check storage configuration.");
+      setFormError("Upload failed. Check storage configuration.");
     } finally {
       setBusy(false);
     }
@@ -130,7 +131,11 @@ export function OnboardingFlow() {
         });
         if (!ur.ok) {
           const err = await ur.json().catch(() => ({}));
-          alert(err.error ?? "Could not save username");
+          setFormError(
+            typeof err === "object" && err && "error" in err
+              ? String((err as { error: unknown }).error)
+              : "Could not save username"
+          );
           setBusy(false);
           return;
         }
@@ -151,6 +156,15 @@ export function OnboardingFlow() {
 
   return (
     <div className="mx-auto max-w-xl">
+      {formError && (
+        <div
+          role="alert"
+          className="mb-6 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+        >
+          {formError}
+        </div>
+      )}
+
       <div className="mb-8 flex gap-2">
         {[0, 1, 2].map((i) => (
           <div

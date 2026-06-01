@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
 import { auth } from "@clerk/nextjs/server";
 import { PlatformChrome } from "@/components/layout/PlatformChrome";
+import { OnboardingGate } from "@/components/layout/OnboardingGate";
 
 const clerkPk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
 
-export default async function PlatformLayout({
+export default async function StudioRouteLayout({
   children,
 }: {
   children: ReactNode;
@@ -13,5 +14,9 @@ export default async function PlatformLayout({
     await auth();
   }
 
-  return <PlatformChrome>{children}</PlatformChrome>;
+  return (
+    <PlatformChrome>
+      <OnboardingGate>{children}</OnboardingGate>
+    </PlatformChrome>
+  );
 }

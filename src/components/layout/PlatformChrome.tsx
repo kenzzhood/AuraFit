@@ -68,6 +68,44 @@ function BookmarkIcon(props: IconProps) {
   );
 }
 
+function ChatIcon(props: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      {...props}
+    >
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </svg>
+  );
+}
+
+function ExploreIcon(props: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      {...props}
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M14.5 9.5 16 8l1.5 1.5L16 11l-1.5-1.5z" />
+      <path d="M8 16l3.5-3.5" />
+      <path d="m14.5 14.5 1.5 1.5" />
+      <path d="M9 9l1.5 1.5" />
+    </svg>
+  );
+}
+
 type NavItem = {
   href: string;
   label: string;
@@ -78,6 +116,8 @@ const nav: NavItem[] = [
   { href: "/generate", label: "Style", icon: SparkleIcon },
   { href: "/wardrobe", label: "Wardrobe", icon: HangerIcon },
   { href: "/outfits", label: "Saved", icon: BookmarkIcon },
+  { href: "/chat", label: "Stylist", icon: ChatIcon },
+  { href: "/explore", label: "Explore", icon: ExploreIcon },
 ];
 
 const clerkPk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
@@ -174,7 +214,7 @@ export function PlatformChrome({ children }: { children: ReactNode }) {
 
         <nav
           aria-label="Primary"
-          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t border-aura-border bg-aura-void/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-aura-border bg-aura-void/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
         >
           {nav.map((item) => {
             const active = isActive(pathname, item.href);

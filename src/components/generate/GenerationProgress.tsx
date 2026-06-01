@@ -63,13 +63,16 @@ export function GenerationProgress({
   jobId,
   onComplete,
   onProgress,
+  onCancel,
 }: {
   jobId: string;
   onComplete: (job: Job) => void;
   onProgress?: (job: Job) => void;
+  onCancel?: () => void;
 }) {
   const [job, setJob] = useState<Job | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [cancelling, setCancelling] = useState(false);
   const notified = useRef(false);
 
   useEffect(() => {
@@ -130,6 +133,25 @@ export function GenerationProgress({
     return "Image generation is the heavy part. Please wait here while the board finishes rendering.";
   }, [job?.status, pct]);
 
+  const canCancel =
+    !cancelling &&
+    (!job ||
+      job.status === JobStatus.QUEUED ||
+      job.status === JobStatus.PROCESSING);
+
+  const handleCancel = async () => {
+    if (!canCancel) return;
+    setCancelling(true);
+    try {
+      await fetch(`/api/generate/status/${jobId}/cancel`, { method: "POST" });
+      onCancel?.();
+    } catch {
+      /* ignore — user can retry cancel or go back */
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   return (
     <div className="relative overflow-hidden rounded-[2rem] border border-aura-borderBright bg-[radial-gradient(circle_at_20%_0%,rgba(212,184,150,0.14),transparent_32%),linear-gradient(135deg,rgba(17,17,20,0.96),rgba(7,6,8,0.98))] p-5 shadow-glow sm:p-7">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-aura-champagne/60 to-transparent" />
@@ -177,6 +199,19 @@ export function GenerationProgress({
               </div>
             </div>
           </div>
+
+          {canCancel && onCancel && (
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={() => void handleCancel()}
+                disabled={cancelling}
+                className="rounded-xl border border-aura-border px-4 py-2.5 text-xs font-medium text-aura-muted transition hover:border-aura-borderBright hover:text-aura-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {cancelling ? "Cancelling…" : "Cancel generation"}
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="relative min-h-64 overflow-hidden rounded-[1.5rem] border border-aura-border bg-aura-void/45 p-4 shadow-inner-highlight">

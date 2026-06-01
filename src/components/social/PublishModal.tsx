@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { PostVisibility } from "@prisma/client";
+
+type PostVisibility = "PUBLIC" | "PRIVATE";
 
 export function PublishModal({
   outfitId,
@@ -15,9 +16,7 @@ export function PublishModal({
   onPublished?: () => void;
 }) {
   const [caption, setCaption] = useState("");
-  const [visibility, setVisibility] = useState<PostVisibility>(
-    PostVisibility.PUBLIC
-  );
+  const [visibility, setVisibility] = useState<PostVisibility>("PUBLIC");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -70,16 +69,16 @@ export function PublishModal({
           <label className="flex cursor-pointer items-center gap-2 text-xs text-aura-dim">
             <input
               type="radio"
-              checked={visibility === PostVisibility.PUBLIC}
-              onChange={() => setVisibility(PostVisibility.PUBLIC)}
+              checked={visibility === "PUBLIC"}
+              onChange={() => setVisibility("PUBLIC")}
             />
             Public
           </label>
           <label className="flex cursor-pointer items-center gap-2 text-xs text-aura-dim">
             <input
               type="radio"
-              checked={visibility === PostVisibility.PRIVATE}
-              onChange={() => setVisibility(PostVisibility.PRIVATE)}
+              checked={visibility === "PRIVATE"}
+              onChange={() => setVisibility("PRIVATE")}
             />
             Private
           </label>

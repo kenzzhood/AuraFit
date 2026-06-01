@@ -65,6 +65,19 @@ export function GenerateForm() {
   const [looks, setLooks] = useState<GenerationLookResult[]>([]);
   const [selectedLook, setSelectedLook] = useState<number | null>(null);
   const [doneJob, setDoneJob] = useState<JobShape | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  const [savedOutfitId, setSavedOutfitId] = useState<string | null>(null);
+
+  const showError = (message: string) => {
+    setFormSuccess(null);
+    setFormError(message);
+  };
+
+  const showSuccess = (message: string) => {
+    setFormError(null);
+    setFormSuccess(message);
+  };
 
   useEffect(() => {
     if (restored.current) return;
@@ -183,11 +196,9 @@ export function GenerateForm() {
       await wardrobeQ.refetch();
     } catch (e) {
       console.error("delete wardrobe item failed", e);
-      if (typeof window !== "undefined") {
-        window.alert(
-          e instanceof Error ? e.message : "Failed to delete that piece."
-        );
-      }
+      showError(
+        e instanceof Error ? e.message : "Failed to delete that piece."
+      );
     } finally {
       setDeletingItemId((curr) => (curr === id ? null : curr));
     }
@@ -237,7 +248,7 @@ export function GenerateForm() {
     } catch (e) {
       setPhotoPreview(null);
       setUserPhotoUrl(null);
-      alert(e instanceof Error ? e.message : "Photo upload failed");
+      showError(e instanceof Error ? e.message : "Photo upload failed");
     } finally {
       setUploadingPhoto(false);
     }
@@ -315,6 +326,7 @@ export function GenerateForm() {
             ? wardrobeItemIds
             : undefined,
         wardrobeMode: path === "wardrobe" ? wardrobeMode : undefined,
+        renderQuality: "medium",
       }),
     });
     const data = await r.json();
@@ -386,17 +398,22 @@ export function GenerateForm() {
         });
     const data = await r.json().catch(() => ({}));
     if (!r.ok) {
-      alert(
+      showError(
         typeof data === "object" && data && "error" in data
           ? String((data as { error: unknown }).error)
           : "Save failed"
       );
       return;
     }
+    const nextOutfitId =
+      typeof data === "object" && data && "id" in data
+        ? String((data as { id: unknown }).id)
+        : outfitId;
+    if (nextOutfitId) setSavedOutfitId(nextOutfitId);
     if (process.env.NEXT_PUBLIC_POSTHOG_KEY) {
       posthog.capture("outfit_saved_from_generate", { lookIndex: selectedLook });
     }
-    alert("Saved to Outfits");
+    showSuccess("Saved to Outfits");
   };
 
   const resetSession = () => {
@@ -409,6 +426,9 @@ export function GenerateForm() {
     setSelectedLook(null);
     setUserPhotoUrl(null);
     setPhotoPreview(null);
+    setFormError(null);
+    setFormSuccess(null);
+    setSavedOutfitId(null);
   };
 
   // Maps the wizard's internal `step` (0..3) to the visible 3-step
@@ -425,6 +445,19 @@ export function GenerateForm() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 md:space-y-8">
+      {(formError || formSuccess) && (
+        <div
+          role="alert"
+          className={`rounded-xl border px-4 py-3 text-sm ${
+            formError
+              ? "border-red-400/20 bg-red-500/10 text-red-300"
+              : "border-emerald-400/20 bg-emerald-500/10 text-emerald-200"
+          }`}
+        >
+          {formError ?? formSuccess}
+        </div>
+      )}
+
       <ol
         aria-label="Generation steps"
         className="flex items-center justify-between gap-2 rounded-full border border-aura-border bg-aura-void/70 px-3 py-2 text-[11px] uppercase tracking-[0.18em] backdrop-blur md:hidden"
@@ -889,11 +922,13 @@ export function GenerateForm() {
               }
               onClick={async () => {
                 try {
+                  setFormError(null);
+                  setFormSuccess(null);
                   setDoneJob(null);
                   await startGenerate();
                   setStep(2);
                 } catch (e) {
-                  alert(
+                  showError(
                     e instanceof Error
                       ? e.message
                       : "Could not start generation"
@@ -921,6 +956,11 @@ export function GenerateForm() {
               if (j.status === JobStatus.DONE || j.status === JobStatus.FAILED) {
                 onJobComplete(j as JobShape);
               }
+            }}
+            onCancel={() => {
+              setStep(0);
+              setJobId(null);
+              setDoneJob(null);
             }}
           />
           {doneJob?.status === JobStatus.FAILED && (
@@ -962,7 +1002,7 @@ export function GenerateForm() {
               <LookDetailPanel
                 look={selectedLook != null ? looks[selectedLook] ?? null : null}
                 lookIndex={selectedLook}
-                outfitId={doneJob?.result?.outfitId}
+                outfitId={savedOutfitId ?? doneJob?.result?.outfitId}
                 onSave={selectedLook != null ? saveSnapshot : undefined}
               />
             </div>

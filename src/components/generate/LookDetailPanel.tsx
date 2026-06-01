@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import posthog from "posthog-js";
 import type { GenerationLookResult } from "@/types/generation";
+import { PublishModal } from "@/components/social/PublishModal";
 
 function formatPrice(price?: number, currency?: string) {
   if (price == null) return null;
@@ -110,6 +112,8 @@ export function LookDetailPanel({
   outfitId?: string | null;
   onSave?: () => void;
 }) {
+  const [publishOpen, setPublishOpen] = useState(false);
+
   if (lookIndex == null || !look) {
     return (
       <div className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border border-dashed border-aura-border bg-aura-ink/30 p-8 text-center">
@@ -364,17 +368,41 @@ export function LookDetailPanel({
         })()}
       </div>
 
-      {onSave && (
+      {(onSave || outfitId) && (
         <div className="border-t border-aura-border p-4">
-          <button
-            type="button"
-            onClick={onSave}
-            className="w-full rounded-xl bg-aura-champagne py-2.5 text-sm font-medium text-aura-void"
-          >
-            Save this look
-          </button>
+          <div className="flex gap-2">
+            {onSave && (
+              <button
+                type="button"
+                onClick={onSave}
+                className="flex-1 rounded-xl bg-aura-champagne py-2.5 text-sm font-medium text-aura-void"
+              >
+                Save this look
+              </button>
+            )}
+            {outfitId && (
+              <button
+                type="button"
+                onClick={() => setPublishOpen(true)}
+                className="flex-1 rounded-xl border border-aura-champagne py-2.5 text-sm font-medium text-aura-champagne"
+              >
+                Share to Atelier
+              </button>
+            )}
+          </div>
+          {!outfitId && onSave && (
+            <p className="mt-2 text-[10px] text-aura-muted">
+              Save this look first to share it on Explore.
+            </p>
+          )}
         </div>
       )}
+
+      <PublishModal
+        outfitId={outfitId ?? null}
+        open={publishOpen}
+        onClose={() => setPublishOpen(false)}
+      />
     </div>
   );
 }
