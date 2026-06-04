@@ -67,6 +67,7 @@ export function GenerateForm() {
   const [doneJob, setDoneJob] = useState<JobShape | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  const [startingGenerate, setStartingGenerate] = useState(false);
   const [savedOutfitId, setSavedOutfitId] = useState<string | null>(null);
 
   const showError = (message: string) => {
@@ -916,12 +917,15 @@ export function GenerateForm() {
             <button
               type="button"
               disabled={
-                path === "wardrobe" &&
-                (wardrobeItems.length === 0 ||
-                  (wardrobeMode === "pair" && wardrobeItemIds.length === 0))
+                startingGenerate ||
+                (path === "wardrobe" &&
+                  (wardrobeItems.length === 0 ||
+                    (wardrobeMode === "pair" && wardrobeItemIds.length === 0)))
               }
               onClick={async () => {
+                if (startingGenerate) return;
                 try {
+                  setStartingGenerate(true);
                   setFormError(null);
                   setFormSuccess(null);
                   setDoneJob(null);
@@ -933,11 +937,13 @@ export function GenerateForm() {
                       ? e.message
                       : "Could not start generation"
                   );
+                } finally {
+                  setStartingGenerate(false);
                 }
               }}
               className="flex-1 rounded-xl bg-aura-champagne py-3 text-sm font-medium text-aura-void disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Generate 6 looks
+              {startingGenerate ? "Starting…" : "Generate 6 looks"}
             </button>
           </div>
           <p className="text-center text-xs leading-5 text-aura-muted">

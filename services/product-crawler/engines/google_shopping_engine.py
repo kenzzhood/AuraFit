@@ -92,13 +92,35 @@ async def _fetch_via_playwright(url: str) -> str:
     context = await browser.new_context(user_agent=DEFAULT_HEADERS["User-Agent"])
     try:
         page = await context.new_page()
-        await page.goto(url, wait_until="domcontentloaded", timeout=30_000)
-        # Give lazy-loaded thumbnails a chance to swap in.
+        pw_timeout = int(os.environ.get("GOOGLE_SHOPPING_PW_TIMEOUT_MS", "8000"))
+        await page.goto(url, wait_until="domcontentloaded", timeout=pw_timeout)
+        # Dismiss common consent / cookie interstitials.
+        for selector in (
+            "button#L2AGLb",
+            "button[aria-label*='Accept']",
+            "button:has-text('Accept all')",
+            "button:has-text('I agree')",
+        ):
+            try:
+                btn = page.locator(selector).first
+                if await btn.is_visible(timeout=800):
+                    await btn.click(timeout=1_000)
+                    await asyncio.sleep(0.3)
+                    break
+            except Exception:
+                pass
+        # Scroll to load lazy product cards.
+        for _ in range(2):
+            try:
+                await page.evaluate("window.scrollBy(0, window.innerHeight)")
+                await asyncio.sleep(0.4)
+            except Exception:
+                break
         try:
             await page.wait_for_selector(
                 "div.sh-dgr__content, div.KZmu8e, div.tu5SU, div.i0X6df, "
                 "div.Cluv0, div.uYNZm, div.sh-pr__product-result",
-                timeout=4_000,
+                timeout=2_000,
             )
         except Exception:
             pass

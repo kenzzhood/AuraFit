@@ -29,7 +29,7 @@ export function Button({
       {...props}
     >
       {loading ? (
-        <ActivityIndicator color={variant === "primary" ? "#0f0e0c" : "#c9a962"} />
+        <ActivityIndicator color={variant === "primary" ? "#070608" : "#d4b896"} />
       ) : (
         <Text
           className={cn(

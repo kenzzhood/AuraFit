@@ -3,7 +3,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from extractors.fashion_product import parse_products_from_markdown
+from extractors.fashion_product import (
+    parse_products_from_html,
+    parse_products_from_markdown,
+    parse_products_from_response,
+)
 
 
 async def crawl_url(url: str, query: str) -> tuple[str, list[dict[str, Any]]]:
@@ -13,7 +17,10 @@ async def crawl_url(url: str, query: str) -> tuple[str, list[dict[str, Any]]]:
         async with AsyncWebCrawler(verbose=False) as crawler:
             result = await crawler.arun(url=url)
             markdown = result.markdown or ""
-            products = parse_products_from_markdown(markdown, url)
+            html = result.html or ""
+            products = parse_products_from_html(html, url) if html else []
+            if not products:
+                products = parse_products_from_markdown(markdown, url)
             for p in products:
                 p.setdefault("source", "crawl")
                 if query and "aestheticTags" not in p:
@@ -25,10 +32,17 @@ async def crawl_url(url: str, query: str) -> tuple[str, list[dict[str, Any]]]:
 
 
 async def extract_products(url: str, query: str, html: str | None = None) -> list[dict[str, Any]]:
-    """Prefer Crawl4AI; fallback to markdown parse of provided HTML."""
-    _, products = await crawl_url(url, query)
-    if products:
-        return products
+    """Parse provided HTML/JSON first; only call Crawl4AI when no candidates found."""
     if html:
-        return parse_products_from_markdown(html, url)
-    return []
+        products = parse_products_from_response(html, url)
+        if not products:
+            products = parse_products_from_markdown(html, url)
+        if products:
+            for p in products:
+                p.setdefault("source", "crawl")
+                if query and "aestheticTags" not in p:
+                    p["aestheticTags"] = query.split()[:5]
+            return products
+
+    _, products = await crawl_url(url, query)
+    return products

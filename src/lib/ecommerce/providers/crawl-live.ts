@@ -31,7 +31,11 @@ export const crawlLiveProductProvider: ProductSearchProvider = {
 };
 
 /** Called from background jobs only — may take 30–120s. */
-export async function crawlProductsLive(q: ProductQuery): Promise<Product[]> {
+export async function crawlProductsLive(
+  q: ProductQuery,
+  options?: { maxResults?: number }
+): Promise<Product[]> {
+  const maxResults = options?.maxResults ?? 3;
   const url = `${CRAWLER_URL()}/crawl/search`;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -39,7 +43,6 @@ export async function crawlProductsLive(q: ProductQuery): Promise<Product[]> {
   const key = CRAWLER_KEY();
   if (key) headers["X-Crawler-Key"] = key;
 
-  const startedAt = Date.now();
   let res: Response;
   try {
     res = await fetch(url, {
@@ -51,94 +54,23 @@ export async function crawlProductsLive(q: ProductQuery): Promise<Product[]> {
         category: q.category,
         budget_min: q.budgetMin,
         budget_max: q.budgetMax,
+        max_results: maxResults,
       }),
       signal: AbortSignal.timeout(120_000),
     });
   } catch (e) {
-    // #region agent log
-    try {
-      fetch('http://127.0.0.1:7717/ingest/8a77d6d8-834f-4f42-ac01-0cc8761305b6', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9cb59e' },
-        body: JSON.stringify({
-          sessionId: '9cb59e',
-          hypothesisId: 'H1,H3',
-          location: 'crawl-live.ts:fetch-error',
-          message: 'crawler-fetch-threw',
-          data: {
-            query: q.query.slice(0, 80),
-            category: q.category,
-            elapsedMs: Date.now() - startedAt,
-            error: e instanceof Error ? e.message : String(e),
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-    } catch {}
-    // #endregion
     throw e;
   }
 
   if (!res.ok) {
     const text = await res.text();
-    // #region agent log
-    try {
-      fetch('http://127.0.0.1:7717/ingest/8a77d6d8-834f-4f42-ac01-0cc8761305b6', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9cb59e' },
-        body: JSON.stringify({
-          sessionId: '9cb59e',
-          hypothesisId: 'H1',
-          location: 'crawl-live.ts:non-2xx',
-          message: 'crawler-non-2xx',
-          data: { status: res.status, body: text.slice(0, 300), elapsedMs: Date.now() - startedAt },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-    } catch {}
-    // #endregion
     throw new Error(`Crawler failed ${res.status}: ${text.slice(0, 200)}`);
   }
 
   const data = (await res.json()) as {
     products?: Record<string, unknown>[];
-    count?: number;
-    candidateCount?: number;
-    rejected?: { url: string; reason: string }[];
   };
   const items = data.products ?? [];
-  // #region agent log
-  try {
-    fetch('http://127.0.0.1:7717/ingest/8a77d6d8-834f-4f42-ac01-0cc8761305b6', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9cb59e' },
-      body: JSON.stringify({
-        sessionId: '9cb59e',
-        hypothesisId: 'H1,H2,H3',
-        location: 'crawl-live.ts:response-parsed',
-        message: 'crawler-response',
-        data: {
-          query: q.query.slice(0, 80),
-          category: q.category,
-          status: res.status,
-          elapsedMs: Date.now() - startedAt,
-          verifiedCount: items.length,
-          candidateCount: data.candidateCount,
-          rejectedCount: data.rejected?.length ?? 0,
-          rejectedSample: (data.rejected ?? []).slice(0, 4),
-          sample: items.slice(0, 2).map((it) => ({
-            title: typeof it.title === 'string' ? it.title.slice(0, 60) : null,
-            verified: it.verified,
-            source: it.source,
-            hasImage: !!(it.image ?? it.imageUrl),
-            url: typeof it.url === 'string' ? it.url.slice(0, 120) : null,
-          })),
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-  } catch {}
-  // #endregion
   return normalizeProductBatch(items, "crawl", {
     region: q.region,
     currency: q.region === "US" ? "USD" : q.region === "UK" ? "GBP" : "INR",

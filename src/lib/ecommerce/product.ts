@@ -55,6 +55,7 @@ export type NormalizedProduct = {
   availability?: ProductAvailability;
   matchCategory?: string;
   matchConfidence?: number;
+  rating?: number;
 };
 
 export function productToNormalized(p: Product): NormalizedProduct {
@@ -73,6 +74,7 @@ export function productToNormalized(p: Product): NormalizedProduct {
     availability: p.availability,
     matchCategory: p.matchCategory,
     matchConfidence: p.matchConfidence,
+    rating: p.rating,
   };
 }
 
@@ -92,5 +94,6 @@ export function normalizedToProduct(p: NormalizedProduct): Product {
     canonicalUrl: p.canonicalUrl,
     matchCategory: p.matchCategory,
     matchConfidence: p.matchConfidence,
+    rating: p.rating,
   };
 }

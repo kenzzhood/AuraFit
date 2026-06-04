@@ -284,24 +284,67 @@ def parse_google_shopping_html(
 
 
 def fallback_parse_json_blobs(html: str) -> list[dict[str, Any]]:
-    """Some Google Shopping responses ship product metadata in an inline
-    AF_initDataCallback blob. This is a best-effort secondary path for when
-    the CSS selectors above return nothing."""
+    """Best-effort parse of AF_initDataCallback inline product blobs."""
     if not html:
         return []
     out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    def _walk(node: Any, depth: int = 0) -> None:
+        if depth > 12 or len(out) >= 12:
+            return
+        if isinstance(node, str):
+            if node.startswith("http") and "google" not in node and len(node) > 20:
+                pass  # collected via tuple walk below
+            return
+        if isinstance(node, list):
+            # Look for [title, ..., url, ..., image] shaped tuples
+            strings = [s for s in node if isinstance(s, str) and len(s) > 2]
+            urls = [s for s in strings if s.startswith("http") and "google" not in s]
+            titles = [
+                s
+                for s in strings
+                if not s.startswith("http") and len(s) >= 8 and "₹" not in s and "$" not in s
+            ]
+            if urls and titles:
+                link = urls[0]
+                title = titles[0]
+                if link not in seen and _looks_like_merchant_url(link):
+                    seen.add(link)
+                    price: float | None = None
+                    for s in strings:
+                        if "₹" in s or "$" in s:
+                            p, _ = _parse_price(s)
+                            if p:
+                                price = p
+                                break
+                    images = [s for s in strings if s.startswith("http") and s != link]
+                    out.append(
+                        {
+                            "title": title,
+                            "url": link,
+                            "image": images[0] if images else None,
+                            "price": price,
+                            "currency": "INR",
+                            "source": "google_shopping",
+                            "verified": True,
+                            "availability": "in_stock",
+                        }
+                    )
+            for item in node:
+                _walk(item, depth + 1)
+        elif isinstance(node, dict):
+            for v in node.values():
+                _walk(v, depth + 1)
+
     for match in re.finditer(
-        r'AF_initDataCallback\(\{key:\s*"ds:\d+"[^}]+data:\s*(\[.+?\]),\s*sideChannel',
+        r"AF_initDataCallback\(\{key:\s*['\"]ds:\d+['\"][^}]+data:\s*(\[.+?\])\s*,\s*sideChannel",
         html,
         flags=re.S,
     ):
         try:
             data = json.loads(match.group(1))
+            _walk(data)
         except Exception:
             continue
-        # Walking arbitrary Google blobs is brittle; we only opportunistically
-        # look for arrays of (title,price,url,image) tuples. If a future change
-        # demands it we can flesh this out, but the CSS path above handles
-        # the common case.
-        _ = data
     return out

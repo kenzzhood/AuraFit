@@ -9,7 +9,7 @@ export default function LandingScreen() {
 
   if (!isLoaded) return null;
   if (isSignedIn) {
-    return <Redirect href="/(app)/upload" />;
+    return <Redirect href="/(app)/(tabs)" />;
   }
 
   return (

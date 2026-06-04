@@ -20,7 +20,15 @@
     "setup:local": "bash scripts/start-local.sh",
     "setup:crawler": "docker compose -f docker-compose.crawler.yml up --build",
     "setup:check": "bash scripts/check-setup.sh",
-    "setup:wizard": "bash scripts/complete-local-setup.sh"
+    "setup:wizard": "bash scripts/complete-local-setup.sh",
+    "azure:setup": "bash scripts/azure-env-setup.sh",
+    "azure:up": "azd up",
+    "azure:deploy": "azd deploy",
+    "azure:start": "bash scripts/azure-start.sh",
+    "azure:stop": "bash scripts/azure-stop.sh",
+    "azure:status": "bash scripts/azure-status.sh",
+    "azure:db-init": "bash scripts/db-init.sh",
+    "mobile:rewire": "bash scripts/mobile-rewire.sh"
   },
   "dependencies": {
     "@azure/identity": "^4.6.0",

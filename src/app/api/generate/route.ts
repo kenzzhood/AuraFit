@@ -7,7 +7,8 @@ import { generateJobSchema } from "@/types/api";
 import { JobStatus, JobType } from "@prisma/client";
 import { tryRemoteEnqueueGeneration } from "@/lib/queue/producer";
 import { processGenerationJob } from "@/lib/jobs/generation";
-import { rateLimit } from "@/lib/redis";
+import { generationRateLimitedResponse } from "@/lib/api/rate-limit-response";
+import { GENERATION_RATE_LIMIT, rateLimit } from "@/lib/redis";
 
 export async function POST(req: Request) {
   const { userId } = await auth();
@@ -20,9 +21,13 @@ export async function POST(req: Request) {
     cu?.primaryEmailAddress?.emailAddress
   );
 
-  const lim = await rateLimit(`gen:${user.id}`, 10, 60);
+  const lim = await rateLimit(
+    `gen:${user.id}`,
+    GENERATION_RATE_LIMIT.limit,
+    GENERATION_RATE_LIMIT.windowSec
+  );
   if (!lim.ok) {
-    return NextResponse.json({ error: "Rate limited" }, { status: 429 });
+    return generationRateLimitedResponse(lim.retryAfterSec);
   }
 
   const parsed = generateJobSchema.safeParse(await req.json());

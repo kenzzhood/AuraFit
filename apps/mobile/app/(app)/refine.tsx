@@ -9,7 +9,7 @@ import {
   Platform,
 } from "react-native";
 import { Screen } from "../../src/components/ui/Screen";
-import { sendChatMessage } from "../../src/api/client";
+import { ChatRequestError, sendChatMessage } from "../../src/api/client";
 
 const SUGGESTIONS = [
   "Make this more minimal",
@@ -19,50 +19,100 @@ const SUGGESTIONS = [
   "Use my wardrobe items",
 ];
 
+function stylistErrorMessage(err: unknown): string {
+  if (err instanceof ChatRequestError) {
+    if (err.status === 401 || err.status === 403) {
+      return "Please sign in again to use the stylist.";
+    }
+    if (err.status === 503) {
+      return "Stylist is temporarily unavailable. The AI service may not be configured on the server.";
+    }
+    return err.message;
+  }
+  if (err instanceof Error) {
+    if (err.message.includes("timed out")) {
+      return "Stylist request timed out. Please try again.";
+    }
+    if (err.message.includes("Could not reach stylist")) {
+      return err.message;
+    }
+    return err.message;
+  }
+  return "Could not reach the stylist. Please try again.";
+}
+
 export default function RefineScreen() {
   const [messages, setMessages] = useState<
     Array<{ role: "user" | "assistant"; content: string }>
   >([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [conversationId, setConversationId] = useState<string | undefined>();
 
   const send = async (text: string) => {
-    if (!text.trim()) return;
+    if (!text.trim() || busy) return;
     setBusy(true);
     setMessages((m) => [...m, { role: "user", content: text }]);
     setInput("");
+
     try {
-      const res = await sendChatMessage({ message: text });
-      const reader = res.body?.getReader();
+      const { response: res, conversationId: newConvId } = await sendChatMessage({
+        message: text,
+        conversationId,
+      });
+      if (newConvId) setConversationId(newConvId);
+
       let assistant = "";
+      const reader = res.body?.getReader();
+
       if (reader) {
         const decoder = new TextDecoder();
+        setMessages((m) => [...m, { role: "assistant", content: "" }]);
+
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           assistant += decoder.decode(value, { stream: true });
+          const snapshot = assistant;
           setMessages((m) => {
             const copy = [...m];
             const last = copy[copy.length - 1];
             if (last?.role === "assistant") {
-              copy[copy.length - 1] = { role: "assistant", content: assistant };
+              copy[copy.length - 1] = { role: "assistant", content: snapshot };
             } else {
-              copy.push({ role: "assistant", content: assistant });
+              copy.push({ role: "assistant", content: snapshot });
+            }
+            return copy;
+          });
+        }
+
+        if (!assistant.trim()) {
+          setMessages((m) => {
+            const copy = [...m];
+            const last = copy[copy.length - 1];
+            if (last?.role === "assistant") {
+              copy[copy.length - 1] = {
+                role: "assistant",
+                content: "I couldn't generate a reply. Please try again.",
+              };
             }
             return copy;
           });
         }
       } else {
-        const json = (await res.json()) as { text?: string };
+        const textBody = await res.text();
         setMessages((m) => [
           ...m,
-          { role: "assistant", content: json.text ?? "No response." },
+          {
+            role: "assistant",
+            content: textBody.trim() || "No response.",
+          },
         ]);
       }
-    } catch {
+    } catch (err) {
       setMessages((m) => [
         ...m,
-        { role: "assistant", content: "Stylist is unavailable. Check API keys." },
+        { role: "assistant", content: stylistErrorMessage(err) },
       ]);
     } finally {
       setBusy(false);
@@ -85,7 +135,9 @@ export default function RefineScreen() {
             <View
               key={i}
               className={`mb-3 max-w-[90%] rounded-2xl px-4 py-3 ${
-                m.role === "user" ? "ml-auto bg-champagne/20" : "bg-ink border border-border"
+                m.role === "user"
+                  ? "ml-auto bg-champagne/20"
+                  : "bg-ink border border-border"
               }`}
             >
               <Text className="text-sm leading-5 text-cream">{m.content}</Text>
@@ -98,6 +150,7 @@ export default function RefineScreen() {
             <Pressable
               key={s}
               onPress={() => send(s)}
+              disabled={busy}
               className="mr-2 rounded-full border border-border px-3 py-2"
             >
               <Text className="text-xs text-dim">{s}</Text>
@@ -110,15 +163,16 @@ export default function RefineScreen() {
             value={input}
             onChangeText={setInput}
             placeholder="Ask your stylist…"
-            placeholderTextColor="#6b655c"
+            placeholderTextColor="#6b6b73"
+            editable={!busy}
             className="flex-1 rounded-2xl border border-border bg-ink px-4 py-3 text-cream"
           />
           <Pressable
             onPress={() => send(input)}
             disabled={busy}
-            className="items-center justify-center rounded-2xl bg-champagne px-5"
+            className="items-center justify-center rounded-2xl bg-champagne px-5 opacity-100 disabled:opacity-50"
           >
-            <Text className="font-semibold text-void">Send</Text>
+            <Text className="font-semibold text-void">{busy ? "…" : "Send"}</Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>

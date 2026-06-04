@@ -8,9 +8,8 @@ import { prisma } from "@/lib/prisma";
 // inline `after()` killed mid-run). We auto-fail it here so the polling UI
 // can move on instead of spinning forever on a zombie row.
 //
-// The full pipeline targets 1.5–2.5 min; 5 min gives generous headroom for a
-// slow first run while still recovering quickly from genuine zombies.
-const STALE_JOB_THRESHOLD_MS = 5 * 60 * 1000;
+// Sync product crawl + cold crawler can exceed 5 min; keep above mobile poll (6 min).
+const STALE_JOB_THRESHOLD_MS = 10 * 60 * 1000;
 
 export async function GET(
   _req: Request,

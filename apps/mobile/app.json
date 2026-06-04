@@ -2,7 +2,7 @@
   "expo": {
     "name": "Aurafit",
     "slug": "aurafit",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "aurafit",
@@ -43,7 +43,7 @@
         "backgroundColor": "#0f0e0c"
       },
       "package": "app.aurafit.mobile",
-      "versionCode": 2,
+      "versionCode": 4,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
@@ -72,6 +72,12 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-updates",
+        {
+          "username": "kenzzhood"
+        }
+      ],
       "expo-secure-store",
       "expo-sqlite",
       [

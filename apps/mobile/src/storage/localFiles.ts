@@ -33,6 +33,44 @@ export async function saveLocalImage(
 }
 
 /**
+ * Copy an image from a source URI (e.g. expo-image-picker result) to
+ * local device storage without loading the data into JS memory.
+ * Returns the destination file URI on success.
+ */
+export async function saveLocalImageFromUri(
+  subDir: string,
+  fileName: string,
+  sourceUri: string
+): Promise<string> {
+  const dir = await ensureDir(subDir);
+  const fileUri = `${dir}${fileName}`;
+  await FileSystem.copyAsync({ from: sourceUri, to: fileUri });
+  return fileUri;
+}
+
+/** Max size (bytes) for JSON base64 fallback uploads. */
+export const MAX_JSON_UPLOAD_BYTES = 4 * 1024 * 1024;
+
+/**
+ * Ensure we have a readable file:// URI for native upload.
+ * Android gallery/camera often returns content:// which fetch FormData
+ * cannot read — copy to cache first.
+ */
+export async function ensureUploadFileUri(
+  sourceUri: string,
+  fileName: string
+): Promise<string> {
+  if (sourceUri.startsWith("file://")) {
+    const info = await FileSystem.getInfoAsync(sourceUri);
+    if (info.exists) return sourceUri;
+  }
+
+  const dest = `${FileSystem.cacheDirectory}upload-${Date.now()}-${fileName}`;
+  await FileSystem.copyAsync({ from: sourceUri, to: dest });
+  return dest;
+}
+
+/**
  * Read a local image as a base64 string.
  * Returns null if the file does not exist.
  */

@@ -1,11 +1,106 @@
-# Per-retailer crawl hints (expand over time)
+# Per-retailer crawl configuration (loaded by config/retailers.py)
+# Tier 1: stores that reliably return verified products from cloud IPs.
+# Tier 2: major marketplaces (often bot-blocked; kept as fallback).
+# Tier 3: best-effort only.
 retailers:
-  myntra:
-    search_url_template: "https://www.myntra.com/{query}"
+  snitch:
+    search_url_template: "https://www.snitch.co.in/search?q={query}"
+    regions: [IN]
+    priority: 99
     engine: playwright
+    disabled: true
+  bananaclub:
+    search_url_template: "https://www.bananaclub.co.in/search?q={query}"
+    regions: [IN]
+    priority: 1
+    engine: playwright
+  flipkart:
+    search_url_template: "https://www.flipkart.com/search?q={query}"
+    regions: [IN]
+    priority: 2
+    engine: playwright
+  tatacliq:
+    search_url_template: "https://www.tatacliq.com/search/?searchCategory=all&text={query}"
+    regions: [IN]
+    priority: 2
+    engine: playwright
+  amazon_in:
+    search_url_template: "https://www.amazon.in/s?k={query}"
+    regions: [IN]
+    priority: 2
+    engine: playwright
+  myntra:
+    search_url_template: "https://www.myntra.com/{slug_query}"
+    regions: [IN]
+    priority: 3
+    engine: httpx
   ajio:
     search_url_template: "https://www.ajio.com/search/?text={query}"
-    engine: crawl4ai
-  generic:
-    search_url_template: "https://www.google.com/search?tbm=shop&q={query}"
-    engine: crawl4ai
+    regions: [IN]
+    priority: 3
+    engine: httpx
+  nykaa:
+    search_url_template: "https://www.nykaafashion.com/search/result/?query={query}"
+    regions: [IN]
+    priority: 3
+    engine: playwright
+  zara_in:
+    search_url_template: "https://www.zara.com/in/en/search?searchTerm={query}"
+    regions: [IN]
+    priority: 1
+    engine: playwright
+  zara_us:
+    search_url_template: "https://www.zara.com/us/en/search?searchTerm={query}"
+    regions: [US]
+    priority: 1
+    engine: playwright
+  zara_uk:
+    search_url_template: "https://www.zara.com/uk/en/search?searchTerm={query}"
+    regions: [UK]
+    priority: 1
+    engine: playwright
+  hm_in:
+    search_url_template: "https://www2.hm.com/en_in/search-results.html?q={query}"
+    regions: [IN]
+    priority: 1
+    engine: playwright
+  hm_us:
+    search_url_template: "https://www2.hm.com/en_us/search-results.html?q={query}"
+    regions: [US]
+    priority: 1
+    engine: playwright
+  hm_uk:
+    search_url_template: "https://www2.hm.com/en_gb/search-results.html?q={query}"
+    regions: [UK]
+    priority: 1
+    engine: playwright
+  uniqlo_in:
+    search_url_template: "https://www.uniqlo.com/in/en/search?q={query}"
+    regions: [IN]
+    priority: 2
+    engine: playwright
+  uniqlo_us:
+    search_url_template: "https://www.uniqlo.com/us/en/search?q={query}"
+    regions: [US]
+    priority: 2
+    engine: playwright
+  uniqlo_uk:
+    search_url_template: "https://www.uniqlo.com/uk/en/search?q={query}"
+    regions: [UK]
+    priority: 2
+    engine: playwright
+  asos:
+    search_url_template: "https://www.asos.com/api/product/search/v2/?q={query}&channel=desktop-web&store=COM&limit=48"
+    regions: [IN, US, UK]
+    priority: 1
+    engine: httpx
+  amazon_us:
+    search_url_template: "https://www.amazon.com/s?k={query}"
+    regions: [US]
+    priority: 1
+    engine: playwright
+  amazon_uk:
+    search_url_template: "https://www.amazon.co.uk/s?k={query}"
+    regions: [UK]
+    priority: 1
+    engine: playwright

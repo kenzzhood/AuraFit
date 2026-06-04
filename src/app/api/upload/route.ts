@@ -6,12 +6,19 @@ import { isStorageConfigured } from "@/lib/storage/provider";
 import { uploadUserImage } from "@/lib/storage/user-upload";
 import { rateLimit } from "@/lib/redis";
 
-const schema = z.object({
+// Node runtime required for multipart parsing + Buffer magic-byte checks
+export const runtime = "nodejs";
+// Increase Node.js route duration limit to handle large files + cold starts
+export const maxDuration = 90;
+
+const jsonSchema = z.object({
   fileName: z.string().max(255),
   contentType: z.string(),
   kind: z.enum(["wardrobe", "profile", "outfit_render"]),
   base64: z.string().max(14_000_000, "File too large"), // ~10MB base64
 });
+
+const kindSchema = z.enum(["wardrobe", "profile", "outfit_render"]);
 
 const MAX_BYTES = 10 * 1024 * 1024; // 10MB decoded
 
@@ -89,19 +96,58 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Rate limited" }, { status: 429 });
   }
 
-  const json = await req.json();
-  const parsed = schema.safeParse(json);
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  // ── Parse body — accept both multipart (mobile) and JSON (web) ──────────
+  let buf: Buffer;
+  let fileName: string;
+  let kind: z.infer<typeof kindSchema>;
+
+  const contentType = req.headers.get("content-type") ?? "";
+
+  if (contentType.includes("multipart/form-data")) {
+    // Mobile path: file streamed directly from device, no base64 overhead
+    let formData: FormData;
+    try {
+      formData = await req.formData();
+    } catch {
+      return NextResponse.json({ error: "Could not parse upload." }, { status: 400 });
+    }
+
+    const file = formData.get("file") as File | null;
+    if (!file) {
+      return NextResponse.json({ error: "No file provided." }, { status: 400 });
+    }
+
+    const rawKind = formData.get("kind") as string | null;
+    const kindParsed = kindSchema.safeParse(rawKind);
+    if (!kindParsed.success) {
+      return NextResponse.json({ error: "Invalid kind." }, { status: 400 });
+    }
+    kind = kindParsed.data;
+    fileName = (formData.get("fileName") as string | null) ?? file.name ?? "upload.jpg";
+
+    const arrayBuf = await file.arrayBuffer();
+    buf = Buffer.from(arrayBuf);
+  } else {
+    // Web path: JSON body with base64-encoded image
+    let json: unknown;
+    try {
+      json = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+    }
+    const parsed = jsonSchema.safeParse(json);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    }
+    buf = Buffer.from(parsed.data.base64, "base64");
+    fileName = parsed.data.fileName;
+    kind = parsed.data.kind;
   }
 
   const cu = await currentUser();
   await ensureAppUser(userId, cu?.primaryEmailAddress?.emailAddress);
 
-  const { fileName, kind, base64 } = parsed.data;
-
-  // Decode and validate size
-  const buf = Buffer.from(base64, "base64");
+  // ── Shared validation ────────────────────────────────────────────────────
   if (buf.length > MAX_BYTES) {
     return NextResponse.json(
       { error: "File too large. Maximum 10 MB." },
@@ -109,7 +155,6 @@ export async function POST(req: Request) {
     );
   }
 
-  // Validate MIME via magic bytes — reject anything that isn't a real image
   const detectedMime = detectMimeType(buf);
   if (!detectedMime || !ALLOWED_MIME_TYPES.has(detectedMime)) {
     return NextResponse.json(
@@ -118,7 +163,6 @@ export async function POST(req: Request) {
     );
   }
 
-  // Sanitize filename — strip path traversal and unsafe characters
   const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 200);
 
   if (!isStorageConfigured()) {
@@ -134,7 +178,7 @@ export async function POST(req: Request) {
       kind,
       fileName: safeFileName,
       buffer: buf,
-      contentType: detectedMime, // always use verified type, never client-supplied
+      contentType: detectedMime,
     });
     return NextResponse.json({ path, url });
   } catch (e) {

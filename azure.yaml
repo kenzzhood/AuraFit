@@ -1,0 +1,62 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+#
+# Aurafit production deployment manifest.
+# Two services packaged into a single resource group:
+#   - web      → Next.js 15 (apps/mobile is excluded via .dockerignore)
+#   - crawler  → Playwright + FastAPI product discovery service
+
+name: aurafit
+metadata:
+  template: aurafit@1.0.0
+
+services:
+  web:
+    project: .
+    host: containerapp
+    language: ts
+    docker:
+      path: ./Dockerfile
+      context: .
+      remoteBuild: true
+
+  crawler:
+    project: ./services/product-crawler
+    host: containerapp
+    language: python
+    docker:
+      path: ./Dockerfile
+      context: .
+      remoteBuild: true
+
+infra:
+  provider: bicep
+  path: infra
+  module: main
+
+hooks:
+  postprovision:
+    shell: sh
+    continueOnError: false
+    interactive: true
+    run: |
+      echo ""
+      echo "✓ Infrastructure provisioned"
+      echo ""
+      echo "Web URL:     $AZURE_WEB_APP_URL"
+      echo "Postgres:    $AZURE_POSTGRES_FQDN"
+      echo "Registry:    $AZURE_CONTAINER_REGISTRY_ENDPOINT"
+      echo ""
+      echo "Run \`bash scripts/db-init.sh\` once after the first \`azd deploy\`"
+      echo "to enable pgvector and apply Prisma migrations."
+      echo ""
+      echo "Then run \`npm run azure:stop\` to avoid ~₹400/day while idle."
+      echo ""
+
+  postdeploy:
+    shell: sh
+    continueOnError: true
+    run: |
+      echo ""
+      echo "▸ Applying database migrations (if DATABASE_URL / azd env available)..."
+      bash scripts/db-migrate-deploy.sh || echo "  ↳ skipped — run bash scripts/db-init.sh manually"
+      echo ""

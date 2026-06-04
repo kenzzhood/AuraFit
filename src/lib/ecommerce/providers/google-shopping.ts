@@ -22,14 +22,50 @@ import type {
  *   - an `imageUrl` we can feed into `gpt-image-2.edit()` as a reference
  *   - `verified: true`
  *   - `matchCategory` so the UI/prompt can slot it into outerwear/top/…
- *
- * No external API keys, no SaaS subscription, fully open source
- * (Crawl4AI + Playwright + httpx + lxml).
  */
 
 const CRAWLER_URL = () =>
   process.env.PRODUCT_CRAWLER_URL ?? "http://localhost:8100";
 const CRAWLER_KEY = () => process.env.CRAWLER_API_KEY ?? "";
+
+/** Playwright multi-retailer fallback needs headroom from cloud cold starts. */
+const SYNC_CRAWLER_TIMEOUT_MS = Number(
+  process.env.GENERATION_CRAWLER_TIMEOUT_MS ?? 75_000
+);
+
+const CIRCUIT_FAILURE_THRESHOLD = Number(
+  process.env.CRAWLER_CIRCUIT_THRESHOLD ?? 5
+);
+const CIRCUIT_COOLDOWN_MS = Number(
+  process.env.CRAWLER_CIRCUIT_COOLDOWN_MS ?? 20_000
+);
+
+let consecutiveFailures = 0;
+let circuitOpenUntil = 0;
+
+export function isCrawlerCircuitOpen(): boolean {
+  return Date.now() < circuitOpenUntil;
+}
+
+export function resetCrawlerCircuit(): void {
+  consecutiveFailures = 0;
+  circuitOpenUntil = 0;
+}
+
+function recordCrawlerFailure(): void {
+  consecutiveFailures += 1;
+  if (consecutiveFailures >= CIRCUIT_FAILURE_THRESHOLD) {
+    circuitOpenUntil = Date.now() + CIRCUIT_COOLDOWN_MS;
+    console.warn(
+      `[google-shopping] circuit open for ${CIRCUIT_COOLDOWN_MS / 1000}s after ${consecutiveFailures} failures`
+    );
+  }
+}
+
+function recordCrawlerSuccess(): void {
+  consecutiveFailures = 0;
+  circuitOpenUntil = 0;
+}
 
 function inferSourceFromHost(url?: string): ProductSource | string {
   if (!url) return "google_shopping";
@@ -48,6 +84,10 @@ export const googleShoppingProductProvider: ProductSearchProvider = {
   name: "google-shopping",
   isConfigured: () => !!process.env.PRODUCT_CRAWLER_URL,
   async search(q: ProductQuery): Promise<NormalizedProduct[]> {
+    if (isCrawlerCircuitOpen()) {
+      return [];
+    }
+
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
@@ -56,11 +96,6 @@ export const googleShoppingProductProvider: ProductSearchProvider = {
 
     let res: Response;
     try {
-      // The endpoint tries Google Shopping first (~1 s when not blocked) and
-      // falls back to Flipkart/Amazon retailer search with per-detail-page
-      // validation. We cap at 12 s — enough for the fast Google Shopping path
-      // and short Playwright runs, but tight enough that a wedged crawler
-      // doesn't burn 60 s × N slots in the synchronous generation path.
       res = await fetch(`${CRAWLER_URL()}/crawl/google-shopping`, {
         method: "POST",
         headers,
@@ -70,15 +105,18 @@ export const googleShoppingProductProvider: ProductSearchProvider = {
           category: q.category,
           budget_min: q.budgetMin,
           budget_max: q.budgetMax,
-          // Generation only needs the first verified match per item slot.
-          // Validating fewer detail pages is the single biggest lever on
-          // crawler latency when Playwright is engaged.
-          max_results: 2,
+          max_results: 4,
         }),
-        signal: AbortSignal.timeout(12_000),
+        signal: AbortSignal.timeout(SYNC_CRAWLER_TIMEOUT_MS),
       });
     } catch (e) {
       console.warn("google-shopping fetch failed:", e);
+      // Timeouts mean the crawler is busy/overloaded, not that it's broken.
+      // Only network errors and explicit failures should trip the circuit.
+      const isTimeout =
+        e instanceof Error &&
+        (e.name === "TimeoutError" || e.name === "AbortError");
+      if (!isTimeout) recordCrawlerFailure();
       return [];
     }
 
@@ -89,6 +127,7 @@ export const googleShoppingProductProvider: ProductSearchProvider = {
         res.status,
         text.slice(0, 200)
       );
+      recordCrawlerFailure();
       return [];
     }
 
@@ -109,6 +148,10 @@ export const googleShoppingProductProvider: ProductSearchProvider = {
     };
 
     const rows = data.products ?? [];
+    if (rows.length > 0) {
+      recordCrawlerSuccess();
+    }
+
     return rows
       .filter((r) => r.title && r.url && r.image)
       .slice(0, 6)

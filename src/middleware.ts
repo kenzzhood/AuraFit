@@ -11,6 +11,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/posts(.*)",
   "/api/profile/(.*)",
   "/api/inngest(.*)",  // Inngest webhook — verified by signing key, not Clerk
+  "/api/health(.*)",   // Container Apps liveness/readiness probes — must be unauthenticated
 ]);
 
 const clerkPk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
@@ -18,7 +19,19 @@ const clerkPk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
 /** Clerk-authenticated middleware for production */
 const withClerk: NextMiddleware = clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {
-    await auth.protect();
+    const isApiRoute = req.nextUrl.pathname.startsWith("/api/");
+    if (isApiRoute) {
+      // For API routes called from mobile / non-browser clients, Clerk's
+      // dev-instance "protect-rewrite" rewrites unauthenticated requests to a
+      // /clerk_xxx URL that doesn't exist, producing a confusing 404 instead
+      // of 401. Return a real 401 so mobile clients can prompt re-auth.
+      const { userId } = await auth();
+      if (!userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    } else {
+      await auth.protect();
+    }
   }
 });
 

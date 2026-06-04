@@ -23,6 +23,7 @@ export interface NormalizedProduct {
   availability?: "in_stock" | "out_of_stock" | "unknown";
   matchCategory?: string;
   matchConfidence?: number;
+  rating?: number;
 }
 
 export interface ProductQuery {

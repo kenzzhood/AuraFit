@@ -36,6 +36,8 @@ export type LookProduct = {
   availability?: "in_stock" | "out_of_stock" | "unknown";
   matchCategory?: string;
   matchConfidence?: number;
+  kind?: "online" | "wardrobe";
+  wardrobeItemId?: string;
 };
 
 export type GenerationLook = {
@@ -87,6 +89,8 @@ export type GenerationJobStatus = {
   error: string | null;
 };
 
+export type WardrobeMode = "mix" | "pair";
+
 export type GenerateInput = {
   path: "online" | "wardrobe";
   userPhotoUrl?: string;
@@ -97,5 +101,53 @@ export type GenerateInput = {
   budgetMax?: number;
   style?: string;
   wardrobeItemIds?: string[];
+  wardrobeMode?: WardrobeMode;
   previewOnly?: boolean;
+  renderQuality?: RenderQuality;
+};
+
+export type OutfitCategory =
+  | "TOP"
+  | "BOTTOM"
+  | "DRESS"
+  | "OUTERWEAR"
+  | "FOOTWEAR"
+  | "ACCESSORY"
+  | "OTHER";
+
+export type WardrobeItem = {
+  id: string;
+  blobPath: string;
+  imageUrl: string | null;
+  readUrl: string | null;
+  category: OutfitCategory;
+  tags: string[];
+  notes?: string | null;
+  styleLabels?: { caption?: string; description?: string } | null;
+  createdAt: string;
+};
+
+export type Wardrobe = {
+  id: string;
+  name: string;
+  items: WardrobeItem[];
+};
+
+export type SavedOutfit = {
+  id: string;
+  name: string | null;
+  occasion: string | null;
+  isSaved: boolean;
+  snapshot: Record<string, unknown> | null;
+  createdAt: string;
+  items?: Array<{
+    id: string;
+    category: OutfitCategory;
+    description?: string | null;
+  }>;
+  generatedImages?: Array<{
+    id: string;
+    cdnUrl?: string | null;
+    blobPath?: string | null;
+  }>;
 };

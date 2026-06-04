@@ -18,7 +18,7 @@ export default function SignUpScreen() {
   const [loading, setLoading] = useState(false);
 
   const goNext = useCallback(() => {
-    router.replace("/(app)/upload");
+    router.replace("/(app)/(tabs)");
   }, [router]);
 
   const {
@@ -72,7 +72,7 @@ export default function SignUpScreen() {
         </View>
         <TextInput
           placeholder="Verification code"
-          placeholderTextColor="#6b655c"
+          placeholderTextColor="#6b6b73"
           keyboardType="number-pad"
           value={code}
           onChangeText={setCode}
@@ -115,7 +115,7 @@ export default function SignUpScreen() {
 
       <TextInput
         placeholder="Email"
-        placeholderTextColor="#6b655c"
+        placeholderTextColor="#6b6b73"
         autoCapitalize="none"
         keyboardType="email-address"
         autoComplete="email"
@@ -125,7 +125,7 @@ export default function SignUpScreen() {
       />
       <TextInput
         placeholder="Password"
-        placeholderTextColor="#6b655c"
+        placeholderTextColor="#6b6b73"
         secureTextEntry
         autoComplete="new-password"
         value={password}

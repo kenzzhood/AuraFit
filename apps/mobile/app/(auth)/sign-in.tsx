@@ -16,7 +16,7 @@ export default function SignInScreen() {
   const [loading, setLoading] = useState(false);
 
   const goNext = useCallback(() => {
-    router.replace("/(app)/upload");
+    router.replace("/(app)/(tabs)");
   }, [router]);
 
   const {
@@ -68,7 +68,7 @@ export default function SignInScreen() {
 
       <TextInput
         placeholder="Email"
-        placeholderTextColor="#6b655c"
+        placeholderTextColor="#6b6b73"
         autoCapitalize="none"
         keyboardType="email-address"
         value={email}
@@ -77,7 +77,7 @@ export default function SignInScreen() {
       />
       <TextInput
         placeholder="Password"
-        placeholderTextColor="#6b655c"
+        placeholderTextColor="#6b6b73"
         secureTextEntry
         value={password}
         onChangeText={setPassword}

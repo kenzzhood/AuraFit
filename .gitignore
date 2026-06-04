@@ -9,10 +9,23 @@ out
 dist
 build
 
-# Env
+# Env & secrets (never commit plaintext)
 .env
 .env.local
 .env.*.local
+.secrets-passphrase
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Azure azd local state (may contain secrets)
+.azure/
+
+# TypeScript build info
+tsconfig.tsbuildinfo
 
 # Debug
 npm-debug.log*

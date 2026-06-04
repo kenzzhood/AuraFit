@@ -1,4 +1,4 @@
-# Aurafit
+# AuraFit
 
 AI-native fashion styling: upload your photo, get six editorial looks, shop with real links.
 

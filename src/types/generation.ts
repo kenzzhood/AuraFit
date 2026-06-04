@@ -75,6 +75,12 @@ export type LookProduct = {
   kind?: "online" | "wardrobe";
   /** Set when `kind === "wardrobe"` — the originating WardrobeItem id */
   wardrobeItemId?: string;
+  /**
+   * ProductSearchSession that produced this slot. Holds the full ranked
+   * candidate list (3–8 real options) so the UI can offer "replace this item"
+   * via GET /api/products/session/[id] without re-crawling.
+   */
+  sessionId?: string;
 };
 
 export type GenerationLookResult = PlannedLook & {

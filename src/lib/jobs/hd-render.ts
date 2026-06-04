@@ -1,37 +1,18 @@
 import { JobStatus, JobType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { personAnalysisToPromptBlock } from "@/lib/ai/person-analysis";
-import type { GenerationJobResult, PlannedLook } from "@/types/generation";
+import type { GenerationJobResult, LookProduct } from "@/types/generation";
 import { getStorageProvider } from "@/lib/storage/provider";
 import { isCloudinaryConfigured, uploadImageBuffer } from "@/lib/storage/cloudinary";
 import {
   generateBoardWithFallback,
   isImageGenerationConfigured,
 } from "@/lib/image/provider";
-
-function buildFashionBoardPrompt(params: {
-  personBlock: string;
-  styleType?: string;
-  occasion?: string;
-  location?: string;
-  style?: string;
-  budgetMin?: number;
-  budgetMax?: number;
-  looks: PlannedLook[];
-}): string {
-  const lookLines = params.looks
-    .map(
-      (l, i) =>
-        `Panel ${i + 1} — "${l.label}": ${l.description ?? l.productSearchQuery}.`
-    )
-    .join("\n");
-
-  return `Create ONE ultra-premium 6-panel fashion styling board. Same person in all panels.
-${params.personBlock}
-Style: ${params.styleType ?? "smart casual"}, Occasion: ${params.occasion ?? "daily"}, Location: ${params.location ?? "India"}.
-${lookLines}
-Hyper-realistic editorial, numbered 1–6, preserve identity exactly.`;
-}
+import {
+  buildFashionBoardPrompt,
+  buildProductImageRefs,
+  MAX_PRODUCT_IMAGE_REFS,
+} from "@/lib/jobs/generation";
 
 async function uploadBoardImage(
   userId: string,
@@ -87,6 +68,15 @@ export async function processHdRenderJob(params: {
   );
   const looks = prev.looks ?? [];
   const payload = parent.payload as Record<string, unknown> | null;
+  const path = (payload?.path as "online" | "wardrobe" | undefined) ?? "online";
+
+  // Re-reference the SAME real product images the preview used so the HD board
+  // renders the exact products the user is about to shop — no drift, no
+  // invented garments.
+  const { productImageUrls, productImageRefs } = buildProductImageRefs(
+    looks.map((l) => ({ products: (l.products ?? []) as LookProduct[] })),
+    { includeWardrobe: true }
+  );
 
   const prompt = buildFashionBoardPrompt({
     personBlock,
@@ -96,7 +86,10 @@ export async function processHdRenderJob(params: {
     style: payload?.style as string | undefined,
     budgetMin: payload?.budgetMin as number | undefined,
     budgetMax: payload?.budgetMax as number | undefined,
+    path,
     looks,
+    productImageRefs,
+    requireProductRefsPerPanel: path === "online" && productImageRefs.length > 0,
   });
 
   let boardImageUrl: string | null = null;
@@ -110,6 +103,7 @@ export async function processHdRenderJob(params: {
         prompt,
         quality: "hd",
         referenceImageUrl: userPhotoUrl,
+        productImageUrls: productImageUrls.slice(0, MAX_PRODUCT_IMAGE_REFS),
       });
       boardImageUrl = await uploadBoardImage(params.userId, boardImage);
       if (meta.degraded) {

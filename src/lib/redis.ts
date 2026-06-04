@@ -47,14 +47,19 @@ function memoryRateLimit(
   key: string,
   limit: number,
   windowSec: number
-): { ok: boolean; remaining: number } {
+): { ok: boolean; remaining: number; retryAfterSec: number } {
   const now = Date.now();
   const windowMs = windowSec * 1000;
   const bucket = `${key}:${Math.floor(now / windowMs)}`;
   const entry = memoryWindows.get(bucket) ?? { count: 0, resetAt: now + windowMs };
   entry.count += 1;
   memoryWindows.set(bucket, entry);
-  return { ok: entry.count <= limit, remaining: Math.max(0, limit - entry.count) };
+  const retryAfterSec = Math.max(1, Math.ceil((entry.resetAt - now) / 1000));
+  return {
+    ok: entry.count <= limit,
+    remaining: Math.max(0, limit - entry.count),
+    retryAfterSec,
+  };
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -63,16 +68,22 @@ export async function rateLimit(
   key: string,
   limit: number,
   windowSec: number
-): Promise<{ ok: boolean; remaining: number }> {
+): Promise<{ ok: boolean; remaining: number; retryAfterSec: number }> {
   const client = getRedis();
 
   if (client) {
     try {
       const now = Math.floor(Date.now() / 1000);
-      const bucket = `rl:${key}:${Math.floor(now / windowSec)}`;
+      const windowStart = Math.floor(now / windowSec) * windowSec;
+      const bucket = `rl:${key}:${windowStart}`;
       const n = await client.incr(bucket);
       if (n === 1) await client.expire(bucket, windowSec);
-      return { ok: n <= limit, remaining: Math.max(0, limit - n) };
+      const retryAfterSec = Math.max(1, windowStart + windowSec - now);
+      return {
+        ok: n <= limit,
+        remaining: Math.max(0, limit - n),
+        retryAfterSec,
+      };
     } catch (err) {
       console.warn("[redis] rateLimit Redis call failed, falling back to memory:", err);
       // Fall through to memory fallback
@@ -81,6 +92,9 @@ export async function rateLimit(
 
   return memoryRateLimit(key, limit, windowSec);
 }
+
+/** Full outfit generation is expensive — allow a few boards per user per window. */
+export const GENERATION_RATE_LIMIT = { limit: 8, windowSec: 15 * 60 } as const;
 
 export async function getCached(key: string): Promise<string | null> {
   const client = getRedis();

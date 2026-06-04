@@ -11,8 +11,44 @@ import { setCachedProducts } from "@/lib/ecommerce/cache";
 import { productToNormalized } from "@/lib/ecommerce/product";
 import { dedupeProducts } from "@/lib/ecommerce/dedupe";
 import type { ProductCrawlPayload } from "@/lib/ecommerce/crawl-queue";
-import type { GenerationJobResult } from "@/types/generation";
+import type { GenerationJobResult, LookProduct } from "@/types/generation";
 import type { Product } from "@/lib/ecommerce/product";
+
+async function upsertProductCacheId(p: Product): Promise<string | undefined> {
+  const norm = productToNormalized(p);
+  const expiresAt = new Date(Date.now() + 7 * 24 * 3600 * 1000);
+  try {
+    const row = await prisma.productCache.upsert({
+      where: {
+        source_externalId: { source: norm.source, externalId: norm.externalId },
+      },
+      create: {
+        externalId: norm.externalId,
+        source: norm.source,
+        title: norm.title,
+        price: norm.price != null ? Math.round(norm.price) : undefined,
+        currency: norm.currency,
+        imageUrl: norm.imageUrl,
+        productUrl: norm.productUrl,
+        category: norm.category,
+        expiresAt,
+      },
+      update: {
+        title: norm.title,
+        price: norm.price != null ? Math.round(norm.price) : undefined,
+        currency: norm.currency,
+        imageUrl: norm.imageUrl,
+        productUrl: norm.productUrl,
+        category: norm.category,
+        expiresAt,
+      },
+    });
+    return row.id;
+  } catch (e) {
+    console.warn("upsertProductCacheId failed:", e);
+    return undefined;
+  }
+}
 
 export async function processProductCrawlJob(
   payload: ProductCrawlPayload
@@ -207,7 +243,18 @@ async function patchGenerationJobProducts(
   const addition = candidates[0];
   if (!addition?.productUrl) return;
 
-  look.products = [...existing, addition].slice(0, 5);
+  const crawlProduct = realProducts.find(
+    (p) => (p.canonicalUrl ?? p.url) === addition.productUrl
+  );
+  const cacheId = crawlProduct
+    ? await upsertProductCacheId(crawlProduct)
+    : undefined;
+  const enriched: LookProduct = {
+    ...addition,
+    ...(cacheId ? { productCacheId: cacheId } : {}),
+  };
+
+  look.products = [...existing, enriched].slice(0, 5);
 
   await prisma.generationJob.update({
     where: { id: jobId },

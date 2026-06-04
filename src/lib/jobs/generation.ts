@@ -11,6 +11,10 @@ import { productToNormalized } from "@/lib/ecommerce/product";
 import type { NormalizedProduct } from "@/lib/ecommerce/providers/types";
 import type { ProductQuery } from "@/lib/ecommerce/providers/types";
 import {
+  isCrawlerCircuitOpen,
+  resetCrawlerCircuit,
+} from "@/lib/ecommerce/providers/google-shopping";
+import {
   generateLooksWithFallback,
   isImageGenerationConfigured,
 } from "@/lib/ai/provider";
@@ -48,7 +52,7 @@ async function failJob(jobId: string, message: string) {
   });
 }
 
-async function cacheProduct(p: NormalizedProduct) {
+export async function cacheProduct(p: NormalizedProduct) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 3600 * 1000);
   return prisma.productCache.upsert({
     where: {
@@ -95,8 +99,23 @@ export type ProductImageRef = {
   source?: string;
 };
 
-const MAX_PRODUCTS_PER_LOOK = 3;
+// V2: resolve a full outfit (3–5 real products) per look synchronously. The
+// fast SerpAPI Google-Shopping path is plain HTTP, so fanning out across all
+// slots no longer risks the Playwright crawler pool.
+const MAX_PRODUCTS_PER_LOOK = 5;
 const MAX_ENRICHED_PRODUCTS_PER_LOOK = 5;
+
+/**
+ * Parallel slot resolution is safe when discovery can hit the owned pgvector
+ * index or SerpAPI (HTTP). Only defer to sequential primary-slot resolution
+ * when the sync Playwright crawler is the sole source.
+ */
+function fastShoppingConfigured(): boolean {
+  if (process.env.SERPAPI_KEY) return true;
+  const layers =
+    process.env.PRODUCT_DISCOVERY_LAYERS ?? "cache,index,crawl";
+  return layers.includes("index");
+}
 
 /** Tracks product URLs already assigned to another look in this generation. */
 class UsedProductTracker {
@@ -109,16 +128,69 @@ class UsedProductTracker {
     return true;
   }
 }
-const PRODUCT_LOOK_CONCURRENCY = 3;
-// Slots within a single look (top / bottom / shoes / accessory) are independent
-// queries, so we run them in parallel. The crawler call has its own 12s timeout
-// (see google-shopping.ts), which is what actually bounds latency here.
-const PRODUCT_SLOT_CONCURRENCY = 3;
+// How many looks to resolve in parallel. With SerpAPI (HTTP) we can fan out
+// widely; with only the Playwright crawler we keep it near-sequential because
+// concurrent requests saturate the shared browser pool → TargetClosedError
+// storm → circuit opens → the whole job fails.
+function lookConcurrency(): number {
+  const def = fastShoppingConfigured() ? 4 : 1;
+  const n = Number(process.env.PRODUCT_LOOK_CONCURRENCY ?? def);
+  return Number.isFinite(n) && n > 0 ? Math.min(n, 8) : def;
+}
+// How many slots within a single look to resolve in parallel. Each slot is one
+// SerpAPI HTTP call, so this is cheap when the fast path is on.
+function slotConcurrency(): number {
+  return fastShoppingConfigured() ? MAX_PRODUCTS_PER_LOOK : 2;
+}
+/** Max wall time for the empty-look retry wave (parallel). */
+const PRODUCT_RETRY_BUDGET_MS = 45_000;
 // Hard cap on how many product reference images we feed into the image-edit
 // call. More refs = slower upload AND a slower model response. 4 keeps the
 // payload tight while still giving the prompt enough garments to anchor the
 // rendered outfits.
-const MAX_PRODUCT_IMAGE_REFS = 4;
+export const MAX_PRODUCT_IMAGE_REFS = 4;
+
+/**
+ * Build the image-edit ingredient list (user photo = Image 1, then each unique
+ * real product image = Image 2..N) plus the per-panel `productImageRefs` that
+ * tell the prompt which Image maps to which look + slot. Shared by the initial
+ * board render and the HD re-render so HD matches the real products exactly.
+ */
+export function buildProductImageRefs(
+  looksProducts: Array<{ products: LookProduct[] }>,
+  opts: { includeWardrobe?: boolean } = {}
+): { productImageUrls: string[]; productImageRefs: ProductImageRef[] } {
+  const productImageUrls: string[] = [];
+  const productImageRefs: ProductImageRef[] = [];
+  const urlToImageIndex = new Map<string, number>();
+
+  looksProducts.forEach((res, lookIndex) => {
+    for (const p of res.products ?? []) {
+      if (!p.imageUrl) continue;
+      const isWardrobe = p.kind === "wardrobe";
+      if (isWardrobe) {
+        if (!opts.includeWardrobe || p.verified !== true) continue;
+      } else if (!isShoppableOnlineProduct(p)) {
+        continue;
+      }
+      let imageIndex = urlToImageIndex.get(p.imageUrl);
+      if (imageIndex == null) {
+        imageIndex = productImageUrls.length + 2; // Image 1 is the user photo
+        urlToImageIndex.set(p.imageUrl, imageIndex);
+        productImageUrls.push(p.imageUrl);
+      }
+      productImageRefs.push({
+        lookIndex,
+        imageIndex,
+        category: p.matchCategory ?? "garment",
+        title: p.title ?? "product",
+        source: p.source,
+      });
+    }
+  });
+
+  return { productImageUrls, productImageRefs };
+}
 
 async function mapWithConcurrency<T, R>(
   items: T[],
@@ -160,7 +232,7 @@ function productSlotPriority(category: string): number {
   }
 }
 
-function buildFashionBoardPrompt(params: {
+export function buildFashionBoardPrompt(params: {
   personBlock: string;
   styleType?: string;
   occasion?: string;
@@ -172,7 +244,10 @@ function buildFashionBoardPrompt(params: {
   wardrobeSummary?: string;
   looks: PlannedLook[];
   productImageRefs?: ProductImageRef[];
+  /** When set, every panel must reference verified product images (online path). */
+  requireProductRefsPerPanel?: boolean;
 }): string {
+  const panelCount = params.looks.length;
   const budget =
     params.budgetMin != null && params.budgetMax != null
       ? `₹${params.budgetMin}–₹${params.budgetMax}`
@@ -202,6 +277,11 @@ function buildFashionBoardPrompt(params: {
     .map((l, i) => {
       const head = `PANEL ${i + 1} — "${l.label}"${l.tagline ? ` (${l.tagline})` : ""}: ${l.description ?? l.productSearchQuery}.`;
       const refs = (refsByLook.get(i) ?? []).slice().sort(sortByCategory);
+      if (!refs.length && params.requireProductRefsPerPanel) {
+        throw new Error(
+          `Panel ${i + 1} has no verified product references — cannot render board`
+        );
+      }
       if (refs.length) {
         const ingredients = refs
           .map((r) => {
@@ -211,7 +291,7 @@ function buildFashionBoardPrompt(params: {
             return `Use ${r.category} from [Image ${r.imageIndex}] ("${r.title.slice(0, 80)}"${store})`;
           })
           .join(". ");
-        return `${head} ${ingredients}. Render each garment with exact fidelity to its reference image — same colour, fabric, pattern, cut, and details. Add only the minimal additional pieces required to complete the outfit (e.g. shoes, accessories) if a slot is not provided.`;
+        return `${head} ${ingredients}. Render each garment with exact fidelity to its reference image — same colour, fabric, pattern, cut, and details. Do NOT invent or substitute garments for any referenced slot.`;
       }
       return `${head} Complete outfit including top, bottom, shoes, and accessories.`;
     })
@@ -222,17 +302,17 @@ function buildFashionBoardPrompt(params: {
 REFERENCE IMAGES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 - [Image 1] is the SUBJECT's reference photo — preserve their face/identity.
-- [Image 2] onward are REAL product photographs that we verified against live product detail pages on Flipkart/Amazon.
+- [Image 2] onward are REAL product photographs of items that are actually for sale right now.
 - For every panel, use ONLY the garments named in that panel's "Use ..." instructions.
-- Match the actual product 1:1: colour, fabric, pattern, cut, logo placement, hardware.
-- Do NOT substitute or invent new pieces for slots that have a referenced image.
-- For slots a panel does not specify (e.g. shoes when only top/bottom are referenced), fill them with tasteful pieces that pair with the referenced items.\n`
+- Match each referenced product 1:1: colour, fabric, pattern, cut, logo placement, hardware.
+- Do NOT substitute, restyle, or invent new pieces for any slot that has a referenced image.
+- For a slot a panel does not reference (e.g. shoes when only top/bottom are referenced), render a plain, neutral, unbranded basic that quietly complements the referenced items — never a logo, statement, or eye-catching piece, because those slots are NOT shoppable and must not look like a specific product.\n`
     : "";
 
   return `You are an elite celebrity fashion stylist and luxury editorial creative director. Generate ONE single ultra-premium fashion styling board image.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SUBJECT IDENTITY (APPLY TO ALL 6 PANELS)
+SUBJECT IDENTITY (APPLY TO ALL ${panelCount} PANELS)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${params.personBlock}
 ${ingredientsHeader}
@@ -248,15 +328,15 @@ STYLING CONTEXT
 ${params.wardrobeSummary ? `- Existing wardrobe: ${params.wardrobeSummary}` : ""}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-THE 6 LOOKS — ONE PER PANEL
+THE ${panelCount} LOOKS — ONE PER PANEL
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${lookLines}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 LAYOUT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- ONE single image divided into 6 equal vertical panels side by side
-- Each panel numbered clearly 1–6 at the top
+- ONE single image divided into ${panelCount} equal vertical panels side by side
+- Each panel numbered clearly 1–${panelCount} at the top
 - Same person, full body head-to-toe, standing naturally in each panel
 - Different complete outfit per panel
 - Clean minimal luxury backdrop — subtle studio or real-world environment matching the occasion
@@ -276,7 +356,7 @@ VISUAL QUALITY
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ABSOLUTE RULES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- The face must be IDENTICAL in all 6 panels — same skin tone, eye shape, nose, jawline, hairline
+- The face must be IDENTICAL in all ${panelCount} panels — same skin tone, eye shape, nose, jawline, hairline
 - NO identity drift between panels
 - NO beautification, symmetry edits, or skin smoothing
 - NO AI-looking skin, plastic texture, or fake proportions
@@ -416,7 +496,7 @@ async function planLooks(input: {
  * Anything failing this is dropped before it ever reaches the user — we never
  * show fake, unverified, or out-of-stock product links.
  */
-function isRealProduct(p: {
+export function isRealProduct(p: {
   productUrl?: string;
   imageUrl?: string;
   source?: string;
@@ -430,6 +510,46 @@ function isRealProduct(p: {
   if (p.verified !== true) return false;
   if (p.availability === "out_of_stock") return false;
   return true;
+}
+
+function isShoppableOnlineProduct(p: LookProduct): boolean {
+  if (p.kind === "wardrobe") return false;
+  return isRealProduct({
+    productUrl: p.productUrl,
+    imageUrl: p.imageUrl,
+    source: p.source,
+    verified: p.verified,
+    availability: p.availability,
+  });
+}
+
+function isDressCentricLook(look: PlannedLook): boolean {
+  const slots = (look.items ?? []).map((it) =>
+    canonicalItemCategory(it.category)
+  );
+  if (slots.includes("dress")) return true;
+  const hay = `${look.label} ${look.description ?? ""} ${look.productSearchQuery}`.toLowerCase();
+  return /\b(dress|gown|jumpsuit|romper|saree|sari|lehenga)\b/.test(hay);
+}
+
+/** Online looks only enter the board when every required garment has a verified shop link. */
+function lookMeetsVerifiedProductGate(
+  planned: PlannedLook,
+  products: LookProduct[]
+): boolean {
+  const shoppable = products.filter(isShoppableOnlineProduct);
+  if (!shoppable.length) return false;
+
+  if (isDressCentricLook(planned)) {
+    return shoppable.some(
+      (p) => canonicalItemCategory(p.matchCategory) === "dress"
+    );
+  }
+
+  const primary = new Set(["dress", "top", "bottom", "outerwear"]);
+  return shoppable.some((p) =>
+    primary.has(canonicalItemCategory(p.matchCategory))
+  );
 }
 
 /**
@@ -519,6 +639,8 @@ async function productsForItem(args: {
     personAnalysis?: PersonAnalysis | null;
     userId?: string;
     generationJobId?: string;
+    syncCrawlFallback?: boolean;
+    syncCrawlOnly?: boolean;
   };
 }): Promise<{ product: LookProduct | null; sessionId?: string }> {
   const { look, category, searchQuery, region, data, usedProducts } = args;
@@ -546,7 +668,9 @@ async function productsForItem(args: {
       personAnalysis: data.personAnalysis,
       plannedLook: look,
     },
-    allowAsyncCrawl: true,
+    allowAsyncCrawl: false,
+    syncCrawlFallback: data.syncCrawlFallback ?? false,
+    syncCrawlOnly: data.syncCrawlOnly ?? false,
   });
 
 
@@ -571,6 +695,7 @@ async function productsForItem(args: {
         availability: norm.availability,
         matchCategory: category,
         matchConfidence: norm.matchConfidence,
+        sessionId: discovered.sessionId,
       },
       sessionId: discovered.sessionId,
     };
@@ -693,9 +818,22 @@ async function productsForLook(
     userId?: string;
     generationJobId?: string;
     usedProducts: UsedProductTracker;
+    syncCrawlFallback?: boolean;
+    syncCrawlOnly?: boolean;
   }
 ): Promise<{ products: LookProduct[]; sessionId?: string }> {
   const region = locationToRegion(data.location);
+  const itemData = {
+    style: data.style,
+    budgetMin: data.budgetMin,
+    budgetMax: data.budgetMax,
+    personAnalysis: data.personAnalysis,
+    userId: data.userId,
+    generationJobId: data.generationJobId,
+    // Shopping layer already runs retailer search via /crawl/google-shopping.
+    syncCrawlFallback: data.syncCrawlFallback ?? false,
+    syncCrawlOnly: data.syncCrawlOnly ?? false,
+  };
 
   // Build the slot list. Prefer `items[]` from the LLM plan; if absent, fall
   // back to a sane default set so the look still has something to resolve.
@@ -726,43 +864,74 @@ async function productsForLook(
     )
     .slice(0, MAX_PRODUCTS_PER_LOOK);
 
-  // Resolve slots gently because each one can trigger Playwright/Crawl4AI.
-  const resolved = await mapWithConcurrency(
-    slots,
-    PRODUCT_SLOT_CONCURRENCY,
-    (s) =>
-      productsForItem({
-        look,
-        category: s.category,
-        searchQuery: s.searchQuery,
-        region,
-        data,
-        usedProducts: data.usedProducts,
-      }).catch((err) => {
-        console.warn(
-          `productsForItem failed (${s.category} / ${s.searchQuery}):`,
-          err
-        );
-        return { product: null as LookProduct | null, sessionId: undefined };
-      })
-  );
+  const resolveSlot = (s: { category: string; searchQuery: string }) =>
+    productsForItem({
+      look,
+      category: s.category,
+      searchQuery: s.searchQuery,
+      region,
+      data: itemData,
+      usedProducts: data.usedProducts,
+    }).catch((err) => {
+      console.warn(
+        `productsForItem failed (${s.category} / ${s.searchQuery}):`,
+        err
+      );
+      return { product: null as LookProduct | null, sessionId: undefined };
+    });
 
-  const sessionIds: string[] = [];
-  const seenUrl = new Set<string>();
-  const products: LookProduct[] = [];
-  for (const r of resolved) {
-    if (r.sessionId) sessionIds.push(r.sessionId);
-    if (!r.product?.productUrl) continue;
-    if (seenUrl.has(r.product.productUrl)) continue;
-    seenUrl.add(r.product.productUrl);
-    products.push(r.product);
+  const dressCentric = isDressCentricLook(look);
+  const dressSlot = slots.find((s) => s.category === "dress");
+  const primarySlot = dressCentric && dressSlot ? dressSlot : slots[0];
+  if (!primarySlot) {
+    return { products: [], sessionId: undefined };
   }
 
+  // Use the rich look-level search query for the primary garment so it best
+  // captures the overall aesthetic; per-slot queries drive the rest.
+  const primaryQuery =
+    look.productSearchQuery?.trim() ||
+    primarySlot.searchQuery ||
+    `${look.label} ${primarySlot.category}`;
 
-  return {
-    products: products.slice(0, MAX_PRODUCTS_PER_LOOK),
-    sessionId: sessionIds[0],
-  };
+  // ── Slow path (no SerpAPI): resolve only the primary garment to protect the
+  // shared Playwright crawler. Extra slots are enriched post-render. ──────────
+  if (!fastShoppingConfigured() && !data.syncCrawlOnly) {
+    const primaryRes = await resolveSlot({
+      category: primarySlot.category,
+      searchQuery: primaryQuery,
+    });
+    if (!primaryRes.product || !isShoppableOnlineProduct(primaryRes.product)) {
+      return { products: [], sessionId: primaryRes.sessionId };
+    }
+    return { products: [primaryRes.product], sessionId: primaryRes.sessionId };
+  }
+
+  // ── Fast path (SerpAPI): resolve every slot in parallel and assemble the
+  // full outfit. The primary slot uses the look-level query; the rest use
+  // their per-slot queries. We keep only verified, shoppable products. ────────
+  const slotJobs = slots.map((s) =>
+    s === primarySlot
+      ? { category: primarySlot.category, searchQuery: primaryQuery }
+      : { category: s.category, searchQuery: s.searchQuery }
+  );
+
+  const resolved = await mapWithConcurrency(
+    slotJobs,
+    slotConcurrency(),
+    (s) => resolveSlot(s)
+  );
+
+  const products: LookProduct[] = [];
+  let sessionId: string | undefined;
+  for (const r of resolved) {
+    if (r.sessionId && !sessionId) sessionId = r.sessionId;
+    if (r.product && isShoppableOnlineProduct(r.product)) {
+      products.push(r.product);
+    }
+  }
+
+  return { products, sessionId };
 }
 
 export async function processGenerationJob(
@@ -792,6 +961,7 @@ export async function processGenerationJob(
 
   const renderQuality = resolveRenderQuality(data);
   const providerMeta: ProviderMeta = {};
+  let productHeartbeat: ReturnType<typeof setInterval> | null = null;
 
   try {
     await prisma.generationJob.update({
@@ -985,6 +1155,24 @@ export async function processGenerationJob(
       data: { progress: 42 },
     });
 
+    // Keep updatedAt fresh during long product crawls so the stale-job guard
+    // does not kill in-flight work.
+    if (data.path === "online") {
+      let hbProgress = 43;
+      productHeartbeat = setInterval(() => {
+        if (hbProgress >= 54) return;
+        const next = hbProgress++;
+        void prisma.generationJob
+          .update({ where: { id: jobId }, data: { progress: next } })
+          .catch(() => undefined);
+      }, 30_000);
+      productHeartbeat.unref?.();
+    }
+
+    if (data.path === "online") {
+      resetCrawlerCircuit();
+    }
+
     // ──────────────────────────────────────────────────────────────────
     // Step 1: resolve products for all 6 looks BEFORE image gen so their
     // thumbnails can be passed as multi-image references.
@@ -1051,7 +1239,7 @@ export async function processGenerationJob(
       // for the slots the LLM left without a wardrobeItemId.
       productResults = await mapWithConcurrency(
         plan,
-        PRODUCT_LOOK_CONCURRENCY,
+        lookConcurrency(),
         async (planned) => {
           const wardrobeProducts = buildWardrobeProductsForLook(planned);
           const onlineSlotItems = (planned.items ?? []).filter(
@@ -1094,7 +1282,7 @@ export async function processGenerationJob(
       // Default online flow (path === "online" or wardrobe-without-mode).
       productResults = await mapWithConcurrency(
         plan,
-        PRODUCT_LOOK_CONCURRENCY,
+        lookConcurrency(),
         (planned) =>
           productsForLook(planned, {
             style: data.style,
@@ -1117,6 +1305,164 @@ export async function processGenerationJob(
       if (r.sessionId) productSearchSessionIds.push(r.sessionId);
     }
 
+    if (data.path === "online") {
+      const emptyLookIndexes: number[] = [];
+      productResults.forEach((r, i) => {
+        if (!r.products.length) emptyLookIndexes.push(i);
+      });
+
+      if (emptyLookIndexes.length > 0 && !isCrawlerCircuitOpen()) {
+        const retryOneLook = async (i: number) => {
+          const planned = plan[i];
+          if (!planned) return;
+          try {
+            const retry = await productsForLook(planned, {
+              style: data.style,
+              location: data.location,
+              budgetMin: data.budgetMin,
+              budgetMax: data.budgetMax,
+              personAnalysis,
+              userId,
+              generationJobId: jobId,
+              usedProducts,
+              syncCrawlFallback: true,
+            });
+            if (retry.products.length) productResults[i] = retry;
+          } catch (err) {
+            console.warn("productsForLook retry failed:", err);
+          }
+        };
+
+        const retryWave = mapWithConcurrency(
+          emptyLookIndexes,
+          lookConcurrency(),
+          (i) => retryOneLook(i)
+        );
+
+        await Promise.race([
+          retryWave,
+          new Promise<void>((resolve) =>
+            setTimeout(resolve, PRODUCT_RETRY_BUDGET_MS)
+          ),
+        ]);
+      }
+
+      const verifiedOnlineCount = productResults.reduce(
+        (sum, r) =>
+          sum + r.products.filter(isShoppableOnlineProduct).length,
+        0
+      );
+      if (verifiedOnlineCount < 3) {
+        providerMeta.degraded = true;
+        providerMeta.failures = [
+          ...(providerMeta.failures ?? []),
+          {
+            system: "products",
+            provider: "crawler",
+            message:
+              verifiedOnlineCount === 0
+                ? "No verified shop links were found before rendering. Only looks with confirmed product links are shown."
+                : "Only a few verified shop links were found before rendering. More links may appear shortly.",
+          },
+        ];
+      }
+    }
+
+    // Online: only keep looks that have verified shop links for their anchor
+    // garment (dress looks require a verified dress). Unlinked looks never
+    // reach the board or the results list.
+    let boardPlan = plan;
+    let boardProductResults = productResults;
+    if (data.path === "online") {
+      const eligible: Array<{
+        planned: PlannedLook;
+        products: LookProduct[];
+        sessionId?: string;
+      }> = [];
+      for (let i = 0; i < plan.length; i++) {
+        const planned = plan[i]!;
+        const row = productResults[i];
+        if (!row) continue;
+        if (lookMeetsVerifiedProductGate(planned, row.products)) {
+          eligible.push({
+            planned,
+            products: row.products.filter(isShoppableOnlineProduct),
+            sessionId: row.sessionId,
+          });
+        }
+      }
+
+      if (!eligible.length) {
+        // Deep recovery: one sync crawl per look until at least one resolves.
+        for (let i = 0; i < plan.length && eligible.length < 1; i++) {
+          const planned = plan[i]!;
+          const anchorCategory = isDressCentricLook(planned) ? "dress" : "top";
+          const anchorQuery =
+            planned.productSearchQuery?.trim() ||
+            `${planned.label} ${anchorCategory}`;
+          try {
+            const anchor = await productsForItem({
+              look: planned,
+              category: anchorCategory,
+              searchQuery: anchorQuery,
+              region: locationToRegion(data.location),
+              data: {
+                style: data.style,
+                budgetMin: undefined,
+                budgetMax: undefined,
+                personAnalysis,
+                userId,
+                generationJobId: jobId,
+                syncCrawlFallback: true,
+                syncCrawlOnly: true,
+              },
+              usedProducts,
+            });
+            const recovered = {
+              products: anchor.product ? [anchor.product] : [],
+              sessionId: anchor.sessionId,
+            };
+            if (lookMeetsVerifiedProductGate(planned, recovered.products)) {
+              eligible.push({
+                planned,
+                products: recovered.products.filter(isShoppableOnlineProduct),
+                sessionId: recovered.sessionId,
+              });
+            }
+          } catch (err) {
+            console.warn("productsForLook deep recovery failed:", err);
+          }
+        }
+      }
+
+      if (!eligible.length) {
+        if (productHeartbeat) clearInterval(productHeartbeat);
+        await failJob(
+          jobId,
+          "We could not find verified products with shop links. Try again in a moment or widen your budget."
+        );
+        return;
+      }
+
+      boardPlan = eligible.map((e) => e.planned);
+      boardProductResults = eligible.map((e) => ({
+        products: e.products,
+        sessionId: e.sessionId,
+      }));
+
+      if (eligible.length < plan.length) {
+        providerMeta.degraded = true;
+        providerMeta.failures = [
+          ...(providerMeta.failures ?? []),
+          {
+            system: "products",
+            provider: "gate",
+            message: `${plan.length - eligible.length} look(s) were skipped because we could not verify shop links for the main garment.`,
+          },
+        ];
+      }
+    }
+
     // Build the image-edit ingredient list: user photo is Image 1, then each
     // unique real product becomes Image 2..N. `productImageRefs` tells the
     // prompt which Image N maps to which panel and which outfit slot.
@@ -1124,29 +1470,13 @@ export async function processGenerationJob(
     // Only verified, in-stock products with images make it here — they are
     // the single source of truth for both the rendered board and the
     // "Shop this look" list.
-    const productImageUrls: string[] = [];
-    const productImageRefs: ProductImageRef[] = [];
-    const urlToImageIndex = new Map<string, number>();
-    productResults.forEach((res, lookIndex) => {
-      for (const p of res.products) {
-        if (!p.imageUrl) continue;
-        if (p.verified !== true) continue;
-        let imageIndex = urlToImageIndex.get(p.imageUrl);
-        if (imageIndex == null) {
-          imageIndex = productImageUrls.length + 2; // 1 is the user photo
-          urlToImageIndex.set(p.imageUrl, imageIndex);
-          productImageUrls.push(p.imageUrl);
-        }
-        productImageRefs.push({
-          lookIndex,
-          imageIndex,
-          category: p.matchCategory ?? "garment",
-          title: p.title ?? "product",
-          source: p.source,
-        });
-      }
-    });
+    const { productImageUrls, productImageRefs } = buildProductImageRefs(
+      boardProductResults,
+      { includeWardrobe: true }
+    );
 
+
+    if (productHeartbeat) clearInterval(productHeartbeat);
 
     await prisma.generationJob.update({
       where: { id: jobId },
@@ -1158,7 +1488,10 @@ export async function processGenerationJob(
     // ──────────────────────────────────────────────────────────────────
     let boardImageUrl: string | null = null;
     const runBoard =
-      renderQuality !== "preview" && isImageGenerationConfigured();
+      renderQuality !== "preview" &&
+      isImageGenerationConfigured() &&
+      productImageRefs.length > 0 &&
+      (data.path !== "online" || boardPlan.length > 0);
     if (runBoard) {
       const personBlock = personAnalysisToPromptBlock(personAnalysis);
       const prompt = buildFashionBoardPrompt({
@@ -1171,8 +1504,9 @@ export async function processGenerationJob(
         budgetMax: data.budgetMax,
         path: data.path,
         wardrobeSummary,
-        looks: plan,
+        looks: boardPlan,
         productImageRefs,
+        requireProductRefsPerPanel: data.path === "online",
       });
 
       await prisma.generationJob.update({
@@ -1216,10 +1550,10 @@ export async function processGenerationJob(
       data: { progress: 90 },
     });
 
-    const looks: GenerationLookResult[] = plan.map((planned, i) => ({
+    const looks: GenerationLookResult[] = boardPlan.map((planned, i) => ({
       ...planned,
       imageUrl: null,
-      products: productResults[i]?.products ?? [],
+      products: boardProductResults[i]?.products ?? [],
     }));
 
     const outfit = await prisma.outfit.create({
@@ -1279,8 +1613,8 @@ export async function processGenerationJob(
       enqueuePostGenerationProductEnrichment({
         jobId,
         userId,
-        plan,
-        productResults,
+        plan: boardPlan,
+        productResults: boardProductResults,
         style: data.style,
         location: data.location,
         budgetMin: data.budgetMin,
@@ -1314,6 +1648,7 @@ export async function processGenerationJob(
     }
   } catch (e) {
     console.error(e);
+    if (productHeartbeat) clearInterval(productHeartbeat);
     await failJob(jobId, e instanceof Error ? e.message : "Generation failed");
   }
 }

@@ -32,7 +32,7 @@ export function GoogleButton({
       {...props}
     >
       {loading ? (
-        <ActivityIndicator color="#0f0e0c" />
+        <ActivityIndicator color="#070608" />
       ) : (
         <View className="flex-row items-center gap-3">
           <FontAwesome name="google" size={18} color="#4285F4" />

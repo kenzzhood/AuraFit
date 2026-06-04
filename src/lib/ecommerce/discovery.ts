@@ -16,6 +16,7 @@ import {
 } from "./session";
 import { serpApiProductProvider } from "./providers/serpapi";
 import { googleShoppingProductProvider } from "./providers/google-shopping";
+import { crawlLiveProductProvider } from "./providers/crawl-live";
 import { demoProductProvider } from "./providers/demo";
 import { enqueueProductCrawl } from "./crawl-queue";
 import type { PersonAnalysis, PlannedLook } from "@/types/generation";
@@ -34,19 +35,18 @@ export type DiscoverProductsResult = {
 };
 
 function getDiscoveryLayers(): string[] {
-  // Default order:
-  //   1. cache   — local per-process cache (instant)
-  //   2. shopping — live Google Shopping via Serper/SerpAPI (≈1 s, verified)
-  //   3. index   — pgvector store of products seen on previous runs
-  //   4. crawl   — slow Playwright validator pipeline, kept for batch backfill
+  // Default order (self-hosted fashion index):
+  //   1. cache  — per-process / Redis cache (instant)
+  //   2. index  — owned pgvector catalog (fast, free, grows nightly)
+  //   3. crawl  — async Playwright backfill when index is sparse (non-blocking)
   //
-  // Note: `crawl` is OFF by default because each Flipkart/Amazon detail page
-  // takes 30–120 s in Playwright. Use it only when running a deliberate
-  // backfill job, never in the synchronous generation critical path.
+  // Opt-in layers (set PRODUCT_DISCOVERY_LAYERS explicitly):
+  //   shopping — paid SerpAPI / Google Shopping (emergency fallback only)
+  //   demo     — placeholder products for dev/tests
   return parseProviderOrder("PRODUCT_DISCOVERY_LAYERS", [
     "cache",
-    "shopping",
     "index",
+    "crawl",
   ]);
 }
 
@@ -88,15 +88,50 @@ const minResults = () =>
   Number(process.env.PRODUCT_CRAWL_MIN_RESULTS ?? 4);
 
 /**
- * Synchronous live shopping search.
+ * Domains that have been confirmed to produce blank/broken pages for real
+ * users even when our crawler validates them as "verified". Products from
+ * these domains are filtered out at the discovery layer so they never reach
+ * the generation result — regardless of which layer (cache/index/crawl)
+ * surfaced them.
  *
- * Primary:   self-hosted Google Shopping (our Python crawler hitting
- *            `google.com/search?tbm=shop&gl=<region>` directly — no keys, ≈1 s).
- * Optional:  paid SerpAPI fallback when the self-hosted path returns empty
- *            (e.g. CAPTCHA, rate-limit). Only used if `SERPAPI_KEY` is set.
+ * Add domains here whenever a retailer is disabled in sites.yaml until we
+ * can verify that the crawled URLs work reliably for real users.
+ */
+const BLOCKED_PRODUCT_DOMAINS = new Set([
+  "snitch.co.in", // Men's-only brand; Playwright validation passes but pages render blank for real users
+]);
+
+function isFromBlockedDomain(url?: string): boolean {
+  if (!url) return false;
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    return BLOCKED_PRODUCT_DOMAINS.has(host);
+  } catch {
+    return false;
+  }
+}
+
+function filterBlockedDomains(products: Product[]): Product[] {
+  return products.filter((p) => !isFromBlockedDomain(p.url));
+}
+
+function hasVerifiedShoppableProduct(products: Product[]): boolean {
+  return products.some(
+    (p) =>
+      p.verified === true &&
+      !!p.url &&
+      !!p.image &&
+      p.availability !== "out_of_stock"
+  );
+}
+
+/**
+ * Opt-in emergency shopping search (SerpAPI / Google Shopping).
  *
- * Both backends return verified products with `imageUrl` (used as an image-gen
- * ingredient) and a real merchant URL (used as the "Shop this look" link).
+ * NOT used in the default discovery chain. Enable by setting
+ * PRODUCT_DISCOVERY_LAYERS=cache,shopping,index,crawl and SERPAPI_KEY.
+ *
+ * Both backends return verified products with `imageUrl` and merchant URL.
  */
 async function fetchShoppingProviders(
   q: ProductQuery
@@ -104,27 +139,7 @@ async function fetchShoppingProviders(
   const failures: ProviderMeta["failures"] = [];
   const providersUsed: string[] = [];
 
-  // Primary: self-hosted Google Shopping via our crawler container.
-  if (googleShoppingProductProvider.isConfigured()) {
-    try {
-      const raw = await googleShoppingProductProvider.search(q);
-      if (raw.length) {
-        providersUsed.push("google-shopping");
-        return {
-          products: dedupeProducts(raw.map((p) => normalizedToProduct(p))),
-          meta: { providersUsed },
-        };
-      }
-    } catch (e) {
-      failures.push({
-        system: "product_search",
-        provider: "google-shopping",
-        message: e instanceof Error ? e.message : String(e),
-      });
-    }
-  }
-
-  // Optional: paid SerpAPI fallback if a key is configured.
+  // Primary: SerpAPI Google Shopping — broad, fast, parallel-safe.
   if (serpApiProductProvider.isConfigured()) {
     try {
       const raw = await serpApiProductProvider.search(q);
@@ -139,6 +154,26 @@ async function fetchShoppingProviders(
       failures.push({
         system: "product_search",
         provider: "serpapi",
+        message: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+
+  // Fallback: self-hosted Google Shopping via our crawler container.
+  if (googleShoppingProductProvider.isConfigured()) {
+    try {
+      const raw = await googleShoppingProductProvider.search(q);
+      if (raw.length) {
+        providersUsed.push("google-shopping");
+        return {
+          products: dedupeProducts(raw.map((p) => normalizedToProduct(p))),
+          meta: { providersUsed },
+        };
+      }
+    } catch (e) {
+      failures.push({
+        system: "product_search",
+        provider: "google-shopping",
         message: e instanceof Error ? e.message : String(e),
       });
     }
@@ -175,6 +210,13 @@ export async function discoverProducts(params: {
   rankingContext?: RankingContext;
   /** When true, enqueue background crawl without awaiting */
   allowAsyncCrawl?: boolean;
+  /**
+   * Generation critical path: if shopping returns empty, run sync Playwright
+   * crawl (scrapes retailer PDPs for real images + verified links).
+   */
+  syncCrawlFallback?: boolean;
+  /** Skip google-shopping; go straight to sync Playwright (recovery path). */
+  syncCrawlOnly?: boolean;
 }): Promise<DiscoverProductsResult> {
   const q = params.query;
   const layers = getDiscoveryLayers();
@@ -183,21 +225,42 @@ export async function discoverProducts(params: {
   let status: SessionStatus = "partial";
 
   // Layer 1: per-process cache (instant)
-  if (layers.includes("cache")) {
+  if (!params.syncCrawlOnly && layers.includes("cache")) {
     const cached = await getCachedProducts(q);
     if (cached?.length) {
-      products = cached.map((p) => normalizedToProduct(p));
-      providerMeta.providersUsed!.push("cache");
+      products = filterBlockedDomains(cached.map((p) => normalizedToProduct(p)));
+      if (products.length) providerMeta.providersUsed!.push("cache");
       status = products.length >= minResults() ? "ready" : "partial";
     }
   }
 
-  // Layer 2: live Google Shopping (Serper → SerpAPI). This is the primary
-  // synchronous source: each call costs ≈1–3 s and returns verified products
-  // (real merchant pages with real images) that we can immediately feed into
-  // image-gen and surface as "Shop this look".
-  if (products.length < minResults() && layers.includes("shopping")) {
-    const startedAt = Date.now();
+  // Layer 2: owned pgvector fashion index (primary synchronous source).
+  if (!params.syncCrawlOnly && products.length < minResults() && layers.includes("index")) {
+    try {
+      const indexed = await searchProductIndex(q, { limit: 12 });
+      products = dedupeProducts([...products, ...filterBlockedDomains(indexed)]);
+      if (indexed.length) providerMeta.providersUsed!.push("index");
+      if (products.length >= minResults()) status = "ready";
+    } catch (e) {
+      providerMeta.degraded = true;
+      providerMeta.failures = [
+        ...(providerMeta.failures ?? []),
+        {
+          system: "product_search",
+          provider: "index",
+          message: e instanceof Error ? e.message : String(e),
+        },
+      ];
+    }
+  }
+
+  // Layer 3 (opt-in): paid SerpAPI / Google Shopping — only when `shopping`
+  // is explicitly included in PRODUCT_DISCOVERY_LAYERS.
+  if (
+    !params.syncCrawlOnly &&
+    products.length < minResults() &&
+    layers.includes("shopping")
+  ) {
     const live = await fetchShoppingProviders(q);
 
     if (live.products.length) {
@@ -217,20 +280,32 @@ export async function discoverProducts(params: {
     }
   }
 
-  // Layer 3: pgvector index (products we've seen on previous generations).
-  if (products.length < minResults() && layers.includes("index")) {
+  // Layer 3b: sync Playwright crawl — recovery path when index + cache empty.
+  if (
+    crawlLiveProductProvider.isConfigured() &&
+    (params.syncCrawlOnly ||
+      (params.syncCrawlFallback && !hasVerifiedShoppableProduct(products)))
+  ) {
     try {
-      const indexed = await searchProductIndex(q, { limit: 12 });
-      products = dedupeProducts([...products, ...indexed]);
-      if (indexed.length) providerMeta.providersUsed!.push("index");
-      if (products.length >= minResults()) status = "ready";
+      const crawled = await crawlLiveProductProvider.search(q);
+      if (crawled.length) {
+        products = dedupeProducts([
+          ...products,
+          ...filterBlockedDomains(crawled.map((p) => normalizedToProduct(p))),
+        ]);
+        providerMeta.providersUsed = [
+          ...(providerMeta.providersUsed ?? []),
+          "crawl-sync",
+        ];
+        status = "ready";
+      }
     } catch (e) {
       providerMeta.degraded = true;
       providerMeta.failures = [
         ...(providerMeta.failures ?? []),
         {
           system: "product_search",
-          provider: "index",
+          provider: "crawl-sync",
           message: e instanceof Error ? e.message : String(e),
         },
       ];
@@ -257,25 +332,40 @@ export async function discoverProducts(params: {
     });
   }
 
-  const sessionId = await createProductSearchSession({
-    userId: params.userId,
-    generationJobId: params.generationJobId,
-    query: q,
-    products,
-    status,
-    providerMeta,
-  });
+  let sessionId: string | undefined;
+  try {
+    sessionId = await createProductSearchSession({
+      userId: params.userId,
+      generationJobId: params.generationJobId,
+      query: q,
+      products,
+      status,
+      providerMeta,
+    });
+  } catch (e) {
+    console.warn("createProductSearchSession failed:", e);
+    providerMeta.degraded = true;
+    providerMeta.failures = [
+      ...(providerMeta.failures ?? []),
+      {
+        system: "product_search",
+        provider: "session",
+        message: e instanceof Error ? e.message : String(e),
+      },
+    ];
+  }
 
 
 
-  // Layer 5: async Playwright crawl (slow, opt-in only). Useful for batch
-  // backfill against Flipkart/Amazon detail pages; not on the synchronous
-  // generation path because each call can take 30–120 s.
+  // Layer 5: async Playwright crawl — gap-fill when index is sparse.
+  // Non-blocking: returns partial index results immediately; worker updates
+  // the catalog for the next request.
   if (
     params.allowAsyncCrawl !== false &&
     layers.includes("crawl") &&
     products.length < minResults() &&
-    process.env.PRODUCT_CRAWLER_URL
+    process.env.PRODUCT_CRAWLER_URL &&
+    sessionId
   ) {
     try {
       await enqueueProductCrawl({
@@ -297,9 +387,11 @@ export async function discoverProducts(params: {
         },
       ];
     }
-  } else if (products.length >= minResults()) {
+  } else if (products.length >= minResults() && sessionId) {
     status = "ready";
-    await updateProductSearchSession(sessionId, { status: "ready" });
+    await updateProductSearchSession(sessionId, { status: "ready" }).catch((e) =>
+      console.warn("updateProductSearchSession failed:", e)
+    );
   }
 
   // Persist to cache + index
@@ -321,6 +413,106 @@ export async function discoverProducts(params: {
     providerMeta: mergeProviderMeta(providerMeta),
     availableOnly: !usedDemo,
   };
+}
+
+/**
+ * Bounded-concurrency parallel runner. Resolves `tasks` in order while never
+ * having more than `limit` in flight. Failures resolve to the provided
+ * `onError` fallback instead of rejecting the whole batch.
+ */
+async function runPool<T, R>(
+  items: T[],
+  limit: number,
+  worker: (item: T, index: number) => Promise<R>,
+  onError: (item: T, index: number, err: unknown) => R
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let cursor = 0;
+  const size = Math.max(1, Math.min(limit, items.length || 1));
+
+  async function pump(): Promise<void> {
+    while (true) {
+      const i = cursor++;
+      if (i >= items.length) return;
+      try {
+        results[i] = await worker(items[i], i);
+      } catch (err) {
+        results[i] = onError(items[i], i, err);
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: size }, () => pump()));
+  return results;
+}
+
+function discoveryConcurrency(): number {
+  const n = Number(process.env.PRODUCT_DISCOVERY_CONCURRENCY ?? 8);
+  return Number.isFinite(n) && n > 0 ? Math.min(n, 16) : 8;
+}
+
+export type BatchDiscoveryItem = {
+  /** Stable key so callers can map results back (e.g. `${lookId}:${slot}`). */
+  key: string;
+  query: ProductQuery;
+  rankingContext?: RankingContext;
+};
+
+export type BatchDiscoveryEntry = DiscoverProductsResult & { key: string };
+
+/**
+ * Run many product discoveries in parallel with a bounded pool.
+ *
+ * This is the core of the V2 pipeline: instead of awaiting each slot's search
+ * sequentially (6 looks x 4 slots = 24 round-trips), we fire them all through a
+ * concurrency-limited pool so a full 6-look package resolves in seconds.
+ *
+ * Every entry always resolves (failures degrade to an empty result for that
+ * key) so one bad query never sinks the whole board.
+ */
+export async function discoverProductsBatch(
+  items: BatchDiscoveryItem[],
+  shared: {
+    userId?: string;
+    generationJobId?: string;
+    syncCrawlFallback?: boolean;
+    allowAsyncCrawl?: boolean;
+  } = {}
+): Promise<BatchDiscoveryEntry[]> {
+  if (!items.length) return [];
+
+  return runPool(
+    items,
+    discoveryConcurrency(),
+    async (item) => {
+      const result = await discoverProducts({
+        query: item.query,
+        userId: shared.userId,
+        generationJobId: shared.generationJobId,
+        rankingContext: item.rankingContext,
+        syncCrawlFallback: shared.syncCrawlFallback,
+        // Batch mode never blocks on the slow async crawl queue.
+        allowAsyncCrawl: shared.allowAsyncCrawl ?? false,
+      });
+      return { ...result, key: item.key };
+    },
+    (item, _i, err) => ({
+      key: item.key,
+      products: [],
+      status: "failed" as SessionStatus,
+      providerMeta: {
+        degraded: true,
+        failures: [
+          {
+            system: "product_search",
+            provider: "batch",
+            message: err instanceof Error ? err.message : String(err),
+          },
+        ],
+      },
+      availableOnly: false,
+    })
+  );
 }
 
 /** Backward-compatible sync search for simple callers */

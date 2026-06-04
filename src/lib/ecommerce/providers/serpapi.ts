@@ -27,6 +27,15 @@ function regionToGl(region: ProductQuery["region"]): string {
   return "in";
 }
 
+/**
+ * How many candidate listings to keep per query. The ranking engine picks the
+ * best one per slot, so we want a few real options (not just 1) to choose from.
+ */
+function maxCandidates(): number {
+  const n = Number(process.env.SERPAPI_MAX_CANDIDATES ?? 8);
+  return Number.isFinite(n) && n > 0 ? Math.min(n, 20) : 8;
+}
+
 export const serpApiProductProvider: ProductSearchProvider = {
   name: "serpapi",
   isConfigured: () => !!process.env.SERPAPI_KEY,
@@ -75,19 +84,38 @@ export const serpApiProductProvider: ProductSearchProvider = {
         source?: string;
         thumbnail?: string;
         product_id?: string;
+        rating?: number;
+        reviews?: number;
       }>;
     };
 
     const results = data.shopping_results ?? [];
     return results
-      .filter((r) => r.title && (r.product_link ?? r.link) && r.thumbnail)
-      .slice(0, 6)
+      .filter((r) => {
+        // Require the fields we actually need downstream: a real merchant link
+        // and a usable http(s) thumbnail (used as an image-gen reference). Skip
+        // data: URIs and anything without an image so we never reference a
+        // product we can't actually show.
+        const url = r.link ?? r.product_link;
+        const img = r.thumbnail;
+        return (
+          !!r.title &&
+          !!url &&
+          /^https?:\/\//.test(url) &&
+          !!img &&
+          /^https?:\/\//.test(img)
+        );
+      })
+      .slice(0, maxCandidates())
       .map((r, i) => {
         const storeName = r.source ?? "Store";
         const source = inferSourceFromStore(storeName);
         const id =
           r.product_id ??
           `${encodeURIComponent(r.title!.slice(0, 40))}-${i}`.slice(0, 80);
+        // Prefer the direct merchant link; fall back to the Google Shopping
+        // product page (which always lists buyable sellers).
+        const productUrl = r.link ?? r.product_link!;
         return {
           externalId: id,
           source,
@@ -96,12 +124,16 @@ export const serpApiProductProvider: ProductSearchProvider = {
           currency:
             q.region === "US" ? "USD" : q.region === "UK" ? "GBP" : "INR",
           imageUrl: r.thumbnail!,
-          productUrl: r.product_link ?? r.link!,
+          productUrl,
+          canonicalUrl: r.product_link ?? productUrl,
           category: q.category,
           storeName,
+          // SerpAPI surfaces live Google Shopping listings — real, purchasable
+          // products with real images. Trust as verified for the shop link.
           verified: true,
           availability: "in_stock",
           matchCategory: q.category,
+          rating: r.rating,
         };
       });
   },

@@ -52,6 +52,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  output: "standalone",
+  outputFileTracingRoot: process.cwd(),
   async headers() {
     return [
       {

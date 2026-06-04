@@ -25,7 +25,10 @@ const initial = {
     styleType: "Smart casual",
     budgetMin: 2000,
     budgetMax: 6000,
-    previewOnly: true,
+    wardrobeMode: "mix" as const,
+    wardrobeItemIds: [] as string[],
+    // "medium" renders the 6-look board image but skips the expensive HD pass.
+    renderQuality: "medium" as const,
   },
   jobId: null,
   result: null,

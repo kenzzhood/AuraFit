@@ -1,0 +1,54 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": {
+      "value": "${AZURE_ENV_NAME}"
+    },
+    "location": {
+      "value": "${AZURE_LOCATION}"
+    },
+    "postgresLocation": {
+      "value": "${POSTGRES_LOCATION=eastus}"
+    },
+    "postgresAdminPassword": {
+      "value": "$(secretOrRandomPassword)"
+    },
+    "clerkPublishableKey": {
+      "value": "${CLERK_PUBLISHABLE_KEY}"
+    },
+    "clerkSecretKey": {
+      "value": "${CLERK_SECRET_KEY}"
+    },
+    "azureOpenAiEndpoint": {
+      "value": "${AZURE_OPENAI_ENDPOINT}"
+    },
+    "azureOpenAiApiKey": {
+      "value": "${AZURE_OPENAI_API_KEY}"
+    },
+    "azureOpenAiImageEndpoint": {
+      "value": "${AZURE_OPENAI_IMAGE_ENDPOINT}"
+    },
+    "azureOpenAiImageApiKey": {
+      "value": "${AZURE_OPENAI_IMAGE_API_KEY}"
+    },
+    "azureStorageAccountName": {
+      "value": "${AZURE_STORAGE_ACCOUNT_NAME}"
+    },
+    "azureStorageAccountKey": {
+      "value": "${AZURE_STORAGE_ACCOUNT_KEY}"
+    },
+    "azureStorageConnectionString": {
+      "value": "${AZURE_STORAGE_CONNECTION_STRING}"
+    },
+    "crawlerApiKey": {
+      "value": "${CRAWLER_API_KEY=dev-crawler-key}"
+    },
+    "inngestEventKey": {
+      "value": "${INNGEST_EVENT_KEY}"
+    },
+    "inngestSigningKey": {
+      "value": "${INNGEST_SIGNING_KEY}"
+    }
+  }
+}
