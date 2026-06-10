@@ -4,6 +4,8 @@ import { chatMessageSchema } from "@/types/api";
 import { stylistChat } from "@/lib/ai/stylist";
 import { ensureAppUser } from "@/lib/user";
 import { prisma } from "@/lib/prisma";
+import { CHAT_RATE_LIMIT, rateLimit } from "@/lib/redis";
+import { rateLimitedResponse } from "@/lib/api/rate-limit-response";
 
 export async function POST(req: Request) {
   const { userId } = await auth();
@@ -13,13 +15,30 @@ export async function POST(req: Request) {
   const cu = await currentUser();
   const user = await ensureAppUser(userId, cu?.primaryEmailAddress?.emailAddress);
 
+  const lim = await rateLimit(
+    `chat:${user.id}`,
+    CHAT_RATE_LIMIT.limit,
+    CHAT_RATE_LIMIT.windowSec
+  );
+  if (!lim.ok) {
+    return rateLimitedResponse("chat", lim.retryAfterSec);
+  }
+
   const parsed = chatMessageSchema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
   let conversationId = parsed.data.conversationId;
-  if (!conversationId) {
+  if (conversationId) {
+    const owned = await prisma.conversation.findFirst({
+      where: { id: conversationId, userId: user.id },
+      select: { id: true },
+    });
+    if (!owned) {
+      return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+    }
+  } else {
     const c = await prisma.conversation.create({
       data: {
         userId: user.id,

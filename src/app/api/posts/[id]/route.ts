@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ensureAppUser } from "@/lib/user";
 import { PostVisibility } from "@prisma/client";
+import { sanitizePostForPublic } from "@/lib/api/sanitize-public";
 
 export async function GET(
   _req: Request,
@@ -60,7 +61,9 @@ export async function GET(
   }
 
   return NextResponse.json({
-    post,
+    post: sanitizePostForPublic(post, {
+      includeWardrobeSummary: isOwner,
+    }),
     likedByMe,
     likeCount: post._count.likes,
     commentCount: post._count.comments,

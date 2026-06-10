@@ -9,6 +9,10 @@ import { tryRemoteEnqueueGeneration } from "@/lib/queue/producer";
 import { processGenerationJob } from "@/lib/jobs/generation";
 import { generationRateLimitedResponse } from "@/lib/api/rate-limit-response";
 import { GENERATION_RATE_LIMIT, rateLimit } from "@/lib/redis";
+import {
+  assertAllowedUserMediaUrl,
+  UnsafeUrlError,
+} from "@/lib/security/ssrf";
 
 export async function POST(req: Request) {
   const { userId } = await auth();
@@ -33,6 +37,18 @@ export async function POST(req: Request) {
   const parsed = generateJobSchema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  }
+
+  if (parsed.data.userPhotoUrl) {
+    try {
+      assertAllowedUserMediaUrl(parsed.data.userPhotoUrl);
+    } catch (e) {
+      const msg =
+        e instanceof UnsafeUrlError
+          ? "userPhotoUrl must be an uploaded image from Aurafit storage"
+          : "Invalid userPhotoUrl";
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
   }
 
   const job = await prisma.generationJob.create({

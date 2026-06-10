@@ -1,4 +1,8 @@
 import OpenAI, { toFile } from "openai";
+import {
+  assertAllowedUserMediaUrl,
+  assertSafeExternalUrl,
+} from "@/lib/security/ssrf";
 
 function getImageEndpointAndKey(): { endpoint?: string; apiKey?: string } {
   return {
@@ -65,8 +69,14 @@ type FetchedImageFile = {
 
 async function fetchAsToFile(
   url: string,
-  fallbackName: string
+  fallbackName: string,
+  options?: { userMediaOnly?: boolean }
 ): Promise<FetchedImageFile> {
+  if (options?.userMediaOnly) {
+    assertAllowedUserMediaUrl(url);
+  } else {
+    assertSafeExternalUrl(url);
+  }
   // Per-image fetch timeout. One dead/slow product thumbnail must NOT stall
   // the whole multi-image edit payload — we'd rather drop that ref and let
   // Promise.allSettled in the caller collect whatever finished in time.
@@ -138,16 +148,13 @@ export async function generateFashionBoard(
   // and let the job mark itself degraded rather than hang the worker.
   const IMAGE_API_TIMEOUT_MS = 90_000;
 
-  // #region agent log
-  try { require('fs').appendFileSync('/Users/gouthamsrinath/Websites/Aurafit/.cursor/debug-9cb59e.log', JSON.stringify({sessionId:'9cb59e',hypothesisId:'H1',location:'azure/images.ts:55',message:'image-api-call',data:{apiMethod: hasProductRefs ? 'images.edit:multi' : canEdit ? 'images.edit:single' : 'images.generate',deployment,isGptImage,gptImageQuality,promptCharLength:prompt.length,promptHead:prompt.slice(0,200),referenceImageProvided:!!referenceImageUrl,productImageCount:productUrls.length},timestamp:Date.now()}) + '\n'); } catch {}
-  // #endregion
-
   // === Level 1: multi-image edit (user photo + product images) ===========
   if (hasProductRefs) {
     try {
       const userPhoto = await fetchAsToFile(
         referenceImageUrl!,
-        "reference-person"
+        "reference-person",
+        { userMediaOnly: true }
       );
       // Fetch product images in parallel; tolerate individual failures so one
       // dead thumbnail URL doesn't blow up the whole call.
@@ -160,10 +167,6 @@ export async function generateFashionBoard(
             r.status === "fulfilled"
         )
         .map((r) => r.value);
-
-      // #region agent log
-      try { require('fs').appendFileSync('/Users/gouthamsrinath/Websites/Aurafit/.cursor/debug-9cb59e.log', JSON.stringify({sessionId:'9cb59e',hypothesisId:'H1',location:'azure/images.ts:multi-edit',message:'multi-edit-references-fetched',data:{userPhotoBytes:userPhoto.byteLength,productImagesRequested:productUrls.length,productImagesFetched:productFiles.length,productFailures:productResults.filter(r=>r.status==='rejected').length,runId:'post-fix'},timestamp:Date.now()}) + '\n'); } catch {}
-      // #endregion
 
       if (productFiles.length > 0) {
         const imageArray = [
@@ -187,11 +190,7 @@ export async function generateFashionBoard(
         return extractImage(editResponse.data?.[0], "multi-image edit");
       }
       // If every product fetch failed, drop down to single-image edit.
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      // #region agent log
-      try { require('fs').appendFileSync('/Users/gouthamsrinath/Websites/Aurafit/.cursor/debug-9cb59e.log', JSON.stringify({sessionId:'9cb59e',hypothesisId:'H1',location:'azure/images.ts:multi-edit-fallback',message:'multi-edit-failed-falling-back-to-single',data:{error:message,runId:'post-fix'},timestamp:Date.now()}) + '\n'); } catch {}
-      // #endregion
+    } catch {
       // fall through to single-edit
     }
   }
@@ -201,12 +200,9 @@ export async function generateFashionBoard(
     try {
       const userPhoto = await fetchAsToFile(
         referenceImageUrl!,
-        "reference-person"
+        "reference-person",
+        { userMediaOnly: true }
       );
-
-      // #region agent log
-      try { require('fs').appendFileSync('/Users/gouthamsrinath/Websites/Aurafit/.cursor/debug-9cb59e.log', JSON.stringify({sessionId:'9cb59e',hypothesisId:'H1',location:'azure/images.ts:edit',message:'edit-reference-fetched',data:{contentType:userPhoto.contentType,byteLength:userPhoto.byteLength,runId:'post-fix'},timestamp:Date.now()}) + '\n'); } catch {}
-      // #endregion
 
       const editResponse = await client.images.edit(
         {
@@ -220,11 +216,7 @@ export async function generateFashionBoard(
         { timeout: IMAGE_API_TIMEOUT_MS }
       );
       return extractImage(editResponse.data?.[0], "image edit");
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      // #region agent log
-      try { require('fs').appendFileSync('/Users/gouthamsrinath/Websites/Aurafit/.cursor/debug-9cb59e.log', JSON.stringify({sessionId:'9cb59e',hypothesisId:'H1',location:'azure/images.ts:edit-fallback',message:'edit-failed-falling-back-to-generate',data:{error:message,runId:'post-fix'},timestamp:Date.now()}) + '\n'); } catch {}
-      // #endregion
+    } catch {
       // fall through to text-only generation
     }
   }

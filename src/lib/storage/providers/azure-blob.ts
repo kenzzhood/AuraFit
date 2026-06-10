@@ -38,7 +38,11 @@ function splitContainerPath(path: string): { container: string; blob: string } {
   return { container: pickContainer(path), blob: path };
 }
 
-const READ_SAS_DAYS = 365;
+const READ_SAS_MINUTES = () =>
+  Math.min(
+    24 * 60,
+    Math.max(15, Number(process.env.AZURE_BLOB_READ_SAS_MINUTES ?? "60"))
+  );
 
 export const azureBlobStorageProvider: StorageProvider = {
   name: "azure",
@@ -58,17 +62,20 @@ export const azureBlobStorageProvider: StorageProvider = {
       contentType ?? "image/jpeg"
     );
 
-    // Containers are private by default; issue a long-lived read SAS so the
-    // returned URL is browser-loadable.
+    // Private containers: issue a short-lived read SAS at upload time.
+    // Callers should persist `path` and resolve fresh URLs via getReadUrl().
     const sasUrl = tryGetBlobReadSasUrl(
       container,
       blobKey,
-      READ_SAS_DAYS * 24 * 60
+      READ_SAS_MINUTES()
     );
+    if (!sasUrl) {
+      throw new Error("Azure Blob storage is not configured for read URLs");
+    }
 
     return {
       path: `${container}:${blobKey}`,
-      url: sasUrl ?? `https://${process.env.AZURE_STORAGE_ACCOUNT_NAME}.blob.core.windows.net/${container}/${blobKey}`,
+      url: sasUrl,
     };
   },
 
@@ -77,6 +84,6 @@ export const azureBlobStorageProvider: StorageProvider = {
     const cdn = process.env.AZURE_CDN_ENDPOINT;
     const { container, blob } = splitContainerPath(path);
     if (cdn) return `${cdn.replace(/\/$/, "")}/${container}/${blob}`;
-    return tryGetBlobReadSasUrl(container, blob, READ_SAS_DAYS * 24 * 60);
+    return tryGetBlobReadSasUrl(container, blob, READ_SAS_MINUTES());
   },
 };

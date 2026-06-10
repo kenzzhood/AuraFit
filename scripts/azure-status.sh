@@ -17,6 +17,7 @@ RG="${AZURE_RESOURCE_GROUP:?AZURE_RESOURCE_GROUP not set — has azd up been run
 PG="${AZURE_POSTGRES_SERVER_NAME:?AZURE_POSTGRES_SERVER_NAME not set}"
 WEB="${AZURE_WEB_APP_NAME:?AZURE_WEB_APP_NAME not set}"
 CRAWLER="${AZURE_CRAWLER_APP_NAME:?AZURE_CRAWLER_APP_NAME not set}"
+INNGEST="${AZURE_INNGEST_APP_NAME:-aurafit-inngest}"
 
 echo "Aurafit Azure status"
 echo "  Resource group: $RG"
@@ -44,8 +45,23 @@ echo "  Crawler ($CRAWLER):"
 echo "    scale:    min=$CR_MIN, max=$CR_MAX"
 echo "    running:  $CR_REPLICAS replicas"
 
+if az containerapp show -g "$RG" -n "$INNGEST" >/dev/null 2>&1; then
+  IN_MIN=$(az containerapp show -g "$RG" -n "$INNGEST" --query 'properties.template.scale.minReplicas' -o tsv 2>/dev/null || echo "?")
+  IN_MAX=$(az containerapp show -g "$RG" -n "$INNGEST" --query 'properties.template.scale.maxReplicas' -o tsv 2>/dev/null || echo "?")
+  IN_REPLICAS=$(az containerapp replica list -g "$RG" -n "$INNGEST" --query 'length(@)' -o tsv 2>/dev/null || echo "?")
+  echo ""
+  echo "  Inngest ($INNGEST):"
+  echo "    scale:    min=$IN_MIN, max=$IN_MAX"
+  echo "    running:  $IN_REPLICAS replicas"
+  echo "    tip:      run npm run azure:stop to remove (inline queue does not need it)"
+else
+  IN_MIN="n/a"
+  echo ""
+  echo "  Inngest ($INNGEST): not deployed"
+fi
+
 echo ""
-if [[ "$PG_STATE" == "Stopped" || "$PG_STATE" == "Stopping" ]] && [[ "$WEB_MIN" == "0" ]]; then
+if [[ "$PG_STATE" == "Stopped" || "$PG_STATE" == "Stopping" ]] && [[ "$WEB_MIN" == "0" ]] && [[ "${IN_MIN:-0}" == "0" || "$IN_MIN" == "n/a" ]]; then
   echo "  → PAUSED (idle). ~₹650/mo fixed (ACR + PG storage + logs)."
   echo "    Run: npm run azure:start"
 elif [[ "$PG_STATE" == "Ready" ]] && [[ "$WEB_MIN" -ge 1 ]]; then

@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-LOG_FILE="/Users/gouthamsrinath/Websites/Aurafit/.cursor/debug-a5c909.log"
+LOG_FILE="$PWD/.cursor/debug-a5c909.log"
 SESSION_ID="a5c909"
 RUN_ID="real-probe-$(date +%s)"
 RG="${AZURE_RESOURCE_GROUP:-aurafit-rg}"

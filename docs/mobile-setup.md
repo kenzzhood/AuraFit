@@ -9,12 +9,14 @@
 
 ## Configure
 
+See **[SETUP_YOUR_KEYS.md](SETUP_YOUR_KEYS.md)** for Clerk and API setup.
+
 1. Copy `apps/mobile/.env.example` → `apps/mobile/.env`
 2. Set `EXPO_PUBLIC_API_URL` to your machine LAN IP (not `localhost` on a physical device):
    ```
    EXPO_PUBLIC_API_URL=http://192.168.1.x:3000
    ```
-3. Set `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` (same as web)
+3. Set `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` from **your** Clerk app (same publishable key as web)
 
 ## Install and run
 

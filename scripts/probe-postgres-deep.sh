@@ -7,7 +7,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 set -uo pipefail
 
-LOG_FILE="/Users/gouthamsrinath/Websites/Aurafit/.cursor/debug-a5c909.log"
+LOG_FILE="$PWD/.cursor/debug-a5c909.log"
 RG_NAME="aurafit-rg"
 SESSION_ID="a5c909"
 RUN_ID="probe2-$(date +%s)"

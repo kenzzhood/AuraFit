@@ -12,6 +12,7 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
+    "test": "vitest run",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "bash -c 'set -a && [ -f .env.local ] && . ./.env.local; set +a && prisma db push'",

@@ -5,6 +5,7 @@ import { ensureAppUser } from "@/lib/user";
 import { z } from "zod";
 import { PostVisibility } from "@prisma/client";
 import { rateLimit } from "@/lib/redis";
+import { sanitizePostForPublic } from "@/lib/api/sanitize-public";
 
 const createSchema = z.object({
   outfitId: z.string(),
@@ -53,7 +54,7 @@ export async function GET(req: Request) {
   ]);
 
   return NextResponse.json({
-    posts,
+    posts: posts.map((post) => sanitizePostForPublic(post)),
     page,
     totalPages: Math.ceil(total / take) || 1,
     hasMore: skip + posts.length < total,

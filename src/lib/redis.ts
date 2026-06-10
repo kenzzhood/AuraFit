@@ -96,6 +96,11 @@ export async function rateLimit(
 /** Full outfit generation is expensive — allow a few boards per user per window. */
 export const GENERATION_RATE_LIMIT = { limit: 8, windowSec: 15 * 60 } as const;
 
+export const CHAT_RATE_LIMIT = { limit: 30, windowSec: 15 * 60 } as const;
+export const SEARCH_RATE_LIMIT = { limit: 40, windowSec: 15 * 60 } as const;
+export const RECOMMENDATIONS_RATE_LIMIT = { limit: 20, windowSec: 15 * 60 } as const;
+export const WARDROBE_WRITE_RATE_LIMIT = { limit: 30, windowSec: 15 * 60 } as const;
+
 export async function getCached(key: string): Promise<string | null> {
   const client = getRedis();
   if (!client) return null;

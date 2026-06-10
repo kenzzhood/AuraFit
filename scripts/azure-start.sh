@@ -4,6 +4,7 @@
 #
 #   - Starts Postgres (required for API / generation)
 #   - Sets web + crawler to min=1 so generation doesn't hit cold-start timeouts
+#   - Does NOT start Inngest (QUEUE_PROVIDERS=inline); run azure:stop to scale it to zero
 #   - Warms web → DB → crawler before you open the app
 #
 # For scale-to-zero between requests (Postgres still running, ~₹210/day DB):

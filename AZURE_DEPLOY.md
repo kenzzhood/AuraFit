@@ -32,8 +32,8 @@ keeps running until you stop it — run `npm run azure:stop` after deploys.
    brew install azure-cli azd
    ```
 
-2. **Log in** to Azure with the account that owns your existing
-   `innoxr-brain-goutham` and `aurafit` resources:
+2. **Log in** to Azure with an account that has permission to create resources
+   in your target subscription:
 
    ```bash
    az login

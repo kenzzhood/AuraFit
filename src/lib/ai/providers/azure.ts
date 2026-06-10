@@ -119,9 +119,6 @@ function parseLooks(raw: string): PlannedLook[] | null {
         items,
       };
     });
-    // #region agent log
-    try { require('fs').appendFileSync('/Users/gouthamsrinath/Websites/Aurafit/.cursor/debug-9cb59e.log', JSON.stringify({sessionId:'9cb59e',hypothesisId:'P3',location:'azure.ts:parseLooks',message:'parsed-look-plan',data:{lookCount:plan.length,sample:plan.slice(0,2).map(l=>({label:l.label,productSearchQuery:l.productSearchQuery,itemCount:l.items?.length??0,items:l.items?.map(it=>({category:it.category,desc:(it.description??'').slice(0,50),sq:it.searchQuery}))})),runId:'post-products-fix'},timestamp:Date.now()}) + '\n'); } catch {}
-    // #endregion
     return plan;
   } catch {
     return null;

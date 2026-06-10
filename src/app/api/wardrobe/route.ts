@@ -18,7 +18,13 @@ const postSchema = z.object({
 });
 
 import { resolveWardrobeItemReadUrl } from "@/lib/storage/item-read-url";
-import { rateLimit } from "@/lib/redis";
+import { rateLimit, WARDROBE_WRITE_RATE_LIMIT } from "@/lib/redis";
+import { rateLimitedResponse } from "@/lib/api/rate-limit-response";
+import { assertUserBlobPath } from "@/lib/security/blob-path";
+import {
+  assertAllowedUserMediaUrl,
+  UnsafeUrlError,
+} from "@/lib/security/ssrf";
 
 const container =
   process.env.AZURE_STORAGE_CONTAINER_WARDROBES ?? "wardrobes";
@@ -61,6 +67,15 @@ export async function POST(req: Request) {
   const cu = await currentUser();
   const user = await ensureAppUser(userId, cu?.primaryEmailAddress?.emailAddress);
 
+  const lim = await rateLimit(
+    `wardrobe:${user.id}`,
+    WARDROBE_WRITE_RATE_LIMIT.limit,
+    WARDROBE_WRITE_RATE_LIMIT.windowSec
+  );
+  if (!lim.ok) {
+    return rateLimitedResponse("wardrobe", lim.retryAfterSec);
+  }
+
   const body = postSchema.safeParse(await req.json());
   if (!body.success) {
     return NextResponse.json({ error: body.error.flatten() }, { status: 400 });
@@ -74,6 +89,16 @@ export async function POST(req: Request) {
   }
 
   const { blobPath, category, imageUrl } = body.data;
+
+  try {
+    assertUserBlobPath(blobPath, userId);
+    if (imageUrl) {
+      assertAllowedUserMediaUrl(imageUrl);
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Invalid upload reference";
+    return NextResponse.json({ error: msg }, { status: 400 });
+  }
 
   // When the client sent an explicit category we trust it (manual override
   // path). Otherwise we ask GPT-4o vision to classify the garment AND write

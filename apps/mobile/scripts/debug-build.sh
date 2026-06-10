@@ -3,7 +3,7 @@
 # can diagnose why no APK is being produced. Safe to re-run.
 set -u
 
-LOG_PATH="/Users/gouthamsrinath/Websites/Aurafit/.cursor/debug-a5c909.log"
+LOG_PATH="$HERE/../../.cursor/debug-a5c909.log"
 SESSION="a5c909"
 RUN_ID="diag-$(date +%s)"
 HERE="$(cd "$(dirname "$0")/.." && pwd)"

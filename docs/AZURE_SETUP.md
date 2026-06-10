@@ -120,4 +120,4 @@ Without Azure OpenAI/Vision, `/api/chat` and vision-heavy wardrobe flows return 
 
 ## 11. CI/CD
 
-See [`.github/workflows/ci.yml`](./.github/workflows/ci.yml). Add `DATABASE_URL` (staging) as a GitHub **secret** for `prisma migrate deploy` in deploy workflows when you add them.
+See [`.github/workflows/ci.yml`](../.github/workflows/ci.yml). Add `DATABASE_URL` (staging) as a GitHub **secret** for `prisma migrate deploy` in deploy workflows when you add them.

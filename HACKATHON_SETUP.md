@@ -13,7 +13,9 @@ If `npm install` fails on a peer dependency for `inngest`, use `npm install --le
 
 ## 2. Clerk
 
-Create an application, add authorized redirect URLs for your Vercel preview + production URLs, then set the `NEXT_PUBLIC_CLERK_*` and `CLERK_SECRET_KEY` variables.
+Create **your own** application at [dashboard.clerk.com](https://dashboard.clerk.com). Full steps: [docs/SETUP_YOUR_KEYS.md](docs/SETUP_YOUR_KEYS.md#1-authentication--clerk).
+
+Add redirect URLs for your Vercel preview + production URLs, then set `NEXT_PUBLIC_CLERK_*` and `CLERK_SECRET_KEY` in `.env.local`.
 
 ## 3. Cloudinary
 

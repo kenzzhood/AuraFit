@@ -81,6 +81,36 @@ export async function getProductSearchSession(sessionId: string) {
 
   return {
     id: row.id,
+    userId: row.userId,
+    query: row.query,
+    region: row.region,
+    category: row.category,
+    status: statusMap[row.status],
+    products: (row.productsJson as Product[]) ?? [],
+    providerMeta: row.providerMeta as ProviderMeta | undefined,
+    generationJobId: row.generationJobId,
+  };
+}
+
+/** Returns null when the session does not exist or belongs to another user. */
+export async function getProductSearchSessionForUser(
+  sessionId: string,
+  userId: string
+) {
+  const row = await prisma.productSearchSession.findFirst({
+    where: { id: sessionId, userId },
+  });
+  if (!row) return null;
+
+  const statusMap: Record<ProductSearchSessionStatus, SessionStatus> = {
+    PARTIAL: "partial",
+    READY: "ready",
+    FAILED: "failed",
+  };
+
+  return {
+    id: row.id,
+    userId: row.userId,
     query: row.query,
     region: row.region,
     category: row.category,

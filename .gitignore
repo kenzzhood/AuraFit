@@ -21,10 +21,12 @@ __pycache__/
 *$py.class
 *.pyc
 
+# Encrypted secrets bundles (never commit — use GitHub Secrets / Azure Key Vault)
+secrets/*.enc
+secrets/*.bundle
+
 # Azure azd local state (may contain secrets)
 .azure/
-
-# TypeScript build info
 tsconfig.tsbuildinfo
 
 # Debug

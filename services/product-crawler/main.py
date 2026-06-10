@@ -13,6 +13,7 @@ from engines.crawl4ai_engine import extract_products
 from engines.google_shopping_engine import search_google_shopping
 from engines.playwright_engine import fetch_rendered_html, fetch_via_httpx
 from validators import validate_product_url
+from validators.ssrf import UnsafeUrlError, assert_safe_crawl_url
 
 API_KEY = os.environ.get("CRAWLER_API_KEY", "").strip()
 
@@ -24,8 +25,7 @@ if not API_KEY:
         "Set a strong random key before starting the crawler.",
         file=sys.stderr,
     )
-    if os.environ.get("CRAWLER_ALLOW_NO_KEY", "").lower() != "true":
-        sys.exit(1)
+    sys.exit(1)
 
 MAX_CANDIDATES_PER_QUERY = int(os.environ.get("MAX_CANDIDATES_PER_QUERY", "8"))
 MAX_VERIFIED_PER_QUERY = int(os.environ.get("MAX_VERIFIED_PER_QUERY", "5"))
@@ -67,8 +67,6 @@ async def limit_body_size(request: Request, call_next):
 
 
 def verify_key(x_crawler_key: str | None = Header(default=None)) -> None:
-    if not API_KEY:
-        return
     if not x_crawler_key or x_crawler_key != API_KEY:
         raise HTTPException(status_code=401, detail="Invalid or missing crawler key")
 
@@ -375,8 +373,12 @@ async def crawl_single_url(
     x_crawler_key: str | None = Header(default=None),
 ):
     verify_key(x_crawler_key)
-    html = await fetch_rendered_html(body.url)
-    products = await extract_products(body.url, body.query, html=html)
+    try:
+        safe_url = assert_safe_crawl_url(body.url)
+    except UnsafeUrlError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    html = await fetch_rendered_html(safe_url)
+    products = await extract_products(safe_url, body.query, html=html)
     return {"products": products, "count": len(products)}
 
 
@@ -386,7 +388,11 @@ async def crawl_resolve(
     x_crawler_key: str | None = Header(default=None),
 ):
     verify_key(x_crawler_key)
-    product, reason = await validate_product_url(body.url)
+    try:
+        safe_url = assert_safe_crawl_url(body.url)
+    except UnsafeUrlError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    product, reason = await validate_product_url(safe_url)
     if product is None:
         return {"verified": False, "reason": reason, "product": None}
     return {"verified": True, "reason": None, "product": product}

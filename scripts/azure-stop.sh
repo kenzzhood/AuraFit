@@ -3,7 +3,7 @@
 # Pause Aurafit — near-zero compute cost.
 #
 #   - Stops Postgres (storage-only billing ~₹250/mo)
-#   - Sets web + crawler to min=max=0 (no Container Apps compute)
+#   - Scales ALL Container Apps to min=0 (web, crawler, inngest, any others)
 #
 # Fixed idle floor (~₹650/mo): ACR Basic + Postgres storage + Log Analytics.
 # To remove everything:  azd down --purge
@@ -27,6 +27,32 @@ RG="${AZURE_RESOURCE_GROUP:?AZURE_RESOURCE_GROUP not set — has azd up been run
 PG="${AZURE_POSTGRES_SERVER_NAME:?AZURE_POSTGRES_SERVER_NAME not set}"
 WEB="${AZURE_WEB_APP_NAME:?AZURE_WEB_APP_NAME not set}"
 CRAWLER="${AZURE_CRAWLER_APP_NAME:?AZURE_CRAWLER_APP_NAME not set}"
+INNGEST="${AZURE_INNGEST_APP_NAME:-aurafit-inngest}"
+
+scale_app_to_zero() {
+  local app="$1"
+  local max_replicas="${2:-1}"
+  if ! az containerapp show -g "$RG" -n "$app" >/dev/null 2>&1; then
+    echo "    ↳ $app not found — skipped"
+    return 0
+  fi
+  az containerapp update -g "$RG" -n "$app" \
+    --min-replicas 0 --max-replicas "$max_replicas" \
+    --query 'name' -o tsv >/dev/null
+  echo "    ✓ $app min=0"
+}
+
+remove_inngest_if_present() {
+  if ! az containerapp show -g "$RG" -n "$INNGEST" >/dev/null 2>&1; then
+    echo "    ↳ $INNGEST not present — skipped"
+    return 0
+  fi
+  # Inngest was deployed with minReplicas=1 and keeps a warm replica even at
+  # min=0. We use QUEUE_PROVIDERS=inline, so delete it on pause to stop compute.
+  echo "  ↳ removing Inngest ($INNGEST) — inline queue does not need it..."
+  az containerapp delete -g "$RG" -n "$INNGEST" --yes -o none
+  echo "    ✓ deleted (recreate with \`azd deploy\` if you switch back to Inngest)"
+}
 
 echo "▸ Pausing Aurafit in $RG (idle mode)"
 echo ""
@@ -40,17 +66,37 @@ else
   echo "    ↳ Postgres already in state: $PG_STATE"
 fi
 
-echo "  ↳ scaling web to zero ($WEB)..."
-az containerapp update -g "$RG" -n "$WEB" \
-  --min-replicas 0 --max-replicas 3 \
-  --query 'name' -o tsv >/dev/null
-echo "    ✓ web min=0 (scales to zero on idle)"
+echo "  ↳ scaling Container Apps to zero..."
+scale_app_to_zero "$WEB" 3
+scale_app_to_zero "$CRAWLER" 2
+remove_inngest_if_present
 
-echo "  ↳ scaling crawler to zero ($CRAWLER)..."
-az containerapp update -g "$RG" -n "$CRAWLER" \
-  --min-replicas 0 --max-replicas 2 \
-  --query 'name' -o tsv >/dev/null
-echo "    ✓ crawler min=0 (scales to zero on idle)"
+# Catch any other container apps in the RG (future-proof).
+while IFS= read -r app; do
+  [[ -z "$app" ]] && continue
+  case "$app" in
+    "$WEB"|"$CRAWLER"|"$INNGEST") continue ;;
+  esac
+  max=$(az containerapp show -g "$RG" -n "$app" --query 'properties.template.scale.maxReplicas' -o tsv 2>/dev/null || echo "1")
+  scale_app_to_zero "$app" "$max"
+done < <(az containerapp list -g "$RG" --query "[].name" -o tsv 2>/dev/null || true)
+
+echo "  ↳ waiting for replicas to drain..."
+for _ in $(seq 1 12); do
+  total=0
+  while IFS= read -r app; do
+    [[ -z "$app" ]] && continue
+    n=$(az containerapp replica list -g "$RG" -n "$app" --query 'length(@)' -o tsv 2>/dev/null || echo "0")
+    total=$((total + n))
+  done < <(az containerapp list -g "$RG" --query "[].name" -o tsv 2>/dev/null || true)
+  [[ "$total" -eq 0 ]] && break
+  sleep 5
+done
+if [[ "${total:-0}" -gt 0 ]]; then
+  echo "    ⚠ $total replica(s) still draining — compute should drop to zero within a few minutes"
+else
+  echo "    ✓ all replicas stopped"
+fi
 
 echo ""
 echo "✓ Aurafit paused."

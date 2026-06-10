@@ -3,9 +3,9 @@
 // Provisions: ACR + Log Analytics + Container Apps env + 2 Container Apps
 //             + Postgres Flexible Server with pgvector.
 //
-// Existing resources reused (NOT created here):
-//   - Azure OpenAI (innoxr-brain-goutham, aurafit-image)
-//   - Storage account (aurafit)
+// Existing resources reused (NOT created here — configure via env / azd):
+//   - Azure OpenAI (your cognitive services account + deployment names)
+//   - Storage account (blob containers for wardrobes / outfits / profiles)
 //   - Clerk auth (Clerk Cloud)
 // ─────────────────────────────────────────────────────────────────────────────
 

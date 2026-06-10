@@ -1,35 +1,17 @@
-# Encrypted secrets
+# Secrets in this repository
 
-Plaintext API keys and env files are **never** committed. They live in:
+**This repo contains no API keys, Clerk credentials, or connection strings.**
 
-| File | Purpose |
-|------|---------|
-| `secrets/env.bundle.enc` | OpenSSL AES-256-CBC encrypted bundle (web + mobile + azd env) |
-| `.secrets-passphrase` | Local passphrase file (**gitignored** — store in your password manager) |
+Each developer and deployer must supply their own. See:
 
-## Encrypt (after changing keys)
+**→ [docs/SETUP_YOUR_KEYS.md](../docs/SETUP_YOUR_KEYS.md)**
 
-```bash
-# First time: generate a passphrase and save it locally
-openssl rand -base64 32 > .secrets-passphrase
-chmod 600 .secrets-passphrase
+Store secrets only in gitignored files:
 
-AURAFIT_SECRETS_PASSPHRASE_FILE=.secrets-passphrase bash scripts/secrets-encrypt.sh
-git add secrets/env.bundle.enc && git commit -m "chore: rotate encrypted secrets bundle"
-```
+- `.env.local`
+- `apps/mobile/.env`
+- `.azure/` (Azure Developer CLI local state)
 
-## Decrypt (new machine / teammate)
+Never commit `secrets/*.enc` or encrypted bundles.
 
-```bash
-AURAFIT_SECRETS_PASSPHRASE='your-passphrase' bash scripts/secrets-decrypt.sh
-# or
-AURAFIT_SECRETS_PASSPHRASE_FILE=.secrets-passphrase bash scripts/secrets-decrypt.sh
-```
-
-## What stays out of git
-
-- `.env`, `.env.local`, `apps/mobile/.env`
-- `.secrets-passphrase`
-- `__pycache__/`, `*.pyc`
-
-Use `.env.example` and `apps/mobile/.env.example` for non-secret variable names.
+If credentials were ever committed to git history, follow [GIT_HISTORY_PURGE.md](../GIT_HISTORY_PURGE.md) after rotating keys in your provider dashboards.
