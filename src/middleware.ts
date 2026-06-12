@@ -18,21 +18,25 @@ const clerkPk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
 
 /** Clerk-authenticated middleware for production */
 const withClerk: NextMiddleware = clerkMiddleware(async (auth, req) => {
-  if (!isPublicRoute(req)) {
-    const isApiRoute = req.nextUrl.pathname.startsWith("/api/");
-    if (isApiRoute) {
-      // For API routes called from mobile / non-browser clients, Clerk's
-      // dev-instance "protect-rewrite" rewrites unauthenticated requests to a
-      // /clerk_xxx URL that doesn't exist, producing a confusing 404 instead
-      // of 401. Return a real 401 so mobile clients can prompt re-auth.
-      const { userId } = await auth();
-      if (!userId) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-    } else {
-      await auth.protect();
-    }
+  if (isPublicRoute(req)) return;
+
+  const isApiRoute = req.nextUrl.pathname.startsWith("/api/");
+  const { userId } = await auth();
+
+  if (userId) return;
+
+  if (isApiRoute) {
+    // Mobile / API clients get a real 401 — not Clerk's /clerk_xxx rewrite 404.
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Browser pages: redirect to sign-in instead of protect-rewrite (404 on Azure).
+  const signIn = new URL("/sign-in", req.url);
+  signIn.searchParams.set(
+    "redirect_url",
+    req.nextUrl.pathname + req.nextUrl.search
+  );
+  return NextResponse.redirect(signIn);
 });
 
 /**

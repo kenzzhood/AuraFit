@@ -1,5 +1,6 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Aurafit web — Next.js 15 (App Router) production image
+# build: 2026-06-12 clerk-csp-fix
 # Multi-stage build with Next.js standalone output for the smallest possible
 # runtime image. Tuned for Azure Container Apps.
 #
@@ -39,6 +40,12 @@ RUN npx prisma generate
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 ENV SKIP_ENV_VALIDATION=1
+
+# NEXT_PUBLIC_* are inlined into client bundles at build time — pass from azd/ACR.
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=""
+ARG NEXT_PUBLIC_APP_URL=""
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 
 RUN npm run build \
  && test -f .next/server/app/generate/page.js

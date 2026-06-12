@@ -31,23 +31,15 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      // Scripts: self + Clerk + PostHog + Sentry
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://clerk.accounts.dev https://*.clerk.accounts.dev https://app.posthog.com https://browser.sentry-cdn.com",
-      // Styles: self + Google Fonts + inline (Clerk)
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      // Fonts: self + Google Fonts
-      "font-src 'self' https://fonts.gstatic.com",
-      // Images: self + CDN sources
+      // Clerk (dev + production) + analytics
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.accounts.dev https://clerk.accounts.dev https://*.clerk.com https://clerk.com https://challenges.cloudflare.com https://app.posthog.com https://browser.sentry-cdn.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.clerk.accounts.dev https://*.clerk.com",
+      "font-src 'self' https://fonts.gstatic.com https://*.clerk.accounts.dev https://*.clerk.com",
       "img-src 'self' blob: data: https://res.cloudinary.com https://*.blob.core.windows.net https://*.azureedge.net https://img.clerk.com https://images.unsplash.com",
-      // Connections: self + services
-      "connect-src 'self' https://*.clerk.accounts.dev https://clerk.accounts.dev https://app.posthog.com https://*.sentry.io wss://*.clerk.accounts.dev",
-      // Frames: Clerk OAuth
-      "frame-src 'self' https://accounts.google.com https://*.clerk.accounts.dev",
-      // Workers
+      "connect-src 'self' https://*.clerk.accounts.dev https://clerk.accounts.dev https://*.clerk.com https://clerk.com wss://*.clerk.accounts.dev wss://*.clerk.com https://clerk-telemetry.com https://app.posthog.com https://*.sentry.io",
+      "frame-src 'self' https://accounts.google.com https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com",
       "worker-src 'self' blob:",
-    ]
-      .filter(Boolean)
-      .join("; "),
+    ].join("; "),
   },
 ];
 

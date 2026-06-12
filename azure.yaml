@@ -18,6 +18,9 @@ services:
       path: ./Dockerfile
       context: .
       remoteBuild: true
+      buildArgs:
+        - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${CLERK_PUBLISHABLE_KEY}
+        - NEXT_PUBLIC_APP_URL=${AZURE_WEB_APP_URL}
 
   crawler:
     project: ./services/product-crawler
