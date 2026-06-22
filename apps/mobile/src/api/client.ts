@@ -367,6 +367,110 @@ export async function trackAffiliateClick(params: {
   });
 }
 
+// ─── Cart ──────────────────────────────────────────────────────────────────
+
+export type MobileCartItem = {
+  id: string;
+  productCacheId: string | null;
+  outfitId: string | null;
+  outfitLabel: string | null;
+  title: string;
+  imageUrl: string | null;
+  productUrl: string;
+  affiliateUrl: string | null;
+  effectiveUrl: string;
+  retailer: string | null;
+  price: number | null;
+  currency: string;
+  category: string | null;
+  quantity: number;
+  addedAt: string;
+};
+
+export type CartResponse = {
+  id: string;
+  itemCount: number;
+  subtotal: number;
+  currency: string;
+  items: MobileCartItem[];
+  byOutfit: {
+    outfitId: string | null;
+    outfitLabel: string | null;
+    items: MobileCartItem[];
+  }[];
+};
+
+export type CheckoutResponse = {
+  itemCount: number;
+  subtotal: number;
+  currency: string;
+  groups: {
+    retailer: string;
+    itemCount: number;
+    subtotal: number;
+    currency: string;
+    items: MobileCartItem[];
+    openAllUrl: string | null;
+  }[];
+};
+
+export type CartItemInput = {
+  productCacheId?: string;
+  outfitId?: string;
+  outfitLabel?: string;
+  title: string;
+  imageUrl?: string;
+  productUrl: string;
+  retailer?: string;
+  price?: number;
+  currency?: string;
+  category?: string;
+  quantity?: number;
+};
+
+export async function getCart() {
+  return apiFetch<CartResponse>("/api/cart");
+}
+
+export async function addCartItem(item: CartItemInput) {
+  return apiFetch<CartResponse>("/api/cart/items", {
+    method: "POST",
+    body: JSON.stringify({ type: "item", item }),
+  });
+}
+
+export async function addOutfitToCart(params: {
+  outfitId?: string;
+  outfitLabel?: string;
+  lookProducts: CartItemInput[];
+}) {
+  return apiFetch<CartResponse>("/api/cart/items", {
+    method: "POST",
+    body: JSON.stringify({ type: "outfit", ...params }),
+  });
+}
+
+export async function removeCartItem(itemId: string) {
+  return apiFetch<CartResponse>(`/api/cart/items/${itemId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function updateCartItemQuantity(itemId: string, quantity: number) {
+  return apiFetch<CartResponse>(`/api/cart/items/${itemId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ quantity }),
+  });
+}
+
+export async function clearCart() {
+  return apiFetch<{ ok: boolean }>("/api/cart", { method: "DELETE" });
+}
+
+export async function getCheckout() {
+  return apiFetch<CheckoutResponse>("/api/cart/checkout");
+}
+
 // ─── Wardrobe ──────────────────────────────────────────────────────────────
 
 export async function listWardrobes() {

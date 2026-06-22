@@ -4,6 +4,8 @@ import { useState } from "react";
 import posthog from "posthog-js";
 import type { GenerationLookResult } from "@/types/generation";
 import { PublishModal } from "@/components/social/PublishModal";
+import { lookProductToCartInput } from "@/components/generate/OutfitCard";
+import { useCartStore } from "@/store/useCartStore";
 
 function formatPrice(price?: number, currency?: string) {
   if (price == null) return null;
@@ -113,6 +115,14 @@ export function LookDetailPanel({
   onSave?: () => void;
 }) {
   const [publishOpen, setPublishOpen] = useState(false);
+  const addItem = useCartStore((s) => s.addItem);
+  const addOutfit = useCartStore((s) => s.addOutfit);
+  const [addingOutfit, setAddingOutfit] = useState(false);
+
+  const outfitLabel =
+    lookIndex != null && look
+      ? `${look.label ?? `Look ${lookIndex + 1}`}`
+      : undefined;
 
   if (lookIndex == null || !look) {
     return (
@@ -273,9 +283,39 @@ export function LookDetailPanel({
               )}
 
               <div>
-                <h4 className="text-xs font-medium uppercase tracking-widest text-aura-muted">
-                  Shop this look
-                </h4>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h4 className="text-xs font-medium uppercase tracking-widest text-aura-muted">
+                    Shop this look
+                  </h4>
+                  {shoppable.some(
+                    (p) =>
+                      p.kind !== "wardrobe" &&
+                      p.verified === true &&
+                      !!p.productUrl
+                  ) && (
+                    <button
+                      type="button"
+                      disabled={addingOutfit}
+                      onClick={async () => {
+                        const inputs = (look.products ?? [])
+                          .map((p) =>
+                            lookProductToCartInput(p, { outfitId, outfitLabel })
+                          )
+                          .filter((x): x is NonNullable<typeof x> => !!x);
+                        if (inputs.length === 0) return;
+                        setAddingOutfit(true);
+                        try {
+                          await addOutfit(outfitId ?? undefined, outfitLabel ?? "", inputs);
+                        } finally {
+                          setAddingOutfit(false);
+                        }
+                      }}
+                      className="rounded-full border border-aura-champagne/50 bg-aura-champagne/10 px-3 py-1 text-[11px] font-medium text-aura-champagne transition-colors hover:bg-aura-champagne/20 disabled:opacity-50"
+                    >
+                      {addingOutfit ? "Adding…" : "+ Add look to cart"}
+                    </button>
+                  )}
+                </div>
                 {shoppable.length > 0 && shoppable.length < items.length && (
                   <p className="mt-2 text-xs leading-5 text-aura-muted">
                     We found {shoppable.length} verified link
@@ -342,19 +382,34 @@ export function LookDetailPanel({
                                 A piece from your closet — already yours.
                               </p>
                             ) : (
-                              <a
-                                href={p.canonicalUrl ?? p.productUrl ?? "#"}
-                                onClick={(e) =>
-                                  openProduct(
-                                    e,
-                                    p.canonicalUrl ?? p.productUrl,
-                                    p.productCacheId
-                                  )
-                                }
-                                className="mt-2 inline-block text-xs font-medium text-aura-champagne underline underline-offset-2"
-                              >
-                                Shop →
-                              </a>
+                              <div className="mt-2 flex flex-wrap items-center gap-2">
+                                <a
+                                  href={p.canonicalUrl ?? p.productUrl ?? "#"}
+                                  onClick={(e) =>
+                                    openProduct(
+                                      e,
+                                      p.canonicalUrl ?? p.productUrl,
+                                      p.productCacheId
+                                    )
+                                  }
+                                  className="rounded-full border border-aura-border px-3 py-1 text-xs font-medium text-aura-champagne transition-colors hover:bg-aura-highlight/20"
+                                >
+                                  Shop →
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const input = lookProductToCartInput(p, {
+                                      outfitId,
+                                      outfitLabel,
+                                    });
+                                    if (input) void addItem(input);
+                                  }}
+                                  className="rounded-full border border-aura-champagne/50 bg-aura-champagne/10 px-3 py-1 text-xs font-medium text-aura-champagne transition-colors hover:bg-aura-champagne/20"
+                                >
+                                  + Add to cart
+                                </button>
+                              </div>
                             )}
                           </div>
                         </li>

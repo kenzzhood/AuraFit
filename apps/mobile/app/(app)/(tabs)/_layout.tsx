@@ -1,6 +1,8 @@
 import { Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { Platform } from "react-native";
+import { useEffect } from "react";
+import { useCartStore } from "../../../src/store/useCartStore";
 
 const COLORS = {
   bg: "#070608",
@@ -10,6 +12,13 @@ const COLORS = {
 };
 
 export default function TabsLayout() {
+  const count = useCartStore((s) => s.count);
+  const fetchCart = useCartStore((s) => s.fetchCart);
+
+  useEffect(() => {
+    void fetchCart();
+  }, [fetchCart]);
+
   return (
     <Tabs
       screenOptions={{
@@ -57,6 +66,16 @@ export default function TabsLayout() {
           title: "Saved",
           tabBarIcon: ({ color, size }) => (
             <Feather name="bookmark" color={color} size={size - 2} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="cart"
+        options={{
+          title: "Cart",
+          tabBarBadge: count > 0 ? (count > 99 ? "99+" : count) : undefined,
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="shopping-bag" color={color} size={size - 2} />
           ),
         }}
       />

@@ -992,9 +992,10 @@ export function GenerateForm() {
               Pick your look
             </h2>
             <p className="mt-1 text-sm text-aura-dim">
-              Tap a number to see the full breakdown and shop links. We keep
-              enriching the catalog in the background, so more verified links
-              can appear after the board is ready.
+              Tap a number to see the full breakdown and shop links. Add individual
+              pieces or the full look to your cart — use the bag icon anytime.
+              We keep enriching the catalog in the background, so more verified
+              links can appear after the board is ready.
             </p>
           </div>
 

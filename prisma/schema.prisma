@@ -34,6 +34,7 @@ model User {
   postLikes        PostLike[]
   stylePreference  StylePreference?
   wardrobes        Wardrobe[]
+  cart             Cart?
 }
 
 model StylePreference {
@@ -111,6 +112,7 @@ model Outfit {
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   items           OutfitItem[]
   posts           Post[]
+  cartItems       CartItem[]
 
   @@index([userId])
 }
@@ -201,6 +203,7 @@ model ProductCache {
   expiresAt   DateTime
   createdAt   DateTime     @default(now())
   outfitItems OutfitItem[]
+  cartItems   CartItem[]
 
   @@unique([source, externalId])
   @@index([expiresAt])
@@ -365,6 +368,40 @@ model AnalyticsEvent {
 
   @@index([eventType, createdAt])
   @@index([userId, createdAt])
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+}
+
+model CartItem {
+  id               String        @id @default(cuid())
+  cartId           String
+  productCacheId   String?
+  outfitId         String?
+  outfitLabel      String?
+  title            String
+  imageUrl         String?
+  productUrl       String
+  affiliateUrl     String?
+  retailer         String?
+  affiliateNetwork String?
+  price            Int?
+  currency         String        @default("INR")
+  category         String?
+  quantity         Int           @default(1)
+  addedAt          DateTime      @default(now())
+  cart             Cart          @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productCache     ProductCache? @relation(fields: [productCacheId], references: [id])
+  outfit           Outfit?       @relation(fields: [outfitId], references: [id], onDelete: SetNull)
+
+  @@index([cartId])
+  @@index([cartId, outfitId])
 }
 
 enum OnboardingStatus {

@@ -18,7 +18,9 @@ import {
   patchOutfit,
   trackAffiliateClick,
   getGenerationStatus,
+  type CartItemInput,
 } from "../../../src/api/client";
+import { useCartStore } from "../../../src/store/useCartStore";
 
 const LOOK_POLL_MS = 5000;
 const LOOK_POLL_MAX_MS = 10 * 60 * 1000;
@@ -39,11 +41,48 @@ function isShoppable(p: {
   return true;
 }
 
+function productToCartInput(
+  p: {
+    kind?: "online" | "wardrobe";
+    canonicalUrl?: string;
+    productUrl?: string;
+    productCacheId?: string;
+    title?: string;
+    imageUrl?: string;
+    storeName?: string;
+    source?: string;
+    price?: number;
+    currency?: string;
+    matchCategory?: string;
+    verified?: boolean;
+    availability?: string;
+  },
+  opts: { outfitId?: string; outfitLabel?: string }
+): CartItemInput | null {
+  if (p.kind === "wardrobe") return null;
+  const url = p.canonicalUrl ?? p.productUrl;
+  if (!url || !isShoppable(p)) return null;
+  return {
+    productCacheId: p.productCacheId,
+    outfitId: opts.outfitId,
+    outfitLabel: opts.outfitLabel,
+    title: p.title ?? "Product",
+    imageUrl: p.imageUrl,
+    productUrl: url,
+    retailer: p.storeName ?? p.source,
+    price: p.price,
+    currency: p.currency,
+    category: p.matchCategory,
+  };
+}
+
 export default function LookDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const index = Number(id);
   const router = useRouter();
   const { result, jobId, preferences, setResult } = useStyleSession();
+  const addItem = useCartStore((s) => s.addItem);
+  const addOutfit = useCartStore((s) => s.addOutfit);
   const look = result?.looks?.[index];
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -304,65 +343,105 @@ export default function LookDetailScreen() {
             </View>
           ) : (
             shoppable.map((p, i) => (
-              <Pressable
+              <View
                 key={i}
-                onPress={() =>
-                  p.kind === "wardrobe"
-                    ? undefined
-                    : openShop(p.canonicalUrl ?? p.productUrl, p.productCacheId)
-                }
                 className="mt-3 flex-row gap-3 rounded-xl border border-border p-3"
               >
-                {p.imageUrl ? (
-                  <Image
-                    source={{ uri: p.imageUrl }}
-                    className="h-14 w-14 rounded-lg"
-                  />
-                ) : (
-                  <View className="h-14 w-14 rounded-lg bg-stage" />
-                )}
-                <View className="flex-1">
-                  <View className="flex-row items-center justify-between">
-                    <Text className="text-[10px] uppercase tracking-widest text-muted">
-                      {p.matchCategory ?? "Garment"}
-                    </Text>
-                    {p.kind === "wardrobe" ? (
-                      <Text className="text-[9px] uppercase tracking-widest text-champagne">
-                        From wardrobe
+                <Pressable
+                  onPress={() =>
+                    p.kind === "wardrobe"
+                      ? undefined
+                      : openShop(p.canonicalUrl ?? p.productUrl, p.productCacheId)
+                  }
+                  className="flex-1 flex-row gap-3"
+                >
+                  {p.imageUrl ? (
+                    <Image
+                      source={{ uri: p.imageUrl }}
+                      className="h-14 w-14 rounded-lg"
+                    />
+                  ) : (
+                    <View className="h-14 w-14 rounded-lg bg-stage" />
+                  )}
+                  <View className="flex-1">
+                    <View className="flex-row items-center justify-between">
+                      <Text className="text-[10px] uppercase tracking-widest text-muted">
+                        {p.matchCategory ?? "Garment"}
                       </Text>
-                    ) : (
-                      <Text className="text-[9px] uppercase tracking-widest text-emerald-400">
-                        Verified
+                      {p.kind === "wardrobe" ? (
+                        <Text className="text-[9px] uppercase tracking-widest text-champagne">
+                          From wardrobe
+                        </Text>
+                      ) : (
+                        <Text className="text-[9px] uppercase tracking-widest text-emerald-400">
+                          Verified
+                        </Text>
+                      )}
+                    </View>
+                    <Text
+                      className="text-sm font-medium text-cream"
+                      numberOfLines={2}
+                    >
+                      {p.title}
+                    </Text>
+                    {p.storeName && (
+                      <Text className="text-[10px] text-muted">{p.storeName}</Text>
+                    )}
+                    {p.price != null && (
+                      <Text className="mt-1 text-xs text-champagne">
+                        ₹{p.price.toLocaleString("en-IN")}
+                      </Text>
+                    )}
+                    {p.kind !== "wardrobe" && (
+                      <Text className="mt-2 text-xs font-medium text-champagne underline">
+                        Shop →
                       </Text>
                     )}
                   </View>
-                  <Text
-                    className="text-sm font-medium text-cream"
-                    numberOfLines={2}
+                </Pressable>
+                {p.kind !== "wardrobe" && (
+                  <Pressable
+                    onPress={() => {
+                      const input = productToCartInput(p, {
+                        outfitId: result?.outfitId,
+                        outfitLabel: look.label ?? `Look ${index + 1}`,
+                      });
+                      if (input) void addItem(input);
+                    }}
+                    className="justify-center px-2"
                   >
-                    {p.title}
-                  </Text>
-                  {p.storeName && (
-                    <Text className="text-[10px] text-muted">{p.storeName}</Text>
-                  )}
-                  {p.price != null && (
-                    <Text className="mt-1 text-xs text-champagne">
-                      ₹{p.price.toLocaleString("en-IN")}
-                    </Text>
-                  )}
-                  {p.kind !== "wardrobe" && (
-                    <Text className="mt-2 text-xs font-medium text-champagne underline">
-                      Shop →
-                    </Text>
-                  )}
-                </View>
-              </Pressable>
+                    <Text className="text-[10px] text-champagne">+ Cart</Text>
+                  </Pressable>
+                )}
+              </View>
             ))
           )}
         </View>
       </ScrollView>
 
       <View className="mt-4 gap-3">
+        {(look.products ?? []).some(
+          (p) => p.kind !== "wardrobe" && isShoppable(p)
+        ) && (
+          <Button
+            label="Add look to cart"
+            variant="ghost"
+            onPress={() => {
+              const label = look.label ?? `Look ${index + 1}`;
+              const inputs = (look.products ?? [])
+                .map((p) =>
+                  productToCartInput(p, {
+                    outfitId: result?.outfitId,
+                    outfitLabel: label,
+                  })
+                )
+                .filter((x): x is CartItemInput => !!x);
+              if (inputs.length > 0) {
+                void addOutfit(result?.outfitId, label, inputs);
+              }
+            }}
+          />
+        )}
         <Button
           label="Refine with stylist"
           variant="ghost"
