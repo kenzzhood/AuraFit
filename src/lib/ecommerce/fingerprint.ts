@@ -87,19 +87,98 @@ export function isUsableSnitchProductUrl(url: string): boolean {
   }
 }
 
+function isGoogleHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return (
+    host === "google.com" ||
+    host.endsWith(".google.com") ||
+    host === "google.co.in" ||
+    host.endsWith(".google.co.in")
+  );
+}
+
+/**
+ * Unwrap a Google `/url?q=` or `/url?url=` wrapper, including one extra
+ * percent-encoding of the inner URL. Relative paths that are not wrappers,
+ * leftover Google hosts, and strings that are not http(s) URLs are rejected.
+ * A normal merchant URL is returned unchanged.
+ */
+export function unwrapMerchantUrl(raw: string | null | undefined): string | null {
+  if (raw == null) return null;
+  let current = raw.trim();
+  if (
+    !current ||
+    current.toLowerCase().startsWith("javascript:") ||
+    current.toLowerCase().startsWith("data:")
+  ) {
+    return null;
+  }
+
+  for (let hop = 0; hop < 2; hop++) {
+    if (current.startsWith("/") && !current.startsWith("/url?")) return null;
+    let parsed: URL;
+    try {
+      parsed = current.startsWith("/url?")
+        ? new URL(current, "https://www.google.com")
+        : new URL(current);
+    } catch {
+      try {
+        const decoded = decodeURIComponent(current);
+        if (
+          decoded === current ||
+          !(
+            decoded.startsWith("http://") ||
+            decoded.startsWith("https://") ||
+            decoded.startsWith("/url?")
+          )
+        ) {
+          return null;
+        }
+        current = decoded;
+        continue;
+      } catch {
+        return null;
+      }
+    }
+    const host = parsed.hostname.toLowerCase();
+    if (isGoogleHost(host) && parsed.pathname.startsWith("/url")) {
+      const inner = (parsed.searchParams.get("q") || parsed.searchParams.get("url") || "").trim();
+      if (!inner) return null;
+      current = inner;
+      continue;
+    }
+    if (isGoogleHost(host)) return null;
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    return current;
+  }
+
+  try {
+    const parsed = new URL(current);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    if (isGoogleHost(parsed.hostname)) return null;
+    return current;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Null for any snitch.co.in URL (old Shopify handles do not exist on the new
- * site) and for snitch.com URLs that are not live PDPs. The host rewrite no
- * longer rescues Snitch product URLs — it only dedupes/normalizes elsewhere.
+ * site) and for snitch.com URLs that are not live PDPs. Google wrappers are
+ * unwrapped first; a URL that is still on Google is rejected. The host rewrite
+ * no longer rescues Snitch product URLs — it only dedupes/normalizes elsewhere.
  */
 export function usableMerchantUrl(url: string): string | null {
+  const unwrapped = unwrapMerchantUrl(url);
+  if (!unwrapped) return null;
   try {
-    const host = new URL(url).hostname.toLowerCase();
+    const host = new URL(unwrapped).hostname.toLowerCase();
+    if (isGoogleHost(host)) return null;
     if (host.includes("snitch.co.in")) return null;
-    if (host.includes("snitch.com") && !isUsableSnitchProductUrl(url)) {
+    if (host.includes("snitch.com") && !isUsableSnitchProductUrl(unwrapped)) {
       return null;
     }
-    return rewriteLegacyRetailerUrl(url);
+    return rewriteLegacyRetailerUrl(unwrapped);
   } catch {
     return null;
   }

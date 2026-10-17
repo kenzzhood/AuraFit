@@ -104,4 +104,34 @@ describe("mapSerpapiShoppingResult", () => {
     expect(mapped!.productUrl).toBe(NEW_SHAPE_PDP);
     expect(mapped!.canonicalUrl).toBe(NEW_SHAPE_PDP);
   });
+
+  it("unwraps a Google wrapper instead of storing it as the shop link", () => {
+    const merchant = "https://www.myntra.com/dresses/floral-midi/123/buy";
+    const mapped = mapSerpapiShoppingResult(
+      {
+        title: "Floral Midi Dress",
+        link: `https://www.google.com/url?q=${encodeURIComponent(merchant)}&sa=U`,
+        thumbnail: "https://cdn.example/dress.jpg",
+      },
+      { region: "IN", category: "dress" },
+      0
+    );
+    expect(mapped).not.toBeNull();
+    expect(mapped!.productUrl).toBe(merchant);
+    expect(mapped!.canonicalUrl).toBe(merchant);
+  });
+
+  it("drops a result whose only link stays on Google", () => {
+    expect(
+      mapSerpapiShoppingResult(
+        {
+          title: "Party dress",
+          link: "https://www.google.com/search?q=party+dress",
+          thumbnail: "https://cdn.example/dress.jpg",
+        },
+        { region: "IN", category: "dress" },
+        0
+      )
+    ).toBeNull();
+  });
 });

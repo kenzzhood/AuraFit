@@ -1,7 +1,11 @@
 """Google Shopping card URL rewrite — no live Google."""
 from __future__ import annotations
 
-from extractors.google_shopping import parse_google_shopping_html, rewrite_google_card
+from extractors.google_shopping import (
+    parse_google_shopping_html,
+    rewrite_google_card,
+    unwrap_merchant_url,
+)
 
 NEW_SHAPE_PDP = (
     "https://www.snitch.com/men-shirts/"
@@ -55,6 +59,43 @@ def test_rewrite_google_card_drops_splash_and_dead_pdp_urls():
     assert rewrite_google_card(splash) is None
     assert rewrite_google_card(listing) is None
     assert rewrite_google_card(dead_pdp) is None
+
+
+def _q(url: str) -> str:
+    return url.replace(":", "%3A").replace("/", "%2F")
+
+
+def test_unwrap_merchant_url_rules():
+    merchant = "https://www.myntra.com/dresses/floral-midi/123/buy"
+    wrapped = "https://www.google.com/url?q=" + _q(merchant)
+    assert unwrap_merchant_url(merchant) == merchant
+    assert unwrap_merchant_url(wrapped) == merchant
+    assert unwrap_merchant_url("/url?q=" + _q(merchant)) == merchant
+    assert unwrap_merchant_url("https://www.google.com/url?q=" + _q(merchant).replace("%", "%25")) == merchant
+    assert unwrap_merchant_url("not a url") is None
+    assert unwrap_merchant_url("https://www.google.com/search?q=dress") is None
+
+    dead = rewrite_google_card(
+        {
+            "title": "Old",
+            "url": "https://www.google.com/url?q=" + _q("https://www.snitch.com/products/floral-midi"),
+        }
+    )
+    assert dead is None
+    assert (
+        rewrite_google_card(
+            {
+                "title": "Old host",
+                "url": "https://www.google.com/url?q=" + _q("https://www.snitch.co.in/products/old"),
+            }
+        )
+        is None
+    )
+    live = rewrite_google_card(
+        {"title": "Live", "url": "https://www.google.com/url?q=" + _q(NEW_SHAPE_PDP)}
+    )
+    assert live is not None
+    assert live["url"] == NEW_SHAPE_PDP
 
 
 def test_rewrite_google_card_keeps_non_snitch():
