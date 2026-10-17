@@ -26,19 +26,16 @@ export type DiscoveryFlags = {
   ingestSitemapEnabled: boolean;
 };
 
-function readBool(
-  env: NodeJS.ProcessEnv,
-  name: string,
-  fallback: boolean
-): boolean {
+/** A subset of process.env. NODE_ENV is not required, so tests can pass `{}`. */
+export type FlagEnv = Record<string, string | undefined>;
+
+function readBool(env: FlagEnv, name: string, fallback: boolean): boolean {
   const raw = env[name];
   if (raw == null || raw.trim() === "") return fallback;
   return raw.trim().toLowerCase() === "true";
 }
 
-export function readDiscoveryFlags(
-  env: NodeJS.ProcessEnv = process.env
-): DiscoveryFlags {
+export function readDiscoveryFlags(env: FlagEnv = process.env): DiscoveryFlags {
   const slot = (env.SLOT_QUERY_MODE ?? "v1").trim().toLowerCase();
   const cache = (env.CACHE_BACKEND ?? "memory").trim().toLowerCase();
   return {

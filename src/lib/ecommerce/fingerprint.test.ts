@@ -6,6 +6,7 @@ import {
   normalizeProductUrl,
   pickUsableShopUrl,
   rewriteLegacyRetailerUrl,
+  unwrapMerchantUrl,
   usableMerchantUrl,
 } from "./fingerprint";
 
@@ -104,6 +105,45 @@ describe("usableMerchantUrl", () => {
     expect(usableMerchantUrl("https://www.myntra.com/p/1")).toBe(
       "https://www.myntra.com/p/1"
     );
+  });
+
+  it("unwraps a Google /url?q= wrapper to the merchant URL", () => {
+    const merchant = "https://www.myntra.com/dresses/floral-midi/123/buy";
+    const wrapped = `https://www.google.com/url?q=${encodeURIComponent(merchant)}&sa=U`;
+    expect(unwrapMerchantUrl(wrapped)).toBe(merchant);
+    expect(usableMerchantUrl(wrapped)).toBe(merchant);
+    expect(unwrapMerchantUrl(`/url?q=${encodeURIComponent(merchant)}`)).toBe(merchant);
+  });
+
+  it("unwraps a double-encoded q value", () => {
+    const merchant = "https://www.myntra.com/dresses/floral-midi/123/buy";
+    const once = encodeURIComponent(merchant);
+    const twice = encodeURIComponent(once);
+    const wrapped = `https://www.google.com/url?q=${twice}`;
+    expect(unwrapMerchantUrl(wrapped)).toBe(merchant);
+    expect(usableMerchantUrl(wrapped)).toBe(merchant);
+  });
+
+  it("rejects truncated non-URLs and leftover Google hosts", () => {
+    expect(unwrapMerchantUrl("not a url")).toBeNull();
+    expect(usableMerchantUrl("https://www.myntra.com/%")).toBeNull();
+    expect(usableMerchantUrl("https://www.google.com/search?q=dress")).toBeNull();
+    expect(usableMerchantUrl("https://www.google.com/url?q=")).toBeNull();
+  });
+
+  it("still drops dead Snitch after unwrapping a wrapper", () => {
+    const dead = "https://www.snitch.com/products/floral-midi";
+    const wrapped = `https://www.google.com/url?q=${encodeURIComponent(dead)}`;
+    expect(usableMerchantUrl(wrapped)).toBeNull();
+    expect(usableMerchantUrl(NEW_SHAPE_PDP)).toBe(NEW_SHAPE_PDP);
+    const liveWrapped = `https://www.google.com/url?q=${encodeURIComponent(NEW_SHAPE_PDP)}`;
+    expect(usableMerchantUrl(liveWrapped)).toBe(NEW_SHAPE_PDP);
+    expect(
+      usableMerchantUrl(
+        "https://www.google.com/url?q=" +
+          encodeURIComponent("https://www.snitch.co.in/products/old")
+      )
+    ).toBeNull();
   });
 });
 

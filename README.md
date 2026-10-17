@@ -34,7 +34,8 @@ Built for hackathons, portfolios, and production deployment on **Azure Container
 
 | Asset | Link |
 |-------|------|
-| **Live demo** | Start with `npm run azure:start` — URL in [docs/deploy/azure-runbook.md](docs/deploy/azure-runbook.md) |
+| **Live demo** | [https://aurafit-web.blackstone-033a1f17.eastus2.azurecontainerapps.io](https://aurafit-web.blackstone-033a1f17.eastus2.azurecontainerapps.io) |
+| **Not the live site** | `aurafit.app` and `app.aurafit.com` do not serve this app |
 | **Demo video** | *Add YouTube/Loom URL* |
 | **Android APK** | Build with [docs/MOBILE_BUILD.md](docs/MOBILE_BUILD.md) — *add Expo artifact or Release URL* |
 | **Pitch deck** | *Add link or commit to `docs/`* |
@@ -126,6 +127,7 @@ cp apps/mobile/.env.example apps/mobile/.env
 # Add YOUR keys — docs/SETUP_YOUR_KEYS.md
 
 docker compose -f docker-compose.postgres.yml up -d   # optional local DB
+# DATABASE_URL=postgresql://postgres:aurafit_local_dev@127.0.0.1:54322/postgres
 npm run db:push
 npm run dev
 ```

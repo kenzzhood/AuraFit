@@ -1,6 +1,7 @@
 # Local PostgreSQL with pgvector for Aurafit dev
 # Start: docker compose -f docker-compose.postgres.yml up -d
 # Stop:  docker compose -f docker-compose.postgres.yml down
+# DATABASE_URL=postgresql://postgres:aurafit_local_dev@127.0.0.1:54322/postgres
 
 services:
   postgres:

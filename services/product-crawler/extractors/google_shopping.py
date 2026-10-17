@@ -20,7 +20,7 @@ from __future__ import annotations
 import json
 import re
 from typing import Any
-from urllib.parse import quote_plus, urljoin, urlparse, parse_qs
+from urllib.parse import parse_qs, quote_plus, unquote, urljoin, urlparse
 
 from bs4 import BeautifulSoup
 
@@ -65,27 +65,80 @@ def _clean_image(src: str | None) -> str | None:
     return s
 
 
-def _unwrap_google_url(href: str | None) -> str | None:
-    """Google Shopping uses `/url?q=<real>&...` redirects for outbound links.
-    Strip the wrapper so we surface the merchant URL directly."""
-    if not href:
+def _google_host(host: str) -> bool:
+    h = host.lower()
+    return (
+        h == "google.com"
+        or h.endswith(".google.com")
+        or h == "google.co.in"
+        or h.endswith(".google.co.in")
+    )
+
+
+_TRUNCATED_PERCENT = re.compile(r"%(?![0-9A-Fa-f]{2})")
+
+
+def _truncated_percent(value: str) -> bool:
+    """A lone `%` is a cut-off link. urlparse still accepts it."""
+    return _TRUNCATED_PERCENT.search(value) is not None
+
+
+def unwrap_merchant_url(href: str | None) -> str | None:
+    """Unwrap Google `/url?q=` links (including one extra encoding) or reject them.
+
+    A still-Google host, a relative non-wrapper path, or a string that is not
+    an http(s) URL becomes None. A normal merchant URL is returned unchanged.
+    """
+    if href is None:
         return None
-    h = href.strip()
-    if not h:
+    current = href.strip()
+    if not current or current.lower().startswith(("javascript:", "data:")):
         return None
-    if h.startswith("/url?") or h.startswith("https://www.google.com/url?"):
-        try:
-            full = urljoin("https://www.google.com", h)
-            qs = parse_qs(urlparse(full).query)
-            for k in ("q", "url"):
-                if k in qs and qs[k]:
-                    return qs[k][0]
-        except Exception:
+
+    for _hop in range(2):
+        if _truncated_percent(current):
             return None
-    if h.startswith("/"):
-        # Google internal relative path → not a real merchant link
+        if current.startswith("/") and not current.startswith("/url?"):
+            return None
+        if current.startswith("/url?"):
+            parsed = urlparse(urljoin("https://www.google.com", current))
+        else:
+            parsed = urlparse(current)
+        host = parsed.netloc or ""
+        if parsed.scheme not in ("http", "https"):
+            decoded = unquote(current)
+            if decoded == current or not decoded.startswith(("http://", "https://", "/url?")):
+                return None
+            current = decoded
+            continue
+        if _google_host(host) and (parsed.path or "").startswith("/url"):
+            qs = parse_qs(parsed.query)
+            inner = ""
+            for key in ("q", "url"):
+                values = qs.get(key) or []
+                if values and values[0].strip():
+                    inner = values[0].strip()
+                    break
+            if not inner:
+                return None
+            current = inner
+            continue
+        if _google_host(host):
+            return None
+        return current
+
+    if _truncated_percent(current):
         return None
-    return h
+    parsed = urlparse(current)
+    host = parsed.netloc or ""
+    if parsed.scheme not in ("http", "https") or not host or _google_host(host):
+        return None
+    return current
+
+
+def _unwrap_google_url(href: str | None) -> str | None:
+    """Google Shopping uses `/url?q=<real>&...` redirects for outbound links."""
+    return unwrap_merchant_url(href)
 
 
 def _host_of(url: str | None) -> str:
@@ -105,7 +158,8 @@ def _looks_like_merchant_url(url: str | None) -> bool:
 
 
 def _finalize_merchant_url(url: str | None) -> str | None:
-    """Rewrite legacy hosts and drop Snitch URLs that aren't live PDPs."""
+    """Unwrap wrappers, rewrite legacy hosts, and drop URLs that are not live PDPs."""
+    url = unwrap_merchant_url(url)
     if not url or not _looks_like_merchant_url(url):
         return None
     rewritten = rewrite_legacy_retailer_url(url)

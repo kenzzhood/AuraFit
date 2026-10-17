@@ -1,4 +1,22 @@
+import { readDiscoveryFlags } from "@/lib/flags";
 import { classifyFashionAesthetic } from "./aesthetic";
+
+export type SlotMatchOptions = {
+  genderPresentation?: string;
+  /** User text. Negative filters stay off when this asks for them. */
+  requestedText?: string;
+};
+
+type ExplicitAudience = "women" | "men" | "unisex";
+
+function explicitAudience(genderPresentation?: string): ExplicitAudience | null {
+  const g = (genderPresentation ?? "").toLowerCase();
+  if (!g.trim()) return null;
+  if (/(woman|women|female|feminine|girl|ladies)/.test(g)) return "women";
+  if (/(man|men|male|masculine|boy|gentlemen)/.test(g)) return "men";
+  if (/(nonbinary|non-binary|neutral|unisex|androgynous)/.test(g)) return "unisex";
+  return null;
+}
 
 /** Shared slot normalization — keep in sync with generation.ts / LookDetailPanel. */
 export function canonicalItemCategory(raw: string | undefined): string {
@@ -52,7 +70,8 @@ const PRIMARY_SLOTS = new Set([
 export function productMatchesSlot(
   title: string,
   productCategory: string | undefined,
-  slotCategory: string
+  slotCategory: string,
+  options?: SlotMatchOptions
 ): boolean {
   const slot = canonicalItemCategory(slotCategory);
   const fromTitle = canonicalItemCategory(title);
@@ -61,6 +80,20 @@ export function productMatchesSlot(
     : "garment";
 
   const titleLower = title.toLowerCase();
+
+  if (readDiscoveryFlags().slotQueryMode === "v2") {
+    const asked = (options?.requestedText ?? "").toLowerCase();
+    if (!asked.includes("kid") && /\bkids?\b/.test(titleLower)) return false;
+    if (!asked.includes("pack of") && /\bpack of\b/.test(titleLower)) return false;
+    if (!asked.includes("unstitched") && /\bunstitched\b/.test(titleLower)) return false;
+    if (
+      slot === "dress" &&
+      /\bkurta\b/.test(titleLower) &&
+      explicitAudience(options?.genderPresentation) !== "men"
+    ) {
+      return false;
+    }
+  }
 
   if (slot === "top") {
     if (/(chino|trouser|trousers|pant|pants|jean|jeans|shorts|skirt|cargo pant)/.test(titleLower))
@@ -164,13 +197,29 @@ export function audienceFromGender(
   genderPresentation?: string,
   region: "IN" | "US" | "UK" = "IN"
 ): string {
-  const g = (genderPresentation ?? "").toLowerCase();
-  if (/(woman|women|female|feminine|girl|ladies)/.test(g)) return "women";
-  if (/(man|men|male|masculine|boy|gentlemen)/.test(g)) return "men";
-  if (/(nonbinary|non-binary|neutral|unisex|androgynous)/.test(g)) {
-    return "unisex";
-  }
+  const explicit = explicitAudience(genderPresentation);
+  if (explicit) return explicit;
+  if (readDiscoveryFlags().requireGender) return "unisex";
   return region === "US" ? "men" : region === "UK" ? "men" : "men";
+}
+
+function dressSlotQueries(
+  audience: string,
+  styleBit: string,
+  genderPresentation?: string
+): string[] {
+  const v2 = readDiscoveryFlags().slotQueryMode === "v2";
+  const explicitMen = explicitAudience(genderPresentation) === "men";
+  const asKurta = v2 ? explicitMen : audience === "men";
+  if (asKurta) return [`${styleBit} kurta`, `${styleBit} ethnic wear`];
+  if (audience === "unisex") {
+    return ["casual dress", "midi dress", "office dress"];
+  }
+  return [
+    `${audience} casual dress`,
+    `${audience} midi dress`,
+    `${audience} office dress`,
+  ];
 }
 
 function uniqueTrimmed(values: Array<string | undefined>): string[] {
@@ -190,7 +239,8 @@ function uniqueTrimmed(values: Array<string | undefined>): string[] {
 function casualSmartQueries(
   slot: string,
   styleBit: string,
-  audience: string
+  audience: string,
+  genderPresentation?: string
 ): string[] | null {
   switch (slot) {
     case "top":
@@ -214,13 +264,7 @@ function casualSmartQueries(
         `${styleBit} lightweight jacket`,
       ];
     case "dress":
-      return audience === "men"
-        ? [`${styleBit} kurta`, `${styleBit} ethnic wear`]
-        : [
-            `${audience} casual dress`,
-            `${audience} midi dress`,
-            `${audience} office dress`,
-          ];
+      return dressSlotQueries(audience, styleBit, genderPresentation);
     case "shoes":
       return [
         `${styleBit} casual shoes`,
@@ -248,7 +292,9 @@ export function genericSlotQueries(
 
   if (aesthetic === "casual" || aesthetic === "smart") {
     return (
-      casualSmartQueries(slot, styleBit, audience) ?? [`${styleBit} ${slot}`]
+      casualSmartQueries(slot, styleBit, audience, genderPresentation) ?? [
+        `${styleBit} ${slot}`,
+      ]
     );
   }
 
@@ -433,13 +479,7 @@ export function genericSlotQueries(
 
   const dressFallback =
     slot === "dress"
-      ? audience === "men"
-        ? [`${audience} kurta`, `${audience} ethnic wear`]
-        : [
-            `${audience} casual dress`,
-            `${audience} midi dress`,
-            `${audience} office dress`,
-          ]
+      ? dressSlotQueries(audience, styleBit, genderPresentation)
       : null;
   if (dressFallback) return dressFallback;
   if (slot === "accessory") {
@@ -458,16 +498,52 @@ export function slotSearchVariants(params: {
   maxAttempts?: number;
   /** Online looks: one broad slot query, then the planned garment name. */
   broadFirst?: boolean;
+  occasion?: string;
+  silhouette?: string;
+  color?: string;
+  fabric?: string;
+  budgetLabel?: string;
+  wardrobeHint?: string;
 }): string[] {
-  const maxAttempts = params.maxAttempts ?? 2;
   const generics = genericSlotQueries(
     params.category,
     params.style,
     params.region ?? "IN",
     params.genderPresentation
   );
-  const ordered = params.broadFirst
-    ? [generics[0], params.searchQuery, params.description, ...generics.slice(1)]
-    : [params.searchQuery, params.description, ...generics];
-  return uniqueTrimmed(ordered).slice(0, maxAttempts);
+  if (readDiscoveryFlags().slotQueryMode !== "v2") {
+    const maxAttempts = params.maxAttempts ?? 2;
+    const ordered = params.broadFirst
+      ? [generics[0], params.searchQuery, params.description, ...generics.slice(1)]
+      : [params.searchQuery, params.description, ...generics];
+    return uniqueTrimmed(ordered).slice(0, maxAttempts);
+  }
+
+  const slot = canonicalItemCategory(params.category);
+  const broad = generics[0];
+  const occasion = [params.occasion, params.silhouette ?? params.style, slot]
+    .filter(Boolean)
+    .join(" ");
+  const colorFabric = [params.color, params.fabric, params.searchQuery]
+    .filter(Boolean)
+    .join(" ");
+  const budget =
+    params.budgetLabel && params.searchQuery
+      ? `${params.searchQuery} ${params.budgetLabel}`
+      : params.budgetLabel
+        ? `${params.budgetLabel} ${slot}`
+        : undefined;
+  const wardrobe = params.wardrobeHint
+    ? `${params.searchQuery ?? slot} pairs with ${params.wardrobeHint}`
+    : undefined;
+  return uniqueTrimmed([
+    params.searchQuery,
+    params.description,
+    occasion,
+    colorFabric,
+    budget,
+    wardrobe,
+    ...generics.slice(1),
+    broad,
+  ]).slice(0, 6);
 }

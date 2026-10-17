@@ -1687,7 +1687,14 @@ async function discoverSlotCandidates(args: {
   const slotCandidates = (list: Product[]) =>
     list.filter((p) => {
       if (!listingLooksShoppable(p)) return false;
-      if (!productMatchesSlot(p.title, p.category, category)) return false;
+      if (
+        !productMatchesSlot(p.title, p.category, category, {
+          genderPresentation: data.personAnalysis?.genderPresentation,
+          requestedText: searchQuery,
+        })
+      ) {
+        return false;
+      }
       return usedProducts.isAvailable(productUrlOf(p), p.title, {
         relaxRetailerCap: true,
       });
@@ -1737,7 +1744,10 @@ async function discoverSlotCandidates(args: {
     !products.some(
       (p) =>
         listingLooksShoppable(p) &&
-        productMatchesSlot(p.title, p.category, category)
+        productMatchesSlot(p.title, p.category, category, {
+          genderPresentation: data.personAnalysis?.genderPresentation,
+          requestedText: searchQuery,
+        })
     ) &&
     !data.syncCrawlOnly &&
     data.syncCrawlFallback
@@ -1755,7 +1765,14 @@ async function discoverSlotCandidates(args: {
   // starve the slot before pickClaimAndVerify even runs.
   const candidates = products.filter((p) => {
     if (!listingLooksShoppable(p)) return false;
-    if (!productMatchesSlot(p.title, p.category, category)) return false;
+    if (
+      !productMatchesSlot(p.title, p.category, category, {
+        genderPresentation: data.personAnalysis?.genderPresentation,
+        requestedText: searchQuery,
+      })
+    ) {
+      return false;
+    }
     return usedProducts.isAvailable(productUrlOf(p), p.title, {
       relaxRetailerCap: true,
     });

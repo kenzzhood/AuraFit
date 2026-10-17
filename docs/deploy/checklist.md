@@ -44,7 +44,7 @@ cp apps/mobile/.env.example apps/mobile/.env
 
 ```bash
 docker compose -f docker-compose.postgres.yml up -d
-# DATABASE_URL=postgresql://aurafit:aurafit_local_dev@localhost:5432/aurafit
+# DATABASE_URL=postgresql://postgres:aurafit_local_dev@127.0.0.1:54322/postgres
 npm run db:push
 ```
 

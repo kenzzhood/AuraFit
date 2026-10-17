@@ -74,8 +74,10 @@ You need Postgres with the **pgvector** extension.
 docker compose -f docker-compose.postgres.yml up -d
 ```
 
+The compose file publishes Postgres on port **54322** as user `postgres`, database `postgres`.
+
 ```bash
-DATABASE_URL=postgresql://aurafit:aurafit_local_dev@localhost:5432/aurafit
+DATABASE_URL=postgresql://postgres:aurafit_local_dev@127.0.0.1:54322/postgres
 ```
 
 **Option B — [Supabase](https://supabase.com)** (free tier)
