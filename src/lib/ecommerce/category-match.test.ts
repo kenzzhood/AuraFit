@@ -1,11 +1,17 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
+  audienceFromGender,
   canonicalItemCategory,
   genericSlotQueries,
   productMatchesSlot,
   slotSearchQuery,
   slotSearchVariants,
 } from "./category-match";
+
+afterEach(() => {
+  delete process.env.REQUIRE_GENDER;
+  delete process.env.SLOT_QUERY_MODE;
+});
 
 describe("productMatchesSlot", () => {
   it("rejects chinos for top slot", () => {
@@ -121,6 +127,57 @@ describe("productMatchesSlot dress-like titles", () => {
   it("accepts Floral Maxi / Bodycon Midi for dress", () => {
     expect(productMatchesSlot("Floral Maxi", undefined, "dress")).toBe(true);
     expect(productMatchesSlot("Bodycon Midi", undefined, "dress")).toBe(true);
+  });
+
+  it("v1 still treats a missing gender as men and a men's dress as a kurta", () => {
+    expect(audienceFromGender(undefined, "IN")).toBe("men");
+    expect(genericSlotQueries("dress", "casual", "IN")[0]).toMatch(/kurta/i);
+    expect(productMatchesSlot("Men Cotton Kurta", "kurta", "dress")).toBe(true);
+  });
+
+  it("REQUIRE_GENDER does not default a missing gender to men", () => {
+    process.env.REQUIRE_GENDER = "true";
+    expect(audienceFromGender(undefined, "IN")).toBe("unisex");
+    expect(audienceFromGender("female", "IN")).toBe("women");
+    const queries = genericSlotQueries("dress", "party", "IN");
+    expect(queries.join(" ")).not.toMatch(/kurta/i);
+    expect(queries.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("SLOT_QUERY_MODE=v2 runs several queries with the broad one last", () => {
+    process.env.SLOT_QUERY_MODE = "v2";
+    const variants = slotSearchVariants({
+      category: "top",
+      searchQuery: "cream linen shirt",
+      style: "weekend casual",
+      genderPresentation: "female",
+      broadFirst: true,
+      maxAttempts: 2,
+    });
+    expect(variants.length).toBeGreaterThanOrEqual(4);
+    expect(variants.length).toBeLessThanOrEqual(6);
+    expect(variants[0]).toBe("cream linen shirt");
+    expect(variants[variants.length - 1]).toMatch(/polo|tshirt|t-shirt|tee/i);
+    expect(genericSlotQueries("dress", "casual", "IN", "male")[0]).toMatch(/kurta/i);
+    expect(genericSlotQueries("dress", "casual", "IN").join(" ")).not.toMatch(/kurta/i);
+  });
+
+  it("v2 uses kids, pack-of, and unstitched only as negative filters", () => {
+    process.env.SLOT_QUERY_MODE = "v2";
+    expect(productMatchesSlot("Kids Party Dress", "dress", "dress")).toBe(false);
+    expect(
+      productMatchesSlot("Kids Party Dress", "dress", "dress", {
+        requestedText: "kids party dress",
+      })
+    ).toBe(true);
+    expect(productMatchesSlot("Pack of 3 cotton tees", "top", "top")).toBe(false);
+    expect(productMatchesSlot("Unstitched lehenga fabric", "dress", "dress")).toBe(false);
+    expect(productMatchesSlot("Men Cotton Kurta", "kurta", "dress")).toBe(false);
+    expect(
+      productMatchesSlot("Men Cotton Kurta", "kurta", "dress", {
+        genderPresentation: "male",
+      })
+    ).toBe(true);
   });
 
   it("keeps mini skirt as bottom and wrap/dress shirts as tops", () => {
