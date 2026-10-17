@@ -75,6 +75,14 @@ def _google_host(host: str) -> bool:
     )
 
 
+_TRUNCATED_PERCENT = re.compile(r"%(?![0-9A-Fa-f]{2})")
+
+
+def _truncated_percent(value: str) -> bool:
+    """A lone `%` is a cut-off link. urlparse still accepts it."""
+    return _TRUNCATED_PERCENT.search(value) is not None
+
+
 def unwrap_merchant_url(href: str | None) -> str | None:
     """Unwrap Google `/url?q=` links (including one extra encoding) or reject them.
 
@@ -88,6 +96,8 @@ def unwrap_merchant_url(href: str | None) -> str | None:
         return None
 
     for _hop in range(2):
+        if _truncated_percent(current):
+            return None
         if current.startswith("/") and not current.startswith("/url?"):
             return None
         if current.startswith("/url?"):
@@ -117,6 +127,8 @@ def unwrap_merchant_url(href: str | None) -> str | None:
             return None
         return current
 
+    if _truncated_percent(current):
+        return None
     parsed = urlparse(current)
     host = parsed.netloc or ""
     if parsed.scheme not in ("http", "https") or not host or _google_host(host):

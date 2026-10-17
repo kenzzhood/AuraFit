@@ -73,6 +73,7 @@ def test_unwrap_merchant_url_rules():
     assert unwrap_merchant_url("/url?q=" + _q(merchant)) == merchant
     assert unwrap_merchant_url("https://www.google.com/url?q=" + _q(merchant).replace("%", "%25")) == merchant
     assert unwrap_merchant_url("not a url") is None
+    assert unwrap_merchant_url("https://www.myntra.com/%") is None
     assert unwrap_merchant_url("https://www.google.com/search?q=dress") is None
 
     dead = rewrite_google_card(

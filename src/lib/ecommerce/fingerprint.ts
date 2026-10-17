@@ -87,6 +87,11 @@ export function isUsableSnitchProductUrl(url: string): boolean {
   }
 }
 
+/** A lone `%` is a cut-off link. `new URL` still accepts it. */
+function hasTruncatedPercentEncoding(value: string): boolean {
+  return /%(?![0-9A-Fa-f]{2})/.test(value);
+}
+
 function isGoogleHost(hostname: string): boolean {
   const host = hostname.toLowerCase();
   return (
@@ -115,6 +120,7 @@ export function unwrapMerchantUrl(raw: string | null | undefined): string | null
   }
 
   for (let hop = 0; hop < 2; hop++) {
+    if (hasTruncatedPercentEncoding(current)) return null;
     if (current.startsWith("/") && !current.startsWith("/url?")) return null;
     let parsed: URL;
     try {
@@ -152,6 +158,7 @@ export function unwrapMerchantUrl(raw: string | null | undefined): string | null
     return current;
   }
 
+  if (hasTruncatedPercentEncoding(current)) return null;
   try {
     const parsed = new URL(current);
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
