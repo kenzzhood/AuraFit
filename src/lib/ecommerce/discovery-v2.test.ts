@@ -2,7 +2,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { readDiscoveryFlags } from "@/lib/flags";
 
 const requestLog: string[] = [];
-const coverageCreate = vi.hoisted(() => vi.fn(async () => ({ id: "gap" })));
+const coverageCreate = vi.hoisted(() =>
+  vi.fn(
+    async (_input: {
+      data: { intent: Record<string, string | null>; poolSize: number };
+    }) => ({ id: "gap" })
+  )
+);
 const discoveryLogCreate = vi.hoisted(() => vi.fn(async () => ({ id: "log" })));
 const enqueueProductCrawl = vi.hoisted(() => vi.fn(async () => "job-1"));
 
