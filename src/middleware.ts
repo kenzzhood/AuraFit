@@ -8,17 +8,33 @@ const isPublicRoute = createRouteMatcher([
   "/explore(.*)",
   "/post/(.*)",
   "/profile/(.*)",
-  "/api/posts(.*)",
+  "/pricing(.*)",
+  "/legal(.*)",
+  "/robots.txt",
+  "/sitemap.xml",
+  // Read-only social APIs — mutations require Clerk at middleware
+  "/api/posts",
+  "/api/posts/(.*)",
   "/api/profile/(.*)",
+  "/api/billing/catalog(.*)",
+  "/api/billing/webhook(.*)", // Razorpay — verified by HMAC signature
   "/api/inngest(.*)",  // Inngest webhook — verified by signing key, not Clerk
   "/api/health(.*)",   // Container Apps liveness/readiness probes — must be unauthenticated
+  "/api/internal/index/ingest(.*)", // Scrapy batch ingest — verified by INGEST_API_KEY
 ]);
+
+/** POST/PUT/PATCH/DELETE under /api/posts require auth even though GET is public. */
+function isPostsMutation(req: NextRequest): boolean {
+  if (!req.nextUrl.pathname.startsWith("/api/posts")) return false;
+  return !["GET", "HEAD", "OPTIONS"].includes(req.method);
+}
 
 const clerkPk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
 
 /** Clerk-authenticated middleware for production */
 const withClerk: NextMiddleware = clerkMiddleware(async (auth, req) => {
-  if (isPublicRoute(req)) return;
+  // Posts mutations are never public even if path matches the GET allowlist.
+  if (isPublicRoute(req) && !isPostsMutation(req)) return;
 
   const isApiRoute = req.nextUrl.pathname.startsWith("/api/");
   const { userId } = await auth();
@@ -30,11 +46,19 @@ const withClerk: NextMiddleware = clerkMiddleware(async (auth, req) => {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Browser pages: redirect to sign-in instead of protect-rewrite (404 on Azure).
+  // Browser pages: redirect to sign-in. Clerk requires an absolute redirect_url;
+  // Safari throws "The string did not match the expected pattern" on relative ones.
   const signIn = new URL("/sign-in", req.url);
+  const forwardedHost = req.headers.get("x-forwarded-host");
+  const forwardedProto = req.headers.get("x-forwarded-proto");
+  const origin =
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
+    (forwardedHost
+      ? `${forwardedProto ?? "https"}://${forwardedHost}`
+      : req.nextUrl.origin);
   signIn.searchParams.set(
     "redirect_url",
-    req.nextUrl.pathname + req.nextUrl.search
+    `${origin}${req.nextUrl.pathname}${req.nextUrl.search}`
   );
   return NextResponse.redirect(signIn);
 });
@@ -54,10 +78,19 @@ const guardOrAllow: NextMiddleware = (req: NextRequest) => {
       { status: 503 }
     );
   }
-  // Development: allow through but warn
+  // Dev open mode requires an explicit opt-in so staging never silently opens.
+  if (process.env.ALLOW_UNAUTHENTICATED_DEV !== "true") {
+    return NextResponse.json(
+      {
+        error:
+          "Authentication not configured. Set NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY " +
+          "or ALLOW_UNAUTHENTICATED_DEV=true for local-only testing.",
+      },
+      { status: 503 }
+    );
+  }
   console.warn(
-    "[middleware] NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is not set. " +
-      "All routes are unprotected. This is only acceptable in local development."
+    "[middleware] ALLOW_UNAUTHENTICATED_DEV=true — all routes are unprotected."
   );
   return NextResponse.next();
 };

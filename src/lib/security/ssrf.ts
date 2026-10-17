@@ -1,6 +1,6 @@
 /**
  * SSRF guards for server-side URL fetchers (image gen, vision, wardrobe).
- * Blocks localhost, link-local, metadata, and private IP targets.
+ * Blocks localhost, link-local, metadata, private IPs, and IPv4-mapped IPv6.
  */
 
 const BLOCKED_HOSTNAMES = new Set([
@@ -10,8 +10,6 @@ const BLOCKED_HOSTNAMES = new Set([
   "metadata.google",
   "kubernetes.default.svc",
 ]);
-
-const METADATA_IPV4 = "169.254.169.254";
 
 export class UnsafeUrlError extends Error {
   constructor(message: string) {
@@ -41,20 +39,46 @@ function isPrivateOrReservedIpv4(octets: number[]): boolean {
   return false;
 }
 
-function isPrivateOrLocalHost(hostname: string): boolean {
+/** Parse ::ffff:a.b.c.d or ::ffff:AABB:CCDD into IPv4 octets. */
+function ipv4MappedFromIpv6(inner: string): number[] | null {
+  const lower = inner.toLowerCase();
+  const m = lower.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (m) return parseIpv4(m[1]!);
+  const hex = lower.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+  if (hex) {
+    const hi = parseInt(hex[1]!, 16);
+    const lo = parseInt(hex[2]!, 16);
+    if (Number.isNaN(hi) || Number.isNaN(lo)) return null;
+    return [(hi >> 8) & 0xff, hi & 0xff, (lo >> 8) & 0xff, lo & 0xff];
+  }
+  return null;
+}
+
+function isPrivateOrLocalIpv6(inner: string): boolean {
+  const v = inner.toLowerCase();
+  if (v === "::1" || v === "0:0:0:0:0:0:0:1") return true;
+  if (v.startsWith("fe80:")) return true; // link-local
+  if (v.startsWith("fc") || v.startsWith("fd")) return true; // ULA
+  if (v.startsWith("ff")) return true; // multicast
+  const mapped = ipv4MappedFromIpv6(v);
+  if (mapped) return isPrivateOrReservedIpv4(mapped);
+  return false;
+}
+
+export function isPrivateOrLocalHost(hostname: string): boolean {
   const host = hostname.toLowerCase().replace(/\.$/, "");
   if (!host) return true;
   if (BLOCKED_HOSTNAMES.has(host)) return true;
   if (host.endsWith(".local")) return true;
   if (host.endsWith(".internal")) return true;
-  if (host === METADATA_IPV4) return true;
 
   if (host.startsWith("[") && host.endsWith("]")) {
-    const inner = host.slice(1, -1).toLowerCase();
-    if (inner === "::1" || inner.startsWith("fe80:") || inner.startsWith("fc") || inner.startsWith("fd")) {
-      return true;
-    }
-    return false;
+    return isPrivateOrLocalIpv6(host.slice(1, -1));
+  }
+
+  // Unbracketed IPv6 (rare in URL.hostname for Node, but be safe)
+  if (host.includes(":") && !host.includes(".")) {
+    return isPrivateOrLocalIpv6(host);
   }
 
   const v4 = parseIpv4(host);
@@ -147,4 +171,33 @@ export function isAllowedUserMediaUrl(raw: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Safe server-side fetch: validates URL, disables automatic redirect following
+ * past the first hop unless each Location also passes assertSafeExternalUrl.
+ */
+export async function safeFetch(
+  raw: string,
+  init?: RequestInit & { maxRedirects?: number }
+): Promise<Response> {
+  const maxRedirects = init?.maxRedirects ?? 3;
+  let current = assertSafeExternalUrl(raw).toString();
+  const { maxRedirects: _m, redirect: _r, ...rest } = init ?? {};
+
+  for (let i = 0; i <= maxRedirects; i++) {
+    const res = await fetch(current, { ...rest, redirect: "manual" });
+    if (res.status >= 300 && res.status < 400) {
+      const loc = res.headers.get("location");
+      if (!loc) {
+        throw new UnsafeUrlError("Redirect without Location header");
+      }
+      const next = new URL(loc, current).toString();
+      assertSafeExternalUrl(next);
+      current = next;
+      continue;
+    }
+    return res;
+  }
+  throw new UnsafeUrlError("Too many redirects");
 }

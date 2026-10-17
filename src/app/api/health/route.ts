@@ -40,7 +40,17 @@ export async function GET(req: Request) {
   const warm = url.searchParams.get("warm") === "1";
   const debug = url.searchParams.get("debug") === "1";
 
+  const debugAllowed =
+    process.env.NODE_ENV !== "production" ||
+    process.env.HEALTH_DEBUG_ENABLED === "true";
+
   if (debug) {
+    if (!debugAllowed) {
+      return NextResponse.json(
+        { ok: true, service: "aurafit-web", time: new Date().toISOString() },
+        { headers: { "cache-control": "no-store" } }
+      );
+    }
     return NextResponse.json(
       {
         ok: true,
@@ -53,6 +63,21 @@ export async function GET(req: Request) {
   }
 
   if (!warm) {
+    return NextResponse.json(
+      {
+        ok: true,
+        service: "aurafit-web",
+        time: new Date().toISOString(),
+      },
+      { headers: { "cache-control": "no-store" } }
+    );
+  }
+
+  // Warm probes expose dependency status — require explicit opt-in in production.
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.HEALTH_WARM_ENABLED !== "true"
+  ) {
     return NextResponse.json(
       {
         ok: true,

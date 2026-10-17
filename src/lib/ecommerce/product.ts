@@ -34,6 +34,10 @@ export const productSchema = z.object({
   matchCategory: z.string().optional(),
   /** 0–1 confidence the product matches the requested item */
   matchConfidence: z.number().optional(),
+  /** ISO timestamp of the last crawler PDP visit, when known. */
+  lastCrawledAt: z.string().optional(),
+  /** True only when our crawler opened the detail page (not a shopping snippet). */
+  pdpVerified: z.boolean().optional(),
 });
 
 export type Product = z.infer<typeof productSchema>;
@@ -56,6 +60,9 @@ export type NormalizedProduct = {
   matchCategory?: string;
   matchConfidence?: number;
   rating?: number;
+  lastCrawledAt?: string;
+  pdpVerified?: boolean;
+  region?: string;
 };
 
 export function productToNormalized(p: Product): NormalizedProduct {
@@ -75,6 +82,9 @@ export function productToNormalized(p: Product): NormalizedProduct {
     matchCategory: p.matchCategory,
     matchConfidence: p.matchConfidence,
     rating: p.rating,
+    lastCrawledAt: p.lastCrawledAt,
+    pdpVerified: p.pdpVerified,
+    region: p.region,
   };
 }
 
@@ -95,5 +105,8 @@ export function normalizedToProduct(p: NormalizedProduct): Product {
     matchCategory: p.matchCategory,
     matchConfidence: p.matchConfidence,
     rating: p.rating,
+    lastCrawledAt: p.lastCrawledAt,
+    pdpVerified: p.pdpVerified,
+    region: p.region,
   };
 }

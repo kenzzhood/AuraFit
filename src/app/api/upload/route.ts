@@ -14,11 +14,11 @@ export const maxDuration = 90;
 const jsonSchema = z.object({
   fileName: z.string().max(255),
   contentType: z.string(),
-  kind: z.enum(["wardrobe", "profile", "outfit_render"]),
+  kind: z.enum(["wardrobe", "profile", "outfit_render", "chat"]),
   base64: z.string().max(14_000_000, "File too large"), // ~10MB base64
 });
 
-const kindSchema = z.enum(["wardrobe", "profile", "outfit_render"]);
+const kindSchema = z.enum(["wardrobe", "profile", "outfit_render", "chat"]);
 
 const MAX_BYTES = 10 * 1024 * 1024; // 10MB decoded
 
@@ -145,7 +145,15 @@ export async function POST(req: Request) {
   }
 
   const cu = await currentUser();
-  await ensureAppUser(userId, cu?.primaryEmailAddress?.emailAddress);
+  try {
+    await ensureAppUser(userId, cu?.primaryEmailAddress?.emailAddress);
+  } catch (e) {
+    console.error("[upload] user lookup failed:", e instanceof Error ? e.message : e);
+    return NextResponse.json(
+      { error: "The local database is not running, so the photo could not be saved." },
+      { status: 503 }
+    );
+  }
 
   // ── Shared validation ────────────────────────────────────────────────────
   if (buf.length > MAX_BYTES) {

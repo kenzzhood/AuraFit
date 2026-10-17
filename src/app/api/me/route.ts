@@ -21,6 +21,18 @@ export async function GET() {
       profileImageUrl: true,
       onboardingStatus: true,
       email: true,
+      stylePreference: {
+        select: {
+          aesthetics: true,
+          colors: true,
+          brands: true,
+          occasions: true,
+          budgetMin: true,
+          budgetMax: true,
+          region: true,
+          currency: true,
+        },
+      },
     },
   });
 

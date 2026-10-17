@@ -5,6 +5,7 @@ import { ensureAppUser } from "@/lib/user";
 import { z } from "zod";
 import { PostVisibility } from "@prisma/client";
 import { rateLimit } from "@/lib/redis";
+import { rateLimitedResponse } from "@/lib/api/rate-limit-response";
 import { sanitizePostForPublic } from "@/lib/api/sanitize-public";
 
 const createSchema = z.object({
@@ -15,7 +16,18 @@ const createSchema = z.object({
   tags: z.array(z.string()).optional(),
 });
 
+function clientIp(req: Request): string {
+  const forwarded = req.headers.get("x-forwarded-for");
+  const first = forwarded?.split(",")[0]?.trim();
+  return first || "unknown";
+}
+
 export async function GET(req: Request) {
+  const lim = await rateLimit(`posts:feed:${clientIp(req)}`, 60, 60);
+  if (!lim.ok) {
+    return rateLimitedResponse("posts feed", lim.retryAfterSec);
+  }
+
   const { searchParams } = new URL(req.url);
   const take = Math.min(30, Math.max(1, Number(searchParams.get("take") ?? "12")));
   const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
@@ -116,5 +128,5 @@ export async function POST(req: Request) {
     },
   });
 
-  return NextResponse.json(post);
+  return NextResponse.json(sanitizePostForPublic(post));
 }

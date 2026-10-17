@@ -1,12 +1,13 @@
 fastapi==0.115.6
 uvicorn[standard]==0.32.1
-playwright==1.49.1
-crawl4ai==0.4.247
+# Scrapling fetchers require Playwright >=1.61 (Patchright). Do not pin 1.49.
+playwright>=1.61.0
 pydantic==2.10.3
 pyyaml==6.0.2
 httpx[http2]==0.28.1
 beautifulsoup4==4.12.3
-lxml==5.3.0
+lxml>=6.1.1,<7
 h2==4.1.0
 pytest==8.3.4
 pytest-asyncio==0.24.0
+scrapling[fetchers]>=0.4.14

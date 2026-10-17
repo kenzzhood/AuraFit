@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { SignUp } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
 import Link from "next/link";
 import { GridPattern } from "@/components/ui/grid-pattern";
+
+export const metadata: Metadata = {
+  title: "Sign up",
+  robots: { index: false, follow: false },
+};
 
 const clerkPk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
 
@@ -14,7 +20,7 @@ export default function SignUpPage() {
         <p className="relative z-10 max-w-md text-sm text-aura-dim">
           Clerk is not configured. See{" "}
           <code className="rounded border border-aura-border bg-aura-surface px-1.5 py-0.5 text-aura-champagne">
-            docs/AZURE_SETUP.md
+            docs/SETUP_YOUR_KEYS.md
           </code>
           .
         </p>

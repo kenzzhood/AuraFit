@@ -56,6 +56,9 @@ param azureStorageAccountName string
 param azureStorageAccountKey string
 @secure()
 param crawlerApiKey string
+@description('Optional SerpAPI key — enables internet-wide Google Shopping search. Empty disables the provider.')
+@secure()
+param serpApiKey string = ''
 @secure()
 param inngestEventKey string
 @secure()
@@ -100,18 +103,21 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
           passwordSecretRef: 'registry-password'
         }
       ]
-      secrets: [
-        { name: 'registry-password', value: acrCreds.passwords[0].value }
-        { name: 'database-url', value: databaseUrl }
-        { name: 'clerk-secret-key', value: clerkSecretKey }
-        { name: 'azure-openai-api-key', value: azureOpenAiApiKey }
-        { name: 'azure-openai-image-api-key', value: azureOpenAiImageApiKey }
-        { name: 'azure-storage-connection-string', value: azureStorageConnectionString }
-        { name: 'azure-storage-account-key', value: azureStorageAccountKey }
-        { name: 'crawler-api-key', value: crawlerApiKey }
-        { name: 'inngest-event-key', value: inngestEventKey }
-        { name: 'inngest-signing-key', value: inngestSigningKey }
-      ]
+      secrets: concat(
+        [
+          { name: 'registry-password', value: acrCreds.passwords[0].value }
+          { name: 'database-url', value: databaseUrl }
+          { name: 'clerk-secret-key', value: clerkSecretKey }
+          { name: 'azure-openai-api-key', value: azureOpenAiApiKey }
+          { name: 'azure-openai-image-api-key', value: azureOpenAiImageApiKey }
+          { name: 'azure-storage-connection-string', value: azureStorageConnectionString }
+          { name: 'azure-storage-account-key', value: azureStorageAccountKey }
+          { name: 'crawler-api-key', value: crawlerApiKey }
+          { name: 'inngest-event-key', value: inngestEventKey }
+          { name: 'inngest-signing-key', value: inngestSigningKey }
+        ],
+        empty(serpApiKey) ? [] : [{ name: 'serpapi-key', value: serpApiKey }]
+      )
     }
     template: {
       containers: [
@@ -122,7 +128,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
             cpu: json(cpu)
             memory: memory
           }
-          env: [
+          env: concat([
             { name: 'NODE_ENV', value: 'production' }
             { name: 'PORT', value: '3000' }
             { name: 'HOSTNAME', value: '0.0.0.0' }
@@ -161,14 +167,16 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'AZURE_STORAGE_CONTAINER_OUTFITS', value: 'outfits' }
             { name: 'AZURE_STORAGE_CONTAINER_PROFILES', value: 'profiles' }
 
-            { name: 'PRODUCT_DISCOVERY_LAYERS', value: 'cache,index,crawl' }
-            { name: 'PRODUCT_SEARCH_CACHE_TTL_SECONDS', value: '86400' }
+            { name: 'PRODUCT_DISCOVERY_LAYERS', value: 'cache,index,shopping,crawl' }
+            { name: 'PRODUCT_SEARCH_CACHE_TTL_SECONDS', value: '21600' }
             { name: 'PRODUCT_RANKING_ENABLED', value: 'true' }
             { name: 'PRODUCT_CRAWL_MIN_RESULTS', value: '1' }
+            { name: 'PRODUCT_CANDIDATE_POOL_TARGET', value: '20' }
+            { name: 'BOARD_MAX_PER_RETAILER', value: '3' }
             { name: 'PRODUCT_INDEX_MIN_SCORE', value: '0.50' }
             { name: 'PRODUCT_CRAWLER_URL', value: productCrawlerUrl }
-            { name: 'GENERATION_CRAWLER_TIMEOUT_MS', value: '90000' }
-            { name: 'PRODUCT_LOOK_CONCURRENCY', value: '1' }
+            { name: 'GENERATION_CRAWLER_TIMEOUT_MS', value: '20000' }
+            { name: 'PRODUCT_LOOK_CONCURRENCY', value: '3' }
             { name: 'CRAWLER_CIRCUIT_THRESHOLD', value: '5' }
             { name: 'CRAWLER_CIRCUIT_COOLDOWN_MS', value: '20000' }
             { name: 'CRAWLER_API_KEY', secretRef: 'crawler-api-key' }
@@ -183,7 +191,17 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'GENERATION_PREVIEW_ONLY', value: 'false' }
             { name: 'AFFILIATE_PROVIDERS', value: 'amazon,generic' }
             { name: 'TRYON_PROVIDERS', value: 'replicate,noop' }
-          ]
+
+            // Billing stays off until go/no-go. Secrets injected via Container App updates / Key Vault.
+            { name: 'BILLING_ENABLED', value: 'false' }
+            { name: 'BILLING_LIVE_MODE', value: 'false' }
+            { name: 'BILLING_LIVE_APPROVED', value: 'false' }
+            { name: 'HEALTH_DEBUG_ENABLED', value: 'false' }
+            { name: 'HEALTH_WARM_ENABLED', value: 'false' }
+            // Keep false until REDIS_URL is set. True with no Redis fail-closes
+            // generation, HD, billing, and affiliate limits for every user.
+            { name: 'RATE_LIMIT_REQUIRE_REDIS', value: 'false' }
+          ], empty(serpApiKey) ? [] : [{ name: 'SERPAPI_KEY', secretRef: 'serpapi-key' }])
           probes: [
             {
               type: 'Liveness'

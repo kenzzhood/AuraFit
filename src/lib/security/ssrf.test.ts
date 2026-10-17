@@ -35,6 +35,12 @@ describe("assertSafeExternalUrl", () => {
     ).toThrow(UnsafeUrlError);
   });
 
+  it("blocks IPv4-mapped IPv6 loopback", () => {
+    expect(() =>
+      assertSafeExternalUrl("http://[::ffff:127.0.0.1]/")
+    ).toThrow(UnsafeUrlError);
+  });
+
   it("blocks non-http(s) protocols", () => {
     expect(() => assertSafeExternalUrl("file:///etc/passwd")).toThrow(
       UnsafeUrlError

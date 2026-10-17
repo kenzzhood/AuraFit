@@ -7,6 +7,10 @@ services:
       - "8100:8100"
     environment:
       CRAWLER_API_KEY: ${CRAWLER_API_KEY:?Set CRAWLER_API_KEY in .env.local — see docs/SETUP_YOUR_KEYS.md}
+      BRIGHTDATA_API_TOKEN: ${BRIGHTDATA_API_TOKEN:-}
+      BRIGHTDATA_WEB_UNLOCKER_ZONE: ${BRIGHTDATA_WEB_UNLOCKER_ZONE:-}
+      OXYLABS_USERNAME: ${OXYLABS_USERNAME:-}
+      OXYLABS_PASSWORD: ${OXYLABS_PASSWORD:-}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8100/health"]
       interval: 30s

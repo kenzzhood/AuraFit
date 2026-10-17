@@ -57,5 +57,21 @@ export async function POST(
     },
   });
 
+  const reservationId =
+    typeof job.payload === "object" &&
+    job.payload !== null &&
+    "billingReservationId" in job.payload
+      ? (job.payload as { billingReservationId?: string | null })
+          .billingReservationId ?? null
+      : null;
+
+  if (
+    reservationId &&
+    (job.status === JobStatus.QUEUED || job.status === JobStatus.PROCESSING)
+  ) {
+    const { finalizeUsage } = await import("@/lib/billing/entitlements");
+    await finalizeUsage(reservationId, false, job.id).catch(() => undefined);
+  }
+
   return withCors(NextResponse.json({ ok: true }), origin);
 }

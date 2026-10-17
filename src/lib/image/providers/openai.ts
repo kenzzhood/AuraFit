@@ -8,7 +8,15 @@ function isConfigured(): boolean {
 export const openaiImageProvider: ImageProvider = {
   name: "openai",
   isConfigured,
-  async generateBoard({ prompt }: GenerateBoardInput): Promise<FashionBoardImage> {
+  async generateBoard({
+    prompt,
+    productImageUrls,
+  }: GenerateBoardInput): Promise<FashionBoardImage> {
+    if (productImageUrls?.length) {
+      throw new Error(
+        "OpenAI DALL-E cannot attach product reference images; skip to avoid mismatched shop links"
+      );
+    }
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) throw new Error("OPENAI_API_KEY not set");
     const client = new OpenAI({ apiKey });

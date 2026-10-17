@@ -47,6 +47,17 @@ export function PostFeed() {
       {q.isLoading && (
         <p className="text-center text-sm text-aura-muted">Loading feed…</p>
       )}
+      {q.isError && (
+        <p className="text-center text-sm text-aura-muted" role="alert">
+          The look feed is unavailable right now. Try again in a moment.
+        </p>
+      )}
+      {q.isSuccess && page === 1 && (q.data?.posts.length ?? 0) === 0 && (
+        <p className="text-center text-sm text-aura-muted">
+          No public looks yet. Generated outfits show up here once someone
+          shares one.
+        </p>
+      )}
       {q.data && q.data.hasMore && (
         <div className="flex justify-center">
           <button

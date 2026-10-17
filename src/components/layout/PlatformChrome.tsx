@@ -70,6 +70,14 @@ const nav: NavItem[] = [
   { href: "/explore", label: "Explore", icon: ExploreIcon },
 ];
 
+/** Primary mobile tab bar — Stylist + Explore live in desktop sidebar. */
+const mobileNav: NavItem[] = [
+  { href: "/generate", label: "Style", icon: SparkleIcon },
+  { href: "/wardrobe", label: "Closet", icon: HangerIcon },
+  { href: "/outfits", label: "Saved", icon: BookmarkIcon },
+  { href: "/cart", label: "Cart", icon: BagIcon },
+];
+
 const clerkPk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
 
 function isActive(pathname: string | null | undefined, href: string): boolean {
@@ -145,7 +153,19 @@ export function PlatformChrome({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-        <div className="mt-auto border-t border-aura-border pt-6">
+        <div className="mt-auto space-y-3 border-t border-aura-border pt-6">
+          <Link
+            href="/pricing"
+            className="block text-xs text-aura-dim transition hover:text-aura-champagne"
+          >
+            Pricing
+          </Link>
+          <Link
+            href="/billing"
+            className="block text-xs text-aura-dim transition hover:text-aura-champagne"
+          >
+            Billing
+          </Link>
           {clerkPk ? (
             <UserButton appearance={{ elements: { avatarBox: "ring-1 ring-aura-border" } }} />
           ) : (
@@ -165,6 +185,22 @@ export function PlatformChrome({ children }: { children: ReactNode }) {
             {pageTitle(pathname)}
           </p>
           <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:hidden">
+              <Link
+                href="/chat"
+                aria-label="Stylist chat"
+                className="rounded-full border border-aura-border px-2.5 py-1 text-[10px] uppercase tracking-wider text-aura-dim"
+              >
+                Stylist
+              </Link>
+              <Link
+                href="/explore"
+                aria-label="Explore community"
+                className="rounded-full border border-aura-border px-2.5 py-1 text-[10px] uppercase tracking-wider text-aura-dim"
+              >
+                Explore
+              </Link>
+            </div>
             <DesktopCartLink count={count} />
             <div className="md:hidden">
               {clerkPk ? (
@@ -176,15 +212,18 @@ export function PlatformChrome({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <div className="flex-1 bg-gradient-to-b from-aura-void via-aura-stage/50 to-aura-ink px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-6 md:px-12 md:pb-12 md:pt-8 lg:px-16">
+        <div
+          id="main-content"
+          className="flex-1 bg-gradient-to-b from-aura-void via-aura-stage/50 to-aura-ink px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-6 md:px-12 md:pb-12 md:pt-8 lg:px-16"
+        >
           {children}
         </div>
 
         <nav
           aria-label="Primary"
-          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t border-aura-border bg-aura-void/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-aura-border bg-aura-void/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
         >
-          {nav.map((item) => {
+          {mobileNav.map((item) => {
             const active = isActive(pathname, item.href);
             const Icon = item.icon;
             const isCart = item.href === "/cart";

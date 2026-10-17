@@ -64,12 +64,24 @@ function memoryRateLimit(
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
+function requiresDistributedLimit(key: string): boolean {
+  return (
+    key.startsWith("gen:") ||
+    key.startsWith("hd:") ||
+    key.startsWith("billing:") ||
+    key.startsWith("affiliate:")
+  );
+}
+
 export async function rateLimit(
   key: string,
   limit: number,
   windowSec: number
 ): Promise<{ ok: boolean; remaining: number; retryAfterSec: number }> {
   const client = getRedis();
+  const prodStrict =
+    process.env.NODE_ENV === "production" &&
+    process.env.RATE_LIMIT_REQUIRE_REDIS === "true";
 
   if (client) {
     try {
@@ -86,8 +98,13 @@ export async function rateLimit(
       };
     } catch (err) {
       console.warn("[redis] rateLimit Redis call failed, falling back to memory:", err);
-      // Fall through to memory fallback
+      if (prodStrict && requiresDistributedLimit(key)) {
+        return { ok: false, remaining: 0, retryAfterSec: 30 };
+      }
     }
+  } else if (prodStrict && requiresDistributedLimit(key)) {
+    // Fail closed for expensive paths when Redis is mandated in production.
+    return { ok: false, remaining: 0, retryAfterSec: 30 };
   }
 
   return memoryRateLimit(key, limit, windowSec);
@@ -97,10 +114,20 @@ export async function rateLimit(
 export const GENERATION_RATE_LIMIT = { limit: 8, windowSec: 15 * 60 } as const;
 
 export const CHAT_RATE_LIMIT = { limit: 30, windowSec: 15 * 60 } as const;
+export const MEDIA_PRODUCT_RATE_LIMIT = { limit: 240, windowSec: 60 } as const;
 export const SEARCH_RATE_LIMIT = { limit: 40, windowSec: 15 * 60 } as const;
 export const RECOMMENDATIONS_RATE_LIMIT = { limit: 20, windowSec: 15 * 60 } as const;
 export const WARDROBE_WRITE_RATE_LIMIT = { limit: 30, windowSec: 15 * 60 } as const;
 export const CART_WRITE_RATE_LIMIT = { limit: 60, windowSec: 15 * 60 } as const;
+export const HD_RENDER_RATE_LIMIT = { limit: 10, windowSec: 15 * 60 } as const;
+export const AFFILIATE_CHECKOUT_RATE_LIMIT = {
+  limit: 30,
+  windowSec: 15 * 60,
+} as const;
+export const BILLING_CHECKOUT_RATE_LIMIT = {
+  limit: 10,
+  windowSec: 15 * 60,
+} as const;
 
 export async function getCached(key: string): Promise<string | null> {
   const client = getRedis();

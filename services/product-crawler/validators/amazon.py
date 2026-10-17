@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 from urllib.parse import urlparse
 
+from engines.html_quality import html_usable
 from engines.playwright_engine import fetch_rendered_html
 
 from .common import (
@@ -50,8 +51,8 @@ async def validate_amazon_product(
         html = await fetch_rendered_html(url, scroll=False)
     except Exception as e:
         return None, f"fetch failed: {e}"
-    if not html:
-        return None, "empty html"
+    if not html or not html_usable(html):
+        return None, "404 or challenge page"
 
     soup = get_soup(html)
     host = host_of(url)

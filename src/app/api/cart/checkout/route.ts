@@ -6,6 +6,11 @@ import {
   getOrCreateCart,
 } from "@/lib/cart/service";
 import { prisma } from "@/lib/prisma";
+import {
+  AFFILIATE_CHECKOUT_RATE_LIMIT,
+  rateLimit,
+} from "@/lib/redis";
+import { rateLimitedResponse } from "@/lib/api/rate-limit-response";
 
 export async function GET() {
   const { userId } = await auth();
@@ -14,6 +19,15 @@ export async function GET() {
   }
   const cu = await currentUser();
   const user = await ensureAppUser(userId, cu?.primaryEmailAddress?.emailAddress);
+
+  const lim = await rateLimit(
+    `affiliate:checkout:${user.id}`,
+    AFFILIATE_CHECKOUT_RATE_LIMIT.limit,
+    AFFILIATE_CHECKOUT_RATE_LIMIT.windowSec
+  );
+  if (!lim.ok) {
+    return rateLimitedResponse("checkout", lim.retryAfterSec);
+  }
 
   const cart = await getOrCreateCart(user.id);
   if (cart.items.length === 0) {

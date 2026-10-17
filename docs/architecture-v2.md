@@ -22,7 +22,7 @@ Each external dependency is swappable via comma-separated env order. Shared fall
 | AI (chat, vision, looks) | `AI_PROVIDERS` | `azure,openai,gemini` | [`src/lib/ai/provider.ts`](../src/lib/ai/provider.ts) |
 | Image (fashion board) | `IMAGE_PROVIDERS` | `azure,openai,noop` | [`src/lib/image/provider.ts`](../src/lib/image/provider.ts) |
 | Try-on | `TRYON_PROVIDERS` | `replicate,noop` | [`src/lib/tryon/provider.ts`](../src/lib/tryon/provider.ts) |
-| Product discovery | `PRODUCT_DISCOVERY_LAYERS` | `cache,index,crawl,serpapi,demo` | [`src/lib/ecommerce/discovery.ts`](../src/lib/ecommerce/discovery.ts) |
+| Product discovery | `PRODUCT_DISCOVERY_LAYERS` | `cache,index,shopping,crawl` | [`src/lib/ecommerce/discovery.ts`](../src/lib/ecommerce/discovery.ts) |
 | Live crawler | `PRODUCT_CRAWLER_URL` | Docker `:8100` | [`services/product-crawler/`](../services/product-crawler/) |
 | Cache | `CACHE_PROVIDER` | `memory` (or `redis` + `REDIS_URL`) | [`src/lib/cache/provider.ts`](../src/lib/cache/provider.ts) |
 | Affiliate links | `AFFILIATE_PROVIDERS` | `amazon,generic` | [`src/lib/ecommerce/affiliate/provider.ts`](../src/lib/ecommerce/affiliate/provider.ts) |

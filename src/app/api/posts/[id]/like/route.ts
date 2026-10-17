@@ -14,14 +14,11 @@ export async function POST(
   }
   const cu = await currentUser();
   const user = await ensureAppUser(userId, cu?.primaryEmailAddress?.emailAddress);
-  if (user.deletedAt) {
-    return NextResponse.json({ error: "Account deactivated" }, { status: 403 });
-  }
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
   });
-  if (!post?.publishedAt) {
+  if (!post?.publishedAt || post.visibility !== "PUBLIC") {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

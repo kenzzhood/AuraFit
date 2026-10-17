@@ -11,8 +11,10 @@ import {
 import {
   buildFashionBoardPrompt,
   buildProductImageRefs,
+  compactProductImageRefs,
   MAX_PRODUCT_IMAGE_REFS,
 } from "@/lib/jobs/generation";
+import { prefetchProductImageUrls } from "@/lib/azure/images";
 
 async function uploadBoardImage(
   userId: string,
@@ -66,16 +68,36 @@ export async function processHdRenderJob(params: {
   const personBlock = personAnalysisToPromptBlock(
     prev.personAnalysis ?? null
   );
-  const looks = prev.looks ?? [];
+  const allLooks = prev.looks ?? [];
+  const heroIndex =
+    params.lookIndex != null &&
+    params.lookIndex >= 0 &&
+    params.lookIndex < allLooks.length
+      ? params.lookIndex
+      : undefined;
+  const looks =
+    heroIndex != null ? [allLooks[heroIndex]!] : allLooks;
   const payload = parent.payload as Record<string, unknown> | null;
   const path = (payload?.path as "online" | "wardrobe" | undefined) ?? "online";
 
-  // Re-reference the SAME real product images the preview used so the HD board
-  // renders the exact products the user is about to shop — no drift, no
-  // invented garments.
-  const { productImageUrls, productImageRefs } = buildProductImageRefs(
+  const built = buildProductImageRefs(
     looks.map((l) => ({ products: (l.products ?? []) as LookProduct[] })),
     { includeWardrobe: true }
+  );
+  const uploadedUrls = await prefetchProductImageUrls(
+    built.productImageUrls,
+    MAX_PRODUCT_IMAGE_REFS
+  );
+  const productImageRefs = compactProductImageRefs(
+    built.productImageRefs,
+    uploadedUrls
+  );
+  const productImageUrls = uploadedUrls.filter((u) =>
+    productImageRefs.some((r) => r.imageUrl === u)
+  );
+  const densifiedRefs = compactProductImageRefs(
+    productImageRefs,
+    productImageUrls
   );
 
   const prompt = buildFashionBoardPrompt({
@@ -88,8 +110,8 @@ export async function processHdRenderJob(params: {
     budgetMax: payload?.budgetMax as number | undefined,
     path,
     looks,
-    productImageRefs,
-    requireProductRefsPerPanel: path === "online" && productImageRefs.length > 0,
+    productImageRefs: densifiedRefs,
+    requireProductRefsPerPanel: true,
   });
 
   let boardImageUrl: string | null = null;
@@ -103,7 +125,7 @@ export async function processHdRenderJob(params: {
         prompt,
         quality: "hd",
         referenceImageUrl: userPhotoUrl,
-        productImageUrls: productImageUrls.slice(0, MAX_PRODUCT_IMAGE_REFS),
+        productImageUrls,
       });
       boardImageUrl = await uploadBoardImage(params.userId, boardImage);
       if (meta.degraded) {

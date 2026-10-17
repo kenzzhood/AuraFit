@@ -4,6 +4,59 @@ import type {
   ProductSearchProvider,
   ProductSource,
 } from "./types";
+import { usableMerchantUrl } from "@/lib/ecommerce/fingerprint";
+
+export type SerpapiShoppingResult = {
+  title?: string;
+  link?: string;
+  product_link?: string;
+  extracted_price?: number;
+  source?: string;
+  thumbnail?: string;
+  product_id?: string;
+  rating?: number;
+};
+
+export function mapSerpapiShoppingResult(
+  r: SerpapiShoppingResult,
+  q: Pick<ProductQuery, "region" | "category">,
+  index: number
+): NormalizedProduct | null {
+  const productUrl =
+    (r.link ? usableMerchantUrl(r.link) : null) ??
+    (r.product_link ? usableMerchantUrl(r.product_link) : null);
+  if (!r.title || !productUrl) return null;
+  const img = r.thumbnail;
+  if (!img || !/^https?:\/\//.test(img) || !/^https?:\/\//.test(productUrl)) {
+    return null;
+  }
+
+  const storeName = r.source ?? "Store";
+  const source = inferSourceFromStore(storeName);
+  const id =
+    r.product_id ??
+    `${encodeURIComponent(r.title.slice(0, 40))}-${index}`.slice(0, 80);
+  const canonicalUrl =
+    (r.product_link ? usableMerchantUrl(r.product_link) : null) ?? productUrl;
+  return {
+    externalId: id,
+    source,
+    title: r.title,
+    price: r.extracted_price,
+    currency: q.region === "US" ? "USD" : q.region === "UK" ? "GBP" : "INR",
+    imageUrl: img,
+    productUrl,
+    canonicalUrl,
+    category: q.category,
+    storeName,
+    verified: true,
+    pdpVerified: false,
+    availability: "in_stock",
+    matchCategory: q.category,
+    rating: r.rating,
+    region: q.region,
+  };
+}
 
 /**
  * Google Shopping via SerpAPI — fallback when Serper.dev is unavailable.
@@ -32,8 +85,8 @@ function regionToGl(region: ProductQuery["region"]): string {
  * best one per slot, so we want a few real options (not just 1) to choose from.
  */
 function maxCandidates(): number {
-  const n = Number(process.env.SERPAPI_MAX_CANDIDATES ?? 8);
-  return Number.isFinite(n) && n > 0 ? Math.min(n, 20) : 8;
+    const n = Number(process.env.SERPAPI_MAX_CANDIDATES ?? 16);
+    return Number.isFinite(n) && n > 0 ? Math.min(n, 20) : 16;
 }
 
 export const serpApiProductProvider: ProductSearchProvider = {
@@ -48,7 +101,7 @@ export const serpApiProductProvider: ProductSearchProvider = {
       q: q.query,
       gl: regionToGl(q.region),
       hl: "en",
-      num: "10",
+      num: "20",
       api_key: key,
     });
 
@@ -91,50 +144,8 @@ export const serpApiProductProvider: ProductSearchProvider = {
 
     const results = data.shopping_results ?? [];
     return results
-      .filter((r) => {
-        // Require the fields we actually need downstream: a real merchant link
-        // and a usable http(s) thumbnail (used as an image-gen reference). Skip
-        // data: URIs and anything without an image so we never reference a
-        // product we can't actually show.
-        const url = r.link ?? r.product_link;
-        const img = r.thumbnail;
-        return (
-          !!r.title &&
-          !!url &&
-          /^https?:\/\//.test(url) &&
-          !!img &&
-          /^https?:\/\//.test(img)
-        );
-      })
-      .slice(0, maxCandidates())
-      .map((r, i) => {
-        const storeName = r.source ?? "Store";
-        const source = inferSourceFromStore(storeName);
-        const id =
-          r.product_id ??
-          `${encodeURIComponent(r.title!.slice(0, 40))}-${i}`.slice(0, 80);
-        // Prefer the direct merchant link; fall back to the Google Shopping
-        // product page (which always lists buyable sellers).
-        const productUrl = r.link ?? r.product_link!;
-        return {
-          externalId: id,
-          source,
-          title: r.title!,
-          price: r.extracted_price,
-          currency:
-            q.region === "US" ? "USD" : q.region === "UK" ? "GBP" : "INR",
-          imageUrl: r.thumbnail!,
-          productUrl,
-          canonicalUrl: r.product_link ?? productUrl,
-          category: q.category,
-          storeName,
-          // SerpAPI surfaces live Google Shopping listings — real, purchasable
-          // products with real images. Trust as verified for the shop link.
-          verified: true,
-          availability: "in_stock",
-          matchCategory: q.category,
-          rating: r.rating,
-        };
-      });
+      .map((r, i) => mapSerpapiShoppingResult(r, q, i))
+      .filter((p): p is NormalizedProduct => p != null)
+      .slice(0, maxCandidates());
   },
 };

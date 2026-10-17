@@ -8,8 +8,9 @@ import { prisma } from "@/lib/prisma";
 // inline `after()` killed mid-run). We auto-fail it here so the polling UI
 // can move on instead of spinning forever on a zombie row.
 //
-// Sync product crawl + cold crawler can exceed 5 min; keep above mobile poll (6 min).
-const STALE_JOB_THRESHOLD_MS = 10 * 60 * 1000;
+// Sync product crawl + recovery can run several minutes; keep above the
+// product-phase budget and mobile poll window so healthy jobs are not killed.
+const STALE_JOB_THRESHOLD_MS = 12 * 60 * 1000;
 
 export async function GET(
   _req: Request,
@@ -43,6 +44,13 @@ export async function GET(
           "Generation timed out. The worker stopped responding — please start a new generation.",
       },
     });
+    const payload = job.payload as { billingReservationId?: unknown } | null;
+    if (typeof payload?.billingReservationId === "string") {
+      const { finalizeUsage } = await import("@/lib/billing/entitlements");
+      await finalizeUsage(payload.billingReservationId, false, job.id).catch(
+        () => undefined
+      );
+    }
     return NextResponse.json(failed);
   }
 

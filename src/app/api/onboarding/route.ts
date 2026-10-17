@@ -41,6 +41,26 @@ export async function POST(req: Request) {
   const b = parsed.data;
 
   if (b.profileImageUrl) {
+    try {
+      const { assertAllowedUserMediaUrl } = await import("@/lib/security/ssrf");
+      assertAllowedUserMediaUrl(b.profileImageUrl);
+    } catch {
+      return NextResponse.json(
+        { error: "profileImageUrl must be an Aurafit media URL" },
+        { status: 400 }
+      );
+    }
+    if (b.profileBlobPath) {
+      try {
+        const { assertUserBlobPath } = await import("@/lib/security/blob-path");
+        assertUserBlobPath(b.profileBlobPath, userId);
+      } catch {
+        return NextResponse.json(
+          { error: "Invalid profileBlobPath" },
+          { status: 400 }
+        );
+      }
+    }
     await prisma.user.update({
       where: { id: user.id },
       data: { profileImageUrl: b.profileImageUrl },
@@ -93,8 +113,37 @@ export async function POST(req: Request) {
 
   const updated = await prisma.user.findUnique({
     where: { id: user.id },
-    include: { stylePreference: true },
+    select: {
+      id: true,
+      username: true,
+      displayName: true,
+      onboardingStatus: true,
+      stylePreference: {
+        select: {
+          aesthetics: true,
+          colors: true,
+          brands: true,
+          occasions: true,
+          budgetMin: true,
+          budgetMax: true,
+          region: true,
+          currency: true,
+        },
+      },
+    },
   });
 
-  return NextResponse.json({ user: updated });
+  return NextResponse.json({
+    user: updated
+      ? {
+          id: updated.id,
+          username: updated.username,
+          displayName: updated.displayName,
+          onboardingCompleted:
+            updated.onboardingStatus === OnboardingStatus.COMPLETED,
+          onboardingStatus: updated.onboardingStatus,
+          stylePreference: updated.stylePreference,
+        }
+      : null,
+  });
 }

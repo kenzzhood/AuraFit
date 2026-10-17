@@ -77,9 +77,12 @@ export function WardrobeUploader({
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { "image/*": [".png", ".jpg", ".jpeg", ".webp"] },
+    accept: {
+      "image/*": [".png", ".jpg", ".jpeg", ".webp", ".heic", ".heif"],
+    },
     maxFiles: 1,
     disabled: busy,
+    useFsAccessApi: false,
   });
 
   return (

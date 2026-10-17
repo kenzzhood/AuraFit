@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import posthog from "posthog-js";
+import { track } from "@/lib/analytics/track";
 import type {
   CartItemInput,
   CartItemPublic,
@@ -10,9 +10,7 @@ import type {
 } from "@/types/cart";
 
 function capture(event: string, props?: Record<string, unknown>) {
-  if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
-    posthog.capture(event, props);
-  }
+  track(event, props);
 }
 
 function tempId() {

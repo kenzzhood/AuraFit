@@ -122,7 +122,14 @@ export function PostDetail({ postId }: { postId: string }) {
       <div className="overflow-hidden rounded-2xl border border-aura-border bg-aura-ink/30">
         {img ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={img} alt="" className="w-full object-cover" />
+          <img
+            src={img}
+            alt={
+              post.caption?.trim() ||
+              `Look by @${post.user.username ?? "user"}`
+            }
+            className="w-full object-cover"
+          />
         ) : (
           <div className="flex aspect-[3/4] items-center justify-center text-aura-muted">
             No preview

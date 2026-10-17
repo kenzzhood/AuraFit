@@ -1,0 +1,821 @@
+{
+  "version": 1,
+  "queries": [
+    {
+      "id": "q001",
+      "gender": "female",
+      "occasion": "wedding",
+      "budgetMax": 2000,
+      "category": "dress",
+      "text": "female wedding dress"
+    },
+    {
+      "id": "q002",
+      "gender": "female",
+      "occasion": "wedding",
+      "budgetMax": 2000,
+      "category": "top",
+      "text": "female wedding top"
+    },
+    {
+      "id": "q003",
+      "gender": "female",
+      "occasion": "wedding",
+      "budgetMax": 2000,
+      "category": "bottom",
+      "text": "female wedding bottom"
+    },
+    {
+      "id": "q004",
+      "gender": "female",
+      "occasion": "wedding",
+      "budgetMax": 2000,
+      "category": "shoes",
+      "text": "female wedding shoes"
+    },
+    {
+      "id": "q005",
+      "gender": "female",
+      "occasion": "wedding",
+      "budgetMax": 2000,
+      "category": "ethnic",
+      "text": "female wedding ethnic"
+    },
+    {
+      "id": "q006",
+      "gender": "female",
+      "occasion": "wedding",
+      "budgetMax": 8000,
+      "category": "dress",
+      "text": "female wedding dress"
+    },
+    {
+      "id": "q007",
+      "gender": "female",
+      "occasion": "wedding",
+      "budgetMax": 8000,
+      "category": "top",
+      "text": "female wedding top"
+    },
+    {
+      "id": "q008",
+      "gender": "female",
+      "occasion": "wedding",
+      "budgetMax": 8000,
+      "category": "bottom",
+      "text": "female wedding bottom"
+    },
+    {
+      "id": "q009",
+      "gender": "female",
+      "occasion": "wedding",
+      "budgetMax": 8000,
+      "category": "shoes",
+      "text": "female wedding shoes"
+    },
+    {
+      "id": "q010",
+      "gender": "female",
+      "occasion": "wedding",
+      "budgetMax": 8000,
+      "category": "ethnic",
+      "text": "female wedding ethnic"
+    },
+    {
+      "id": "q011",
+      "gender": "female",
+      "occasion": "office",
+      "budgetMax": 2000,
+      "category": "dress",
+      "text": "female office dress"
+    },
+    {
+      "id": "q012",
+      "gender": "female",
+      "occasion": "office",
+      "budgetMax": 2000,
+      "category": "top",
+      "text": "female office top"
+    },
+    {
+      "id": "q013",
+      "gender": "female",
+      "occasion": "office",
+      "budgetMax": 2000,
+      "category": "bottom",
+      "text": "female office bottom"
+    },
+    {
+      "id": "q014",
+      "gender": "female",
+      "occasion": "office",
+      "budgetMax": 2000,
+      "category": "shoes",
+      "text": "female office shoes"
+    },
+    {
+      "id": "q015",
+      "gender": "female",
+      "occasion": "office",
+      "budgetMax": 2000,
+      "category": "ethnic",
+      "text": "female office ethnic"
+    },
+    {
+      "id": "q016",
+      "gender": "female",
+      "occasion": "office",
+      "budgetMax": 8000,
+      "category": "dress",
+      "text": "female office dress"
+    },
+    {
+      "id": "q017",
+      "gender": "female",
+      "occasion": "office",
+      "budgetMax": 8000,
+      "category": "top",
+      "text": "female office top"
+    },
+    {
+      "id": "q018",
+      "gender": "female",
+      "occasion": "office",
+      "budgetMax": 8000,
+      "category": "bottom",
+      "text": "female office bottom"
+    },
+    {
+      "id": "q019",
+      "gender": "female",
+      "occasion": "office",
+      "budgetMax": 8000,
+      "category": "shoes",
+      "text": "female office shoes"
+    },
+    {
+      "id": "q020",
+      "gender": "female",
+      "occasion": "office",
+      "budgetMax": 8000,
+      "category": "ethnic",
+      "text": "female office ethnic"
+    },
+    {
+      "id": "q021",
+      "gender": "female",
+      "occasion": "casual",
+      "budgetMax": 2000,
+      "category": "dress",
+      "text": "female casual dress"
+    },
+    {
+      "id": "q022",
+      "gender": "female",
+      "occasion": "casual",
+      "budgetMax": 2000,
+      "category": "top",
+      "text": "female casual top"
+    },
+    {
+      "id": "q023",
+      "gender": "female",
+      "occasion": "casual",
+      "budgetMax": 2000,
+      "category": "bottom",
+      "text": "female casual bottom"
+    },
+    {
+      "id": "q024",
+      "gender": "female",
+      "occasion": "casual",
+      "budgetMax": 2000,
+      "category": "shoes",
+      "text": "female casual shoes"
+    },
+    {
+      "id": "q025",
+      "gender": "female",
+      "occasion": "casual",
+      "budgetMax": 2000,
+      "category": "ethnic",
+      "text": "female casual ethnic"
+    },
+    {
+      "id": "q026",
+      "gender": "female",
+      "occasion": "casual",
+      "budgetMax": 8000,
+      "category": "dress",
+      "text": "female casual dress"
+    },
+    {
+      "id": "q027",
+      "gender": "female",
+      "occasion": "casual",
+      "budgetMax": 8000,
+      "category": "top",
+      "text": "female casual top"
+    },
+    {
+      "id": "q028",
+      "gender": "female",
+      "occasion": "casual",
+      "budgetMax": 8000,
+      "category": "bottom",
+      "text": "female casual bottom"
+    },
+    {
+      "id": "q029",
+      "gender": "female",
+      "occasion": "casual",
+      "budgetMax": 8000,
+      "category": "shoes",
+      "text": "female casual shoes"
+    },
+    {
+      "id": "q030",
+      "gender": "female",
+      "occasion": "casual",
+      "budgetMax": 8000,
+      "category": "ethnic",
+      "text": "female casual ethnic"
+    },
+    {
+      "id": "q031",
+      "gender": "female",
+      "occasion": "party",
+      "budgetMax": 2000,
+      "category": "dress",
+      "text": "female party dress"
+    },
+    {
+      "id": "q032",
+      "gender": "female",
+      "occasion": "party",
+      "budgetMax": 2000,
+      "category": "top",
+      "text": "female party top"
+    },
+    {
+      "id": "q033",
+      "gender": "female",
+      "occasion": "party",
+      "budgetMax": 2000,
+      "category": "bottom",
+      "text": "female party bottom"
+    },
+    {
+      "id": "q034",
+      "gender": "female",
+      "occasion": "party",
+      "budgetMax": 2000,
+      "category": "shoes",
+      "text": "female party shoes"
+    },
+    {
+      "id": "q035",
+      "gender": "female",
+      "occasion": "party",
+      "budgetMax": 2000,
+      "category": "ethnic",
+      "text": "female party ethnic"
+    },
+    {
+      "id": "q036",
+      "gender": "female",
+      "occasion": "party",
+      "budgetMax": 8000,
+      "category": "dress",
+      "text": "female party dress"
+    },
+    {
+      "id": "q037",
+      "gender": "female",
+      "occasion": "party",
+      "budgetMax": 8000,
+      "category": "top",
+      "text": "female party top"
+    },
+    {
+      "id": "q038",
+      "gender": "female",
+      "occasion": "party",
+      "budgetMax": 8000,
+      "category": "bottom",
+      "text": "female party bottom"
+    },
+    {
+      "id": "q039",
+      "gender": "female",
+      "occasion": "party",
+      "budgetMax": 8000,
+      "category": "shoes",
+      "text": "female party shoes"
+    },
+    {
+      "id": "q040",
+      "gender": "female",
+      "occasion": "party",
+      "budgetMax": 8000,
+      "category": "ethnic",
+      "text": "female party ethnic"
+    },
+    {
+      "id": "q041",
+      "gender": "female",
+      "occasion": "festival",
+      "budgetMax": 2000,
+      "category": "dress",
+      "text": "female festival dress"
+    },
+    {
+      "id": "q042",
+      "gender": "female",
+      "occasion": "festival",
+      "budgetMax": 2000,
+      "category": "top",
+      "text": "female festival top"
+    },
+    {
+      "id": "q043",
+      "gender": "female",
+      "occasion": "festival",
+      "budgetMax": 2000,
+      "category": "bottom",
+      "text": "female festival bottom"
+    },
+    {
+      "id": "q044",
+      "gender": "female",
+      "occasion": "festival",
+      "budgetMax": 2000,
+      "category": "shoes",
+      "text": "female festival shoes"
+    },
+    {
+      "id": "q045",
+      "gender": "female",
+      "occasion": "festival",
+      "budgetMax": 2000,
+      "category": "ethnic",
+      "text": "female festival ethnic"
+    },
+    {
+      "id": "q046",
+      "gender": "female",
+      "occasion": "festival",
+      "budgetMax": 8000,
+      "category": "dress",
+      "text": "female festival dress"
+    },
+    {
+      "id": "q047",
+      "gender": "female",
+      "occasion": "festival",
+      "budgetMax": 8000,
+      "category": "top",
+      "text": "female festival top"
+    },
+    {
+      "id": "q048",
+      "gender": "female",
+      "occasion": "festival",
+      "budgetMax": 8000,
+      "category": "bottom",
+      "text": "female festival bottom"
+    },
+    {
+      "id": "q049",
+      "gender": "female",
+      "occasion": "festival",
+      "budgetMax": 8000,
+      "category": "shoes",
+      "text": "female festival shoes"
+    },
+    {
+      "id": "q050",
+      "gender": "female",
+      "occasion": "festival",
+      "budgetMax": 8000,
+      "category": "ethnic",
+      "text": "female festival ethnic"
+    },
+    {
+      "id": "q051",
+      "gender": "male",
+      "occasion": "wedding",
+      "budgetMax": 2000,
+      "category": "dress",
+      "text": "male wedding dress"
+    },
+    {
+      "id": "q052",
+      "gender": "male",
+      "occasion": "wedding",
+      "budgetMax": 2000,
+      "category": "top",
+      "text": "male wedding top"
+    },
+    {
+      "id": "q053",
+      "gender": "male",
+      "occasion": "wedding",
+      "budgetMax": 2000,
+      "category": "bottom",
+      "text": "male wedding bottom"
+    },
+    {
+      "id": "q054",
+      "gender": "male",
+      "occasion": "wedding",
+      "budgetMax": 2000,
+      "category": "shoes",
+      "text": "male wedding shoes"
+    },
+    {
+      "id": "q055",
+      "gender": "male",
+      "occasion": "wedding",
+      "budgetMax": 2000,
+      "category": "ethnic",
+      "text": "male wedding ethnic"
+    },
+    {
+      "id": "q056",
+      "gender": "male",
+      "occasion": "wedding",
+      "budgetMax": 8000,
+      "category": "dress",
+      "text": "male wedding dress"
+    },
+    {
+      "id": "q057",
+      "gender": "male",
+      "occasion": "wedding",
+      "budgetMax": 8000,
+      "category": "top",
+      "text": "male wedding top"
+    },
+    {
+      "id": "q058",
+      "gender": "male",
+      "occasion": "wedding",
+      "budgetMax": 8000,
+      "category": "bottom",
+      "text": "male wedding bottom"
+    },
+    {
+      "id": "q059",
+      "gender": "male",
+      "occasion": "wedding",
+      "budgetMax": 8000,
+      "category": "shoes",
+      "text": "male wedding shoes"
+    },
+    {
+      "id": "q060",
+      "gender": "male",
+      "occasion": "wedding",
+      "budgetMax": 8000,
+      "category": "ethnic",
+      "text": "male wedding ethnic"
+    },
+    {
+      "id": "q061",
+      "gender": "male",
+      "occasion": "office",
+      "budgetMax": 2000,
+      "category": "dress",
+      "text": "male office dress"
+    },
+    {
+      "id": "q062",
+      "gender": "male",
+      "occasion": "office",
+      "budgetMax": 2000,
+      "category": "top",
+      "text": "male office top"
+    },
+    {
+      "id": "q063",
+      "gender": "male",
+      "occasion": "office",
+      "budgetMax": 2000,
+      "category": "bottom",
+      "text": "male office bottom"
+    },
+    {
+      "id": "q064",
+      "gender": "male",
+      "occasion": "office",
+      "budgetMax": 2000,
+      "category": "shoes",
+      "text": "male office shoes"
+    },
+    {
+      "id": "q065",
+      "gender": "male",
+      "occasion": "office",
+      "budgetMax": 2000,
+      "category": "ethnic",
+      "text": "male office ethnic"
+    },
+    {
+      "id": "q066",
+      "gender": "male",
+      "occasion": "office",
+      "budgetMax": 8000,
+      "category": "dress",
+      "text": "male office dress"
+    },
+    {
+      "id": "q067",
+      "gender": "male",
+      "occasion": "office",
+      "budgetMax": 8000,
+      "category": "top",
+      "text": "male office top"
+    },
+    {
+      "id": "q068",
+      "gender": "male",
+      "occasion": "office",
+      "budgetMax": 8000,
+      "category": "bottom",
+      "text": "male office bottom"
+    },
+    {
+      "id": "q069",
+      "gender": "male",
+      "occasion": "office",
+      "budgetMax": 8000,
+      "category": "shoes",
+      "text": "male office shoes"
+    },
+    {
+      "id": "q070",
+      "gender": "male",
+      "occasion": "office",
+      "budgetMax": 8000,
+      "category": "ethnic",
+      "text": "male office ethnic"
+    },
+    {
+      "id": "q071",
+      "gender": "male",
+      "occasion": "casual",
+      "budgetMax": 2000,
+      "category": "dress",
+      "text": "male casual dress"
+    },
+    {
+      "id": "q072",
+      "gender": "male",
+      "occasion": "casual",
+      "budgetMax": 2000,
+      "category": "top",
+      "text": "male casual top"
+    },
+    {
+      "id": "q073",
+      "gender": "male",
+      "occasion": "casual",
+      "budgetMax": 2000,
+      "category": "bottom",
+      "text": "male casual bottom"
+    },
+    {
+      "id": "q074",
+      "gender": "male",
+      "occasion": "casual",
+      "budgetMax": 2000,
+      "category": "shoes",
+      "text": "male casual shoes"
+    },
+    {
+      "id": "q075",
+      "gender": "male",
+      "occasion": "casual",
+      "budgetMax": 2000,
+      "category": "ethnic",
+      "text": "male casual ethnic"
+    },
+    {
+      "id": "q076",
+      "gender": "male",
+      "occasion": "casual",
+      "budgetMax": 8000,
+      "category": "dress",
+      "text": "male casual dress"
+    },
+    {
+      "id": "q077",
+      "gender": "male",
+      "occasion": "casual",
+      "budgetMax": 8000,
+      "category": "top",
+      "text": "male casual top"
+    },
+    {
+      "id": "q078",
+      "gender": "male",
+      "occasion": "casual",
+      "budgetMax": 8000,
+      "category": "bottom",
+      "text": "male casual bottom"
+    },
+    {
+      "id": "q079",
+      "gender": "male",
+      "occasion": "casual",
+      "budgetMax": 8000,
+      "category": "shoes",
+      "text": "male casual shoes"
+    },
+    {
+      "id": "q080",
+      "gender": "male",
+      "occasion": "casual",
+      "budgetMax": 8000,
+      "category": "ethnic",
+      "text": "male casual ethnic"
+    },
+    {
+      "id": "q081",
+      "gender": "male",
+      "occasion": "party",
+      "budgetMax": 2000,
+      "category": "dress",
+      "text": "male party dress"
+    },
+    {
+      "id": "q082",
+      "gender": "male",
+      "occasion": "party",
+      "budgetMax": 2000,
+      "category": "top",
+      "text": "male party top"
+    },
+    {
+      "id": "q083",
+      "gender": "male",
+      "occasion": "party",
+      "budgetMax": 2000,
+      "category": "bottom",
+      "text": "male party bottom"
+    },
+    {
+      "id": "q084",
+      "gender": "male",
+      "occasion": "party",
+      "budgetMax": 2000,
+      "category": "shoes",
+      "text": "male party shoes"
+    },
+    {
+      "id": "q085",
+      "gender": "male",
+      "occasion": "party",
+      "budgetMax": 2000,
+      "category": "ethnic",
+      "text": "male party ethnic"
+    },
+    {
+      "id": "q086",
+      "gender": "male",
+      "occasion": "party",
+      "budgetMax": 8000,
+      "category": "dress",
+      "text": "male party dress"
+    },
+    {
+      "id": "q087",
+      "gender": "male",
+      "occasion": "party",
+      "budgetMax": 8000,
+      "category": "top",
+      "text": "male party top"
+    },
+    {
+      "id": "q088",
+      "gender": "male",
+      "occasion": "party",
+      "budgetMax": 8000,
+      "category": "bottom",
+      "text": "male party bottom"
+    },
+    {
+      "id": "q089",
+      "gender": "male",
+      "occasion": "party",
+      "budgetMax": 8000,
+      "category": "shoes",
+      "text": "male party shoes"
+    },
+    {
+      "id": "q090",
+      "gender": "male",
+      "occasion": "party",
+      "budgetMax": 8000,
+      "category": "ethnic",
+      "text": "male party ethnic"
+    },
+    {
+      "id": "q091",
+      "gender": "male",
+      "occasion": "festival",
+      "budgetMax": 2000,
+      "category": "dress",
+      "text": "male festival dress"
+    },
+    {
+      "id": "q092",
+      "gender": "male",
+      "occasion": "festival",
+      "budgetMax": 2000,
+      "category": "top",
+      "text": "male festival top"
+    },
+    {
+      "id": "q093",
+      "gender": "male",
+      "occasion": "festival",
+      "budgetMax": 2000,
+      "category": "bottom",
+      "text": "male festival bottom"
+    },
+    {
+      "id": "q094",
+      "gender": "male",
+      "occasion": "festival",
+      "budgetMax": 2000,
+      "category": "shoes",
+      "text": "male festival shoes"
+    },
+    {
+      "id": "q095",
+      "gender": "male",
+      "occasion": "festival",
+      "budgetMax": 2000,
+      "category": "ethnic",
+      "text": "male festival ethnic"
+    },
+    {
+      "id": "q096",
+      "gender": "male",
+      "occasion": "festival",
+      "budgetMax": 8000,
+      "category": "dress",
+      "text": "male festival dress"
+    },
+    {
+      "id": "q097",
+      "gender": "male",
+      "occasion": "festival",
+      "budgetMax": 8000,
+      "category": "top",
+      "text": "male festival top"
+    },
+    {
+      "id": "q098",
+      "gender": "male",
+      "occasion": "festival",
+      "budgetMax": 8000,
+      "category": "bottom",
+      "text": "male festival bottom"
+    },
+    {
+      "id": "q099",
+      "gender": "male",
+      "occasion": "festival",
+      "budgetMax": 8000,
+      "category": "shoes",
+      "text": "male festival shoes"
+    },
+    {
+      "id": "q100",
+      "gender": "male",
+      "occasion": "festival",
+      "budgetMax": 8000,
+      "category": "ethnic",
+      "text": "male festival ethnic"
+    },
+    {
+      "id": "q101",
+      "gender": null,
+      "occasion": "casual",
+      "budgetMax": 5000,
+      "category": "dress",
+      "text": "casual dress"
+    },
+    {
+      "id": "q102",
+      "gender": "unisex",
+      "occasion": "office",
+      "budgetMax": 6000,
+      "category": "top",
+      "text": "unisex office shirt"
+    }
+  ]
+}

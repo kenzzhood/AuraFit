@@ -7,6 +7,8 @@ from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
 
+from validators import is_usable_snitch_product_url, rewrite_legacy_retailer_url
+
 PRODUCT_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -66,7 +68,7 @@ def _clean_url(raw: str, base_url: str) -> str | None:
         s = urljoin(base_url, s)
     if any(tok in s for tok in ("<#>", "void(0)", "void\\(0\\)")):
         return None
-    return s
+    return rewrite_legacy_retailer_url(s)
 
 
 def _is_real_product_url(url: str, host_hint: str) -> bool:
@@ -81,10 +83,16 @@ def _is_real_product_url(url: str, host_hint: str) -> bool:
     if "amazon." in host:
         return "/dp/" in path or re.search(r"/[a-z0-9]{10}(?:/|$)", path) is not None
     if "myntra.com" in host:
-        return "/buy/" in path or re.search(r"/\d+/buy", path) is not None
+        return (
+            "/buy" in path
+            or re.search(r"/\d{5,}(?:/buy)?/?$", path) is not None
+            or re.search(r"/[a-z0-9-]+/\d{6,}", path) is not None
+        )
     if "ajio.com" in host:
         return "/p/" in path and "search" not in path
-    if "snitch.co.in" in host or "bananaclub" in host:
+    if "snitch.com" in host or "snitch.co.in" in host:
+        return is_usable_snitch_product_url(url)
+    if "bananaclub" in host:
         # Must have a real product handle after /products/ (not just the listing page)
         return bool(re.search(r"/products/[a-zA-Z0-9][a-zA-Z0-9_-]{2,}", path))
     if "nykaafashion.com" in host or "nykaa.com" in host:
@@ -99,6 +107,20 @@ def _is_real_product_url(url: str, host_hint: str) -> bool:
         return "/products/" in path or re.search(r"/\d{8,}", path) is not None
     if "asos.com" in host:
         return "/prd/" in path or re.search(r"/\d{6,}", path) is not None
+    if "meesho.com" in host:
+        return "/p/" in path or "/product/" in path
+    if "westside.com" in host or "lifestylestores.com" in host:
+        return "/products/" in path or "/p/" in path
+    if "maxfashion.in" in host:
+        return "/p/" in path or "/product/" in path or bool(re.search(r"/\d{5,}", path))
+    if "bewakoof.com" in host:
+        return "/p/" in path or bool(re.search(r"/[a-z0-9-]{8,}", path))
+    if "thesouledstore.com" in host:
+        return "/product/" in path or "/products/" in path
+    if "urbanic.com" in host:
+        return "/goods/" in path or "/product/" in path
+    if "shoppersstop.com" in host or "marksandspencer.in" in host:
+        return "/p/" in path or "/product/" in path
 
     segments = [s for s in path.split("/") if s]
     if len(segments) < 2:
@@ -374,10 +396,77 @@ def _store_specific_extract(html: str, base_url: str) -> list[dict[str, Any]]:
     return []
 
 
+def parse_products_from_shopify_json(content: str, base_url: str) -> list[dict[str, Any]]:
+    """Parse Shopify Ajax Search (`/search.json`) or products.json payloads."""
+    import json
+
+    try:
+        data = json.loads(content)
+    except Exception:
+        return []
+
+    if isinstance(data, list):
+        items = data
+    elif isinstance(data, dict):
+        items = data.get("results") or data.get("products") or []
+    else:
+        return []
+    if not isinstance(items, list):
+        return []
+
+    host_hint = urlparse(base_url).netloc
+    products: list[dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        title = str(item.get("title") or item.get("name") or "").strip()
+        handle = str(item.get("handle") or "").strip()
+        rel = str(item.get("url") or item.get("product_url") or "")
+        if not rel and handle:
+            rel = f"/products/{handle}"
+        image = None
+        img = item.get("featured_image") or item.get("image")
+        if isinstance(img, dict):
+            image = img.get("url") or img.get("src")
+        elif isinstance(img, str):
+            image = img
+        elif isinstance(item.get("images"), list) and item["images"]:
+            first = item["images"][0]
+            if isinstance(first, dict):
+                image = first.get("src") or first.get("url")
+            elif isinstance(first, str):
+                image = first
+        before = len(products)
+        _append_product(products, title, rel, base_url, host_hint, image if isinstance(image, str) else None)
+        if len(products) <= before:
+            continue
+        price_raw = item.get("price")
+        if price_raw is None and isinstance(item.get("variants"), list) and item["variants"]:
+            v0 = item["variants"][0]
+            if isinstance(v0, dict):
+                price_raw = v0.get("price")
+        if price_raw is not None:
+            try:
+                raw_s = str(price_raw).replace(",", "")
+                val = float(raw_s)
+                if "." not in raw_s:
+                    val = val / 100.0
+                products[-1]["price"] = val
+                products[-1]["currency"] = "INR"
+            except (TypeError, ValueError):
+                pass
+    return _dedupe_products(products)
+
+
 def parse_products_from_response(content: str, base_url: str) -> list[dict[str, Any]]:
-    """Parse search response — JSON (ASOS API) or HTML."""
+    """Parse search response — Shopify JSON, ASOS JSON, or HTML."""
     stripped = (content or "").lstrip()
-    if "asos.com/api" in base_url.lower() or (
+    base_lower = base_url.lower()
+    if "search.json" in base_lower or "/products.json" in base_lower:
+        shopify = parse_products_from_shopify_json(content, base_url)
+        if shopify:
+            return shopify
+    if "asos.com/api" in base_lower or (
         stripped.startswith("{") and '"products"' in stripped[:2000]
     ):
         asos = parse_products_from_asos_json(content, base_url)
@@ -388,6 +477,10 @@ def parse_products_from_response(content: str, base_url: str) -> list[dict[str, 
 
         try:
             data = json.loads(content)
+            if isinstance(data, dict) and data.get("results"):
+                shopify = parse_products_from_shopify_json(content, base_url)
+                if shopify:
+                    return shopify
             if isinstance(data, dict) and (data.get("products") or data.get("items")):
                 return parse_products_from_asos_json(content, base_url)
         except Exception:

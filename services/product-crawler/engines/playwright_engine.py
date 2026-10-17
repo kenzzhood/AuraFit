@@ -1,7 +1,8 @@
-"""Playwright engine for JS-rendered ecommerce pages.
+"""HTML fetch ladder (Scrapling) plus Playwright screenshots.
 
-Uses a shared Chromium instance per worker process (new browser context per
-fetch) to avoid the 20–45 s penalty of launching a fresh browser per page.
+`fetch_rendered_html` uses Scrapling HTTP impersonate → StealthyFetcher →
+optional Bright Data / Oxylabs. Vanilla Playwright is used only by
+`screenshot_page`.
 """
 from __future__ import annotations
 
@@ -31,8 +32,9 @@ DEFAULT_HEADERS = {
     "Accept-Encoding": "gzip, deflate",
 }
 
-# Retailers that fail with Playwright HTTP/2 — fetch via httpx HTTP/1.1 instead.
-_HTTP_FETCH_HOSTS = {"myntra.com", "www.myntra.com", "ajio.com", "www.ajio.com"}
+# Plain HTTP only for JSON APIs. Myntra / Ajio search pages are JS-rendered
+# and must go through Playwright (with HTTP/2 disabled).
+_HTTP_FETCH_HOSTS: set[str] = set()
 
 # Playwright launch args for problematic hosts.
 _HTTP2_DISABLE_HOSTS = {"myntra.com", "www.myntra.com", "ajio.com", "www.ajio.com"}
@@ -58,6 +60,22 @@ def _needs_http2_disable(url: str) -> bool:
     return any(h in host for h in _HTTP2_DISABLE_HOSTS)
 
 
+def _wait_selector_for(url: str) -> str | None:
+    """Give JS-heavy marketplaces time to paint product cards."""
+    host = _host_of(url)
+    if "amazon." in host:
+        return '[data-component-type="s-search-result"], div[data-asin]'
+    if "myntra.com" in host:
+        return "li.product-base, ul.results-base"
+    if "ajio.com" in host:
+        return "div.itemrilrtl-products-list, a[href*='/p/']"
+    if "flipkart.com" in host:
+        return "a[href*='/p/itm'], [data-id]"
+    if "nykaa" in host:
+        return "a[href*='/p/'], a[href*='/product/']"
+    return None
+
+
 async def _get_pw_browser(*, disable_http2: bool = False):
     global _pw_browser, _pw_playwright
     if _pw_browser is not None and not disable_http2:
@@ -69,11 +87,11 @@ async def _get_pw_browser(*, disable_http2: bool = False):
 
         if _pw_playwright is None:
             _pw_playwright = await async_playwright().start()
-        args = ["--disable-http2"] if disable_http2 else []
+        # Always disable HTTP/2 — Myntra/Ajio fail on it, Amazon/Flipkart do not need it.
         if _pw_browser is None:
             _pw_browser = await _pw_playwright.chromium.launch(
                 headless=True,
-                args=args if args else None,
+                args=["--disable-http2"],
             )
         return _pw_browser
 
@@ -84,51 +102,143 @@ async def fetch_via_httpx(url: str, *, mobile: bool = False) -> str:
     if mobile:
         headers["User-Agent"] = MOBILE_USER_AGENT
     timeout = float(os.environ.get("SEARCH_HTTP_TIMEOUT", "15"))
+    from urllib.parse import urljoin
+
+    from validators.ssrf import UnsafeUrlError, assert_safe_crawl_url
+
     async with httpx.AsyncClient(
         headers=headers,
         timeout=timeout,
-        follow_redirects=True,
+        follow_redirects=False,
         http2=False,
     ) as client:
-        r = await client.get(url)
-        r.raise_for_status()
-        return r.text
+        current = assert_safe_crawl_url(url)
+        for _ in range(3):
+            r = await client.get(current)
+            if r.status_code in (301, 302, 303, 307, 308):
+                loc = r.headers.get("location")
+                if not loc:
+                    raise UnsafeUrlError("redirect without Location")
+                current = assert_safe_crawl_url(urljoin(current, loc))
+                continue
+            r.raise_for_status()
+            return r.text
+        raise UnsafeUrlError("too many redirects")
+
+
+def _html_and_status(page: Any) -> tuple[str, int | None]:
+    if page is None:
+        return "", None
+    status_raw = getattr(page, "status", None)
+    try:
+        status = int(status_raw) if status_raw is not None else None
+    except (TypeError, ValueError):
+        status = None
+    body = getattr(page, "body", None)
+    if isinstance(body, bytes):
+        enc = getattr(page, "encoding", None) or "utf-8"
+        try:
+            return body.decode(enc, errors="replace"), status
+        except LookupError:
+            return body.decode("utf-8", errors="replace"), status
+    if isinstance(body, str) and body:
+        return body, status
+    html_content = getattr(page, "html_content", None)
+    if isinstance(html_content, str) and html_content:
+        return html_content, status
+    if html_content is not None:
+        return str(html_content), status
+    return str(page or ""), status
+
+
+async def _fetch_via_scrapling_http(url: str) -> tuple[str, int | None]:
+    from scrapling.fetchers import AsyncFetcher
+
+    timeout = float(os.environ.get("FETCH_HTTP_TIMEOUT_SEC", "8"))
+    impersonate = os.environ.get("SCRAPLING_IMPERSONATE", "chrome")
+    page = await AsyncFetcher.get(
+        url,
+        impersonate=impersonate,
+        stealthy_headers=True,
+        timeout=timeout,
+    )
+    return _html_and_status(page)
+
+
+async def _fetch_via_stealthy(url: str) -> tuple[str, int | None]:
+    from scrapling.fetchers import StealthyFetcher
+
+    timeout_ms = int(os.environ.get("FETCH_STEALTH_TIMEOUT_MS", "15000"))
+    kwargs: dict[str, Any] = {
+        "headless": True,
+        "solve_cloudflare": True,
+        "timeout": timeout_ms,
+    }
+    wait_sel = _wait_selector_for(url)
+    if wait_sel:
+        kwargs["wait_selector"] = wait_sel
+    page = await StealthyFetcher.async_fetch(url, **kwargs)
+    return _html_and_status(page)
 
 
 async def fetch_rendered_html(
     url: str,
-    scroll: bool = True,
+    scroll: bool = True,  # noqa: ARG001 — kept for callers; stealth wait_selector covers paint
     *,
-    mobile: bool = False,
+    mobile: bool = False,  # noqa: ARG001 — kept for callers; impersonate handles UA
+    allow_unlockers: bool = True,
 ) -> str:
-    """Fetch rendered HTML via shared Playwright browser or httpx fallback."""
-    if _needs_httpx_fetch(url):
-        try:
-            return await fetch_via_httpx(url, mobile=mobile)
-        except Exception:
-            if not mobile:
-                return await fetch_via_httpx(url, mobile=True)
-            raise
+    """Fetch HTML via Scrapling HTTP → StealthyFetcher → optional unlockers.
 
-    disable_http2 = _needs_http2_disable(url)
-    browser = await _get_pw_browser(disable_http2=disable_http2)
-    ua = MOBILE_USER_AGENT if mobile else DEFAULT_USER_AGENT
-    goto_timeout = int(os.environ.get("PLAYWRIGHT_GOTO_TIMEOUT_MS", "12000"))
-    context = await browser.new_context(user_agent=ua)
+    Does not fall back to vanilla Playwright.
+    """
+    from engines.html_quality import html_usable
+    from engines.unlockers import fetch_via_brightdata, fetch_via_oxylabs
+    from validators.ssrf import UnsafeUrlError, assert_safe_crawl_url
+
+    safe = assert_safe_crawl_url(url)
+    html, status = "", None
+
     try:
-        page = await context.new_page()
-        await page.goto(url, wait_until="domcontentloaded", timeout=goto_timeout)
-        if scroll:
-            for _ in range(2):
-                try:
-                    await page.evaluate("window.scrollBy(0, window.innerHeight)")
-                    await asyncio.sleep(0.5)
-                except Exception:
-                    # Flipkart and others navigate client-side mid-scroll.
-                    break
-        return await page.content()
-    finally:
-        await context.close()
+        html, status = await _fetch_via_scrapling_http(safe)
+    except UnsafeUrlError:
+        raise
+    except Exception:
+        html, status = "", None
+    if html_usable(html, status):
+        return html
+
+    try:
+        html, status = await _fetch_via_stealthy(safe)
+    except UnsafeUrlError:
+        raise
+    except Exception:
+        html, status = "", None
+    if html_usable(html, status):
+        return html
+
+    if not allow_unlockers:
+        return html or ""
+
+    try:
+        html, status = await fetch_via_brightdata(safe)
+    except UnsafeUrlError:
+        raise
+    except Exception:
+        html, status = "", None
+    if html_usable(html, status):
+        return html
+
+    try:
+        html, status = await fetch_via_oxylabs(safe)
+    except UnsafeUrlError:
+        raise
+    except Exception:
+        html, status = "", None
+    if html_usable(html, status):
+        return html
+
+    return html or ""
 
 
 async def screenshot_page(url: str) -> bytes | None:

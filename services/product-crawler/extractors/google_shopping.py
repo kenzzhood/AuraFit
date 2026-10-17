@@ -24,6 +24,8 @@ from urllib.parse import quote_plus, urljoin, urlparse, parse_qs
 
 from bs4 import BeautifulSoup
 
+from validators import is_usable_snitch_product_url, rewrite_legacy_retailer_url
+
 GOOGLE_SHOPPING_BASE = "https://www.google.com/search"
 
 # Hosts that should never be treated as a real merchant link.
@@ -100,6 +102,35 @@ def _looks_like_merchant_url(url: str | None) -> bool:
     if not host:
         return False
     return host not in _NON_MERCHANT_HOSTS and not host.endswith(".google.com")
+
+
+def _finalize_merchant_url(url: str | None) -> str | None:
+    """Rewrite legacy hosts and drop Snitch URLs that aren't live PDPs."""
+    if not url or not _looks_like_merchant_url(url):
+        return None
+    rewritten = rewrite_legacy_retailer_url(url)
+    host = _host_of(rewritten)
+    if "snitch." in host and not is_usable_snitch_product_url(rewritten):
+        return None
+    return rewritten
+
+
+def rewrite_google_card(card: dict[str, Any]) -> dict[str, Any] | None:
+    """Rewrite a Google Shopping card dict; None when a Snitch URL is not a live PDP."""
+    raw = card.get("url")
+    url = _finalize_merchant_url(raw if isinstance(raw, str) else None)
+    if not url:
+        return None
+    out = dict(card)
+    out["url"] = url
+    canon = out.get("canonicalUrl")
+    if isinstance(canon, str) and canon:
+        canon_rw = _finalize_merchant_url(canon)
+        if canon_rw is None and "snitch." in _host_of(rewrite_legacy_retailer_url(canon)):
+            return None
+        if canon_rw:
+            out["canonicalUrl"] = canon_rw
+    return out
 
 
 def _parse_price(text: str | None) -> tuple[float | None, str]:
@@ -209,8 +240,8 @@ def parse_google_shopping_html(
             ],
             "href",
         )
-        link = _unwrap_google_url(link_raw)
-        if not _looks_like_merchant_url(link):
+        link = _finalize_merchant_url(_unwrap_google_url(link_raw))
+        if not link:
             continue
 
         image = _clean_image(
@@ -307,9 +338,9 @@ def fallback_parse_json_blobs(html: str) -> list[dict[str, Any]]:
                 if not s.startswith("http") and len(s) >= 8 and "₹" not in s and "$" not in s
             ]
             if urls and titles:
-                link = urls[0]
+                link = _finalize_merchant_url(urls[0])
                 title = titles[0]
-                if link not in seen and _looks_like_merchant_url(link):
+                if link and link not in seen:
                     seen.add(link)
                     price: float | None = None
                     for s in strings:
@@ -318,7 +349,11 @@ def fallback_parse_json_blobs(html: str) -> list[dict[str, Any]]:
                             if p:
                                 price = p
                                 break
-                    images = [s for s in strings if s.startswith("http") and s != link]
+                    images = [
+                        s
+                        for s in strings
+                        if s.startswith("http") and s != link and s != urls[0]
+                    ]
                     out.append(
                         {
                             "title": title,

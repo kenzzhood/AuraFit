@@ -21,8 +21,8 @@ See [README.md](README.md) and [docs/mobile-setup.md](docs/mobile-setup.md) for 
 If you are preparing a public release and secrets were ever committed:
 
 1. [docs/SETUP_YOUR_KEYS.md](docs/SETUP_YOUR_KEYS.md) — use your own credentials only
-2. [GIT_HISTORY_PURGE.md](GIT_HISTORY_PURGE.md) — remove historical secret artifacts
-3. [RELEASE_READINESS_REPORT.md](RELEASE_READINESS_REPORT.md) — release gate checklist
+2. [docs/security/git-history-purge.md](docs/security/git-history-purge.md) — remove historical secret artifacts
+3. [docs/security/release-readiness.md](docs/security/release-readiness.md) — release gate checklist
 
 ## Pull requests
 

@@ -4,12 +4,24 @@ import type { Product } from "@/lib/ecommerce/product";
 import { indexRowToProduct } from "./persist";
 import { getOrCreateTextEmbedding, searchProductsByVector } from "./embeddings";
 import { dedupeProducts } from "@/lib/ecommerce/dedupe";
+import { productMatchesSlot } from "@/lib/ecommerce/category-match";
+import {
+  diversifyProducts,
+  preferMarketplaceProducts,
+} from "@/lib/ecommerce/retailer-diversity";
+import { isIndexableProductUrl } from "@/lib/ecommerce/fingerprint";
+
+export function filterIndexableProducts(products: Product[]): Product[] {
+  return products.filter((p) =>
+    isIndexableProductUrl(p.canonicalUrl ?? p.url)
+  );
+}
 
 export async function searchProductIndex(
   q: ProductQuery,
   options?: { limit?: number }
 ): Promise<Product[]> {
-  const limit = options?.limit ?? 12;
+  const limit = options?.limit ?? 20;
   const region = q.region;
 
   let vectorResults: Product[] = [];
@@ -57,6 +69,17 @@ export async function searchProductIndex(
   });
 
   const textResults = textRows.map((r) => indexRowToProduct(r));
-  const merged = dedupeProducts([...vectorResults, ...textResults]);
-  return merged.slice(0, limit);
+  let merged = filterIndexableProducts(
+    dedupeProducts([...vectorResults, ...textResults])
+  );
+  if (q.category) {
+    const slotMatches = merged.filter((p) =>
+      productMatchesSlot(p.title, p.category, q.category!)
+    );
+    if (slotMatches.length) merged = slotMatches;
+  }
+  return preferMarketplaceProducts(diversifyProducts(merged, 3)).slice(
+    0,
+    limit
+  );
 }

@@ -1,4 +1,12 @@
+import type { Metadata } from "next";
 import { PostFeed } from "@/components/social/PostFeed";
+
+export const metadata: Metadata = {
+  title: "Explore looks",
+  description:
+    "Discover AI-styled outfits from the Aurafit community. Tap a look to shop the same pieces.",
+  alternates: { canonical: "/explore" },
+};
 
 export default function ExplorePage() {
   return (

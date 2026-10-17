@@ -76,6 +76,22 @@ export async function POST(req: Request) {
     return rateLimitedResponse("wardrobe", lim.retryAfterSec);
   }
 
+  try {
+    const { assertCanAddWardrobeItem } = await import(
+      "@/lib/billing/entitlements"
+    );
+    await assertCanAddWardrobeItem(user.id);
+  } catch (e) {
+    const { EntitlementError } = await import("@/lib/billing/entitlements");
+    if (e instanceof EntitlementError) {
+      return NextResponse.json(
+        { error: e.message, code: e.code },
+        { status: 402 }
+      );
+    }
+    throw e;
+  }
+
   const body = postSchema.safeParse(await req.json());
   if (!body.success) {
     return NextResponse.json({ error: body.error.flatten() }, { status: 400 });

@@ -1,5 +1,5 @@
 # Use Microsoft's official Playwright image — has Chromium + all browser deps pre-installed
-FROM mcr.microsoft.com/playwright/python:v1.49.1-jammy
+FROM mcr.microsoft.com/playwright/python:v1.52.0-jammy
 
 WORKDIR /app
 
@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+RUN scrapling install --force
 
 COPY . .
 

@@ -28,8 +28,8 @@ const STAGES = [
   },
   {
     at: 42,
-    title: "Verifying real products",
-    detail: "We search live stores, open product pages, check images and keep only links that are actually usable.",
+    title: "Finding shoppable pieces",
+    detail: "We search live stores and keep only products whose photos can go on the board.",
   },
   {
     at: 55,
@@ -39,7 +39,7 @@ const STAGES = [
   {
     at: 65,
     title: "Rendering the six-panel image",
-    detail: "This is the longest step. Please keep this tab open while the final board is generated.",
+    detail: "The longest step — usually under a minute. Keep this tab open while the board is generated.",
   },
   {
     at: 90,

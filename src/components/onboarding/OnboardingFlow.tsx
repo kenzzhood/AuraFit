@@ -78,9 +78,12 @@ export function OnboardingFlow() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { "image/*": [".png", ".jpg", ".jpeg", ".webp"] },
+    accept: {
+      "image/*": [".png", ".jpg", ".jpeg", ".webp", ".heic", ".heif"],
+    },
     maxFiles: 1,
     disabled: busy,
+    useFsAccessApi: false,
   });
 
   const toggleAesthetic = (id: string) => {
@@ -148,7 +151,7 @@ export function OnboardingFlow() {
           markComplete: true,
         }),
       });
-      router.push("/dashboard");
+      router.push("/generate");
     } finally {
       setBusy(false);
     }
@@ -210,11 +213,16 @@ export function OnboardingFlow() {
           <button
             type="button"
             onClick={() => setStep(1)}
-            disabled={busy}
-            className="w-full rounded-xl bg-aura-champagne py-3 text-sm font-medium text-aura-void"
+            disabled={busy || !profileUrl}
+            className="w-full rounded-xl bg-aura-champagne py-3 text-sm font-medium text-aura-void disabled:opacity-40"
           >
             Continue
           </button>
+          {!profileUrl && (
+            <p className="text-center text-xs text-aura-muted">
+              Upload a photo to continue — we use it for styling and try-on.
+            </p>
+          )}
         </div>
       )}
 

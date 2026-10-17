@@ -8,10 +8,16 @@ import time
 from fastapi import FastAPI, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from config.retailers import RetailerConfig, search_urls_for_region
+from config.retailers import (
+    CORE_MARKETPLACE_DOMAINS,
+    RetailerConfig,
+    search_urls_for_region,
+    search_wave,
+)
 from engines.crawl4ai_engine import extract_products
 from engines.google_shopping_engine import search_google_shopping
 from engines.playwright_engine import fetch_rendered_html, fetch_via_httpx
+from extractors.google_shopping import rewrite_google_card
 from validators import validate_product_url
 from validators.ssrf import UnsafeUrlError, assert_safe_crawl_url
 
@@ -28,16 +34,17 @@ if not API_KEY:
     sys.exit(1)
 
 MAX_CANDIDATES_PER_QUERY = int(os.environ.get("MAX_CANDIDATES_PER_QUERY", "8"))
-MAX_VERIFIED_PER_QUERY = int(os.environ.get("MAX_VERIFIED_PER_QUERY", "5"))
+MAX_VERIFIED_PER_QUERY = int(os.environ.get("MAX_VERIFIED_PER_QUERY", "16"))
 MAX_CONCURRENT_VALIDATIONS = int(os.environ.get("MAX_CONCURRENT_VALIDATIONS", "2"))
-# Reduced from 6: each Playwright store search opens a browser context.
-# 3 concurrent contexts keeps the shared browser pool stable.
-MAX_PARALLEL_STORE_SEARCHES = int(os.environ.get("MAX_PARALLEL_STORE_SEARCHES", "3"))
-# Global cap: at most 2 full searches run concurrently (each searches 7+ stores).
-# Prevents browser-context storms when the web side sends parallel slot requests.
-MAX_CONCURRENT_SEARCHES = int(os.environ.get("MAX_CONCURRENT_SEARCHES", "2"))
-# Per-store wall clock — one slow retailer must not block the whole tier.
-STORE_SEARCH_TIMEOUT_SEC = float(os.environ.get("STORE_SEARCH_TIMEOUT_SEC", "8"))
+# Each Playwright store search opens a browser context.
+MAX_PARALLEL_STORE_SEARCHES = int(os.environ.get("MAX_PARALLEL_STORE_SEARCHES", "6"))
+# Global cap: at most 3 full searches run concurrently when dynamic sites are enabled.
+MAX_CONCURRENT_SEARCHES = int(os.environ.get("MAX_CONCURRENT_SEARCHES", "3"))
+# Per-store wall clock — marketplace JS pages need more than 8s.
+STORE_SEARCH_TIMEOUT_SEC = float(os.environ.get("STORE_SEARCH_TIMEOUT_SEC", "18"))
+# One easy Shopify store must not fill the whole result set.
+MAX_VERIFIED_PER_STORE = int(os.environ.get("MAX_VERIFIED_PER_STORE", "2"))
+MIN_DISTINCT_RETAILERS = int(os.environ.get("MIN_DISTINCT_RETAILERS", "6"))
 
 MAX_REQUEST_BODY_BYTES = 1 * 1024 * 1024
 
@@ -78,6 +85,7 @@ class SearchRequest(BaseModel):
     budget_min: float | None = None
     budget_max: float | None = None
     max_results: int | None = None
+    sites: list[dict] | None = None
 
 
 class CrawlUrlRequest(BaseModel):
@@ -96,6 +104,9 @@ class GoogleShoppingRequest(BaseModel):
     budget_min: float | None = None
     budget_max: float | None = None
     max_results: int | None = None
+    sites: list[dict] | None = None
+    # Return Google cards immediately; skip Playwright retailer sweep.
+    fast: bool = True
 
 
 @app.get("/health")
@@ -131,9 +142,10 @@ def _simplify_query(query: str) -> str | None:
 
 
 async def _fetch_search_page(retailer: RetailerConfig, search_url: str) -> str:
-    if retailer.engine == "httpx":
+    engine = (retailer.engine or "").lower()
+    if engine in {"httpx", "shopify"} or "/search.json" in search_url:
         return await fetch_via_httpx(search_url)
-    return await fetch_rendered_html(search_url, scroll=True)
+    return await fetch_rendered_html(search_url, scroll=True, allow_unlockers=False)
 
 
 async def _crawl_one_store(
@@ -166,6 +178,88 @@ async def _crawl_one_store(
         return retailer.key, [], str(e)
 
 
+def _interleave_by_retailer(items: list[dict]) -> list[dict]:
+    buckets: dict[str, list[dict]] = {}
+    order: list[str] = []
+    for item in items:
+        key = str(item.get("retailer") or "unknown")
+        if key not in buckets:
+            buckets[key] = []
+            order.append(key)
+        buckets[key].append(item)
+    out: list[dict] = []
+    added = True
+    while added:
+        added = False
+        for key in order:
+            if buckets[key]:
+                out.append(buckets[key].pop(0))
+                added = True
+    return out
+
+
+def _product_url(product: dict) -> str:
+    return str(product.get("url") or product.get("canonicalUrl") or "").strip()
+
+
+def _merge_verified(left: list[dict], right: list[dict]) -> list[dict]:
+    seen: set[str] = set()
+    merged: list[dict] = []
+    for product in _interleave_by_retailer(left + right):
+        url = _product_url(product)
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        merged.append(product)
+    return merged
+
+
+def _distinct_retailers(products: list[dict]) -> set[str]:
+    out: set[str] = set()
+    for product in products:
+        key = str(product.get("retailer") or "").strip()
+        if key:
+            out.add(key)
+            continue
+        url = _product_url(product)
+        if url:
+            try:
+                from urllib.parse import urlparse
+
+                host = (urlparse(url).hostname or "").replace("www.", "").lower()
+                if host:
+                    out.add(host)
+            except Exception:  # noqa: BLE001
+                continue
+    return out
+
+
+def _core_marketplace_hosts(products: list[dict]) -> set[str]:
+    hosts: set[str] = set()
+    for product in products:
+        url = _product_url(product)
+        if not url:
+            continue
+        try:
+            from urllib.parse import urlparse
+
+            host = (urlparse(url).hostname or "").replace("www.", "").lower()
+        except Exception:  # noqa: BLE001
+            continue
+        if any(host == d or host.endswith(f".{d}") for d in CORE_MARKETPLACE_DOMAINS):
+            hosts.add(host)
+    return hosts
+
+
+def _google_card_trusted(card: dict) -> bool:
+    """Google Shopping cards already carry a merchant URL + thumbnail."""
+    if not card.get("title") or not card.get("url") or not card.get("image"):
+        return False
+    if card.get("verified") is False:
+        return False
+    return True
+
+
 async def _run_retailer_search(
     query: str,
     region: str,
@@ -173,8 +267,9 @@ async def _run_retailer_search(
     budget_min: float | None,
     budget_max: float | None,
     max_results: int | None,
+    site_overrides: list[dict] | None = None,
 ) -> dict:
-    """Parallel multi-store search with capped concurrent PDP validation."""
+    """Search marketplaces first, cap each store, then fill from brand sites."""
     max_verified = max_results or MAX_VERIFIED_PER_QUERY
     t0 = time.monotonic()
 
@@ -183,7 +278,8 @@ async def _run_retailer_search(
     store_stats: dict[str, dict] = {}
     seen_urls: set[str] = set()
     seen_verified_titles: set[str] = set()
-    candidates_per_store = max(max_verified + 2, 4)
+    per_store_verified: dict[str, int] = {}
+    candidates_per_store = max(MAX_VERIFIED_PER_STORE + 2, 4)
     validation_sem = asyncio.Semaphore(MAX_CONCURRENT_VALIDATIONS)
 
     async def _resolve(cand: dict) -> tuple[dict | None, dict | None, str | None]:
@@ -200,32 +296,45 @@ async def _run_retailer_search(
             product["retailer"] = retailer_key
         return product, None, retailer_key
 
+    def _has_enough() -> bool:
+        if len(verified) < max_verified:
+            return False
+        if len(_core_marketplace_hosts(verified)) < 2:
+            return False
+        return len(_distinct_retailers(verified)) >= MIN_DISTINCT_RETAILERS
+
     async def _search_and_validate(search_query: str) -> bool:
         nonlocal verified
-        targets = search_urls_for_region(search_query, region)
+        targets = search_urls_for_region(search_query, region, site_overrides)
         if not targets:
             return False
 
-        # Search priority tiers (Flipkart/Amazon first) — expand only when needed.
-        tiers: dict[int, list[tuple[RetailerConfig, str]]] = {}
+        waves: dict[int, list[tuple[RetailerConfig, str]]] = {0: [], 1: [], 2: []}
         for retailer, search_url in targets:
-            tiers.setdefault(retailer.priority, []).append((retailer, search_url))
+            waves.setdefault(search_wave(retailer), []).append((retailer, search_url))
 
         search_sem = asyncio.Semaphore(MAX_PARALLEL_STORE_SEARCHES)
 
         async def _bounded_crawl(retailer: RetailerConfig, url: str):
+            try:
+                assert_safe_crawl_url(url)
+            except UnsafeUrlError:
+                return retailer.key, [], "unsafe-url"
             async with search_sem:
                 return await _crawl_one_store(
                     retailer, url, search_query, category, candidates_per_store
                 )
 
-        for priority in sorted(tiers.keys()):
-            if len(verified) >= max_verified:
+        for wave in sorted(waves.keys()):
+            if _has_enough():
                 break
 
-            tier_targets = tiers[priority]
+            wave_targets = waves[wave]
+            if not wave_targets:
+                continue
+
             store_results = await asyncio.gather(
-                *[_bounded_crawl(r, u) for r, u in tier_targets],
+                *[_bounded_crawl(r, u) for r, u in wave_targets],
                 return_exceptions=True,
             )
 
@@ -248,10 +357,13 @@ async def _run_retailer_search(
             if not all_candidates:
                 continue
 
-            pending = [asyncio.create_task(_resolve(c)) for c in all_candidates]
+            pending = [
+                asyncio.create_task(_resolve(c))
+                for c in _interleave_by_retailer(all_candidates)
+            ]
             try:
                 for fut in asyncio.as_completed(pending):
-                    if len(verified) >= max_verified:
+                    if _has_enough():
                         break
                     try:
                         product, rej, retailer_key = await fut
@@ -261,14 +373,17 @@ async def _run_retailer_search(
                     if product is not None and _within_budget(
                         product.get("price"), budget_min, budget_max
                     ):
+                        rk = str(retailer_key or product.get("retailer") or "unknown")
+                        if per_store_verified.get(rk, 0) >= MAX_VERIFIED_PER_STORE:
+                            continue
                         title_key = str(product.get("title") or "").lower().strip()[:80]
                         if title_key and title_key in seen_verified_titles:
                             continue
                         if title_key:
                             seen_verified_titles.add(title_key)
                         verified.append(product)
-                        rk = retailer_key or product.get("retailer")
-                        if rk and rk in store_stats:
+                        per_store_verified[rk] = per_store_verified.get(rk, 0) + 1
+                        if rk in store_stats:
                             store_stats[rk]["verified"] += 1
                     elif rej is not None:
                         rejected.append(rej)
@@ -279,7 +394,7 @@ async def _run_retailer_search(
                 await asyncio.gather(*pending, return_exceptions=True)
 
             print(
-                f"retailer-search tier={priority} query={search_query!r} "
+                f"retailer-search wave={wave} query={search_query!r} "
                 f"verified={len(verified)} stores={store_stats}"
             )
 
@@ -292,7 +407,10 @@ async def _run_retailer_search(
             await _search_and_validate(alt)
 
     elapsed = time.monotonic() - t0
-    print(f"retailer-search total elapsed={elapsed:.1f}s verified={len(verified)}")
+    print(
+        f"retailer-search total elapsed={elapsed:.1f}s verified={len(verified)} "
+        f"retailers={sorted(_distinct_retailers(verified))}"
+    )
 
     return {
         "products": verified[:max_verified],
@@ -358,6 +476,7 @@ async def crawl_search(
             budget_min=body.budget_min,
             budget_max=body.budget_max,
             max_results=body.max_results,
+            site_overrides=body.sites,
         )
     print(
         f"search query={body.query!r} region={body.region} "
@@ -413,29 +532,52 @@ async def crawl_google_shopping(
         )
         products = google_result["products"]
 
-        if products:
-            verified = await _resolve_google_products(
-                products,
-                body.category,
-                body.budget_min,
-                body.budget_max,
-                body.max_results,
+        # Trust merchant cards as-is. Playwright PDP checks from cloud IPs
+        # reject Amazon / Myntra / Ajio even when the listing is live.
+        # Snitch cards that aren't live /<category>/<handle>/<id>/buy PDPs are
+        # dropped — old snitch.co.in handles cannot be mapped to the new site.
+        verified: list[dict] = []
+        for p in products:
+            if not _google_card_trusted(p):
+                continue
+            rewritten = rewrite_google_card(p)
+            if rewritten:
+                verified.append(rewritten)
+        if verified:
+            print(
+                f"google-shopping query={body.query!r} region={body.region} "
+                f"source={google_result['source']} trusted={len(verified)} "
+                f"retailers={sorted(_distinct_retailers(verified))} "
+                f"core={sorted(_core_marketplace_hosts(verified))}"
             )
-            if verified:
-                print(
-                    f"google-shopping query={body.query!r} region={body.region} "
-                    f"source={google_result['source']} resolved={len(verified)}"
-                )
+            cap = body.max_results or MAX_VERIFIED_PER_QUERY
+            # Fast path (generation): Google cards are the internet-wide search.
+            # A Playwright sweep of 20 stores is what blew past 5 minutes.
+            if body.fast or len(_core_marketplace_hosts(verified)) >= 2:
                 return {
-                    "products": verified,
-                    "count": len(verified),
-                    "source": f"{google_result['source']}-resolved",
+                    "products": verified[:cap],
+                    "count": min(len(verified), cap),
+                    "source": f"{google_result['source']}-trusted",
                     "error": google_result.get("error"),
                 }
             print(
-                f"google-shopping query={body.query!r} cards={len(products)} "
-                f"resolved=0 — falling back to retailer search"
+                f"google-shopping query={body.query!r} missing core marketplaces "
+                f"— merging retailer search"
             )
+        elif products:
+            print(
+                f"google-shopping query={body.query!r} cards={len(products)} "
+                f"trusted=0 — falling back to retailer search"
+            )
+
+        if body.fast:
+            cap = body.max_results or MAX_VERIFIED_PER_QUERY
+            return {
+                "products": verified[:cap],
+                "count": min(len(verified), cap),
+                "source": f"{google_result.get('source', 'google')}-fast",
+                "error": google_result.get("error"),
+            }
 
         print(
             f"google-shopping fallback query={body.query!r} region={body.region} "
@@ -448,12 +590,17 @@ async def crawl_google_shopping(
             budget_min=body.budget_min,
             budget_max=body.budget_max,
             max_results=body.max_results,
+            site_overrides=body.sites,
         )
 
+    merged = _merge_verified(verified, fb["products"]) if verified else fb["products"]
+    cap = body.max_results or MAX_VERIFIED_PER_QUERY
+    merged = merged[:cap]
+
     return {
-        "products": fb["products"],
-        "count": fb["count"],
-        "source": "retailer-search",
+        "products": merged,
+        "count": len(merged),
+        "source": "retailer-search" if not verified else "google+retailer",
         "error": google_result.get("error"),
         "candidateCount": fb["candidateCount"],
         "rejected": fb["rejected"],

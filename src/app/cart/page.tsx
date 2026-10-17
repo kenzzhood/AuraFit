@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import posthog from "posthog-js";
+import { track } from "@/lib/analytics/track";
 import { useCartStore } from "@/store/useCartStore";
 import { CartItemRow } from "@/components/cart/CartItemRow";
 import { CheckoutDrawer } from "@/components/cart/CheckoutDrawer";
@@ -32,8 +32,8 @@ export default function CartPage() {
   }, [fetchCart]);
 
   useEffect(() => {
-    if (count > 0 && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
-      posthog.capture("cart_viewed", { item_count: count, subtotal });
+    if (count > 0) {
+      track("cart_viewed", { item_count: count, subtotal });
     }
   }, [count, subtotal]);
 

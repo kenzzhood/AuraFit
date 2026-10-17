@@ -9,16 +9,22 @@ const ALLOWED_ORIGINS =
   ];
 
 export function corsHeaders(origin: string | null): HeadersInit {
-  const allowed =
-    origin && ALLOWED_ORIGINS.some((o) => origin === o || o === "*")
+  // Never support wildcard reflection — exact allowlist match only.
+  const matched =
+    origin &&
+    ALLOWED_ORIGINS.some((o) => o !== "*" && origin === o)
       ? origin
-      : ALLOWED_ORIGINS[0];
-  return {
-    "Access-Control-Allow-Origin": allowed ?? "*",
+      : null;
+  const headers: Record<string, string> = {
     "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Max-Age": "86400",
   };
+  if (matched) {
+    headers["Access-Control-Allow-Origin"] = matched;
+    headers.Vary = "Origin";
+  }
+  return headers;
 }
 
 export function withCors(response: NextResponse, origin: string | null) {

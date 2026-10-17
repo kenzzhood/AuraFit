@@ -8,8 +8,9 @@ import type { ProviderResult } from "@/lib/providers/types";
 import type {
   AnalyzePersonInput,
   GenerateLooksInput,
+  GenerateLooksResult,
 } from "@/lib/ai/providers/types";
-import type { PersonAnalysis, PlannedLook } from "@/types/generation";
+import type { PersonAnalysis } from "@/types/generation";
 
 export { isImageGenerationConfigured } from "@/lib/image/provider";
 
@@ -25,14 +26,17 @@ export function getAIProvidersOrdered(): AIProvider[] {
   const legacy = process.env.AI_PROVIDER?.toLowerCase();
   const order = parseProviderOrder(
     "AI_PROVIDERS",
-    legacy ? [legacy, "azure", "openai", "gemini"] : ["azure", "openai", "gemini"]
+    legacy ? [legacy, "azure", "openai"] : ["azure", "openai"]
   );
   const seen = new Set<string>();
   const list: AIProvider[] = [];
   for (const name of order) {
     if (seen.has(name)) continue;
+    if (name === "openai" && process.env.ALLOW_OPENAI_AI_FALLBACK !== "true") {
+      continue;
+    }
     const p = REGISTRY[name];
-    if (p) {
+    if (p && (name !== "gemini" || p.isConfigured())) {
       seen.add(name);
       list.push(p);
     }
@@ -68,7 +72,7 @@ export async function analyzePersonWithFallback(
 
 export async function generateLooksWithFallback(
   input: GenerateLooksInput
-): Promise<ProviderResult<PlannedLook[]>> {
+): Promise<ProviderResult<GenerateLooksResult>> {
   return runWithFallbacks({
     system: "ai",
     attempts: getAIProvidersOrdered().map((p) => ({
@@ -76,6 +80,6 @@ export async function generateLooksWithFallback(
       configured: () => p.isConfigured(),
       run: () => p.generateLooks(input),
     })),
-    rejectEmpty: (looks) => !looks.length,
+    rejectEmpty: (result) => !result.looks.length,
   });
 }

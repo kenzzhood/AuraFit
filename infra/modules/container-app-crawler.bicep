@@ -25,8 +25,8 @@ param imageName string
 @description('Tags applied to the resource.')
 param tags object = {}
 
-@description('Min replicas. 0 = scale to zero when idle (no compute cost).')
-param minReplicas int = 0
+@description('Min replicas. 1 keeps Playwright warm so Amazon/Myntra/Ajio searches do not miss the generation window.')
+param minReplicas int = 1
 
 @description('Max replicas.')
 param maxReplicas int = 2
@@ -39,6 +39,22 @@ param memory string = '4Gi'
 
 @secure()
 param crawlerApiKey string
+
+@description('Optional Bright Data Web Unlocker API token. Empty skips this rung.')
+@secure()
+param brightDataApiToken string = ''
+
+@description('Bright Data Web Unlocker zone name. Empty uses web_unlocker.')
+@secure()
+param brightDataWebUnlockerZone string = ''
+
+@description('Optional Oxylabs Realtime username. Empty skips this rung.')
+@secure()
+param oxylabsUsername string = ''
+
+@description('Optional Oxylabs Realtime password. Empty skips this rung.')
+@secure()
+param oxylabsPassword string = ''
 
 var registryName = last(split(registryResourceId, '/'))
 var acrCreds = listCredentials(registryResourceId, '2023-11-01-preview')
@@ -76,6 +92,10 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
       secrets: [
         { name: 'registry-password', value: acrCreds.passwords[0].value }
         { name: 'crawler-api-key', value: crawlerApiKey }
+        { name: 'brightdata-api-token', value: brightDataApiToken }
+        { name: 'brightdata-web-unlocker-zone', value: brightDataWebUnlockerZone }
+        { name: 'oxylabs-username', value: oxylabsUsername }
+        { name: 'oxylabs-password', value: oxylabsPassword }
       ]
     }
     template: {
@@ -90,6 +110,15 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
           env: [
             { name: 'PORT', value: '8100' }
             { name: 'CRAWLER_API_KEY', secretRef: 'crawler-api-key' }
+            { name: 'BRIGHTDATA_API_TOKEN', secretRef: 'brightdata-api-token' }
+            { name: 'BRIGHTDATA_WEB_UNLOCKER_ZONE', secretRef: 'brightdata-web-unlocker-zone' }
+            { name: 'OXYLABS_USERNAME', secretRef: 'oxylabs-username' }
+            { name: 'OXYLABS_PASSWORD', secretRef: 'oxylabs-password' }
+            { name: 'MAX_PARALLEL_STORE_SEARCHES', value: '6' }
+            { name: 'MAX_CONCURRENT_SEARCHES', value: '3' }
+            { name: 'MAX_VERIFIED_PER_STORE', value: '2' }
+            { name: 'MIN_DISTINCT_RETAILERS', value: '4' }
+            { name: 'STORE_SEARCH_TIMEOUT_SEC', value: '12' }
           ]
           probes: [
             {

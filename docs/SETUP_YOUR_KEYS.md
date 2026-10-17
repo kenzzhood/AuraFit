@@ -84,7 +84,7 @@ DATABASE_URL=postgresql://aurafit:aurafit_local_dev@localhost:5432/aurafit
 2. SQL Editor → run `supabase/pgvector.sql`.
 3. Copy the connection string (URI).
 
-**Option C — Azure Postgres** (created by `azd up` — see [AZURE_DEPLOY.md](../AZURE_DEPLOY.md))
+**Option C — Azure Postgres** (created by `azd up` — see [docs/deploy/azure-runbook.md](../deploy/azure-runbook.md))
 
 Then:
 
@@ -171,6 +171,8 @@ The same `CRAWLER_API_KEY` must match on **web** and **crawler**.
 | `INNGEST_EVENT_KEY` / `INNGEST_SIGNING_KEY` | Background jobs in production | [inngest.com](https://www.inngest.com) |
 | `REDIS_URL` | Distributed rate limits (multi-instance) | Upstash, Azure Cache for Redis |
 | `SERPAPI_KEY` | Emergency product search fallback | [serpapi.com](https://serpapi.com) |
+| `BRIGHTDATA_API_TOKEN` / `BRIGHTDATA_WEB_UNLOCKER_ZONE` | Optional crawler fetch ladder (Web Unlocker). Crawler container only. | [brightdata.com](https://brightdata.com) |
+| `OXYLABS_USERNAME` / `OXYLABS_PASSWORD` | Optional crawler fetch ladder (Realtime Universal). Crawler container only. | [oxylabs.io](https://oxylabs.io) |
 | `REPLICATE_API_TOKEN` | Virtual try-on | [replicate.com](https://replicate.com) |
 | `OPENAI_API_KEY` | Fallback if not using Azure OpenAI | [platform.openai.com](https://platform.openai.com) |
 | `INGEST_API_KEY` | Scrapy indexer ingest only | `openssl rand -hex 32` (you choose) |
@@ -197,7 +199,7 @@ Required in `.env.local` for Azure setup:
 
 `CRAWLER_API_KEY` is auto-generated on first `azure:setup` if not set.
 
-Full runbook: [AZURE_DEPLOY.md](../AZURE_DEPLOY.md)
+Full runbook: [docs/deploy/azure-runbook.md](../deploy/azure-runbook.md)
 
 ---
 
@@ -235,7 +237,7 @@ Sign in at `/sign-in`, upload a photo, run generation at `/generate`.
 2. **Do not commit** encrypted key bundles or `.azure/` state.
 3. Use **your own** Clerk app — never share production keys in issues or PRs.
 4. Enable **GitHub secret scanning** on public repos.
-5. If keys were ever committed, rotate them in the provider dashboard and purge git history — [GIT_HISTORY_PURGE.md](../GIT_HISTORY_PURGE.md).
+5. If keys were ever committed, rotate them in the provider dashboard and purge git history — [docs/security/git-history-purge.md](../security/git-history-purge.md).
 
 ---
 

@@ -172,7 +172,7 @@ export default function SavedOutfitPage() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={boardImageUrl}
-                  alt=""
+                  alt={q.data.name ?? "Outfit"}
                   className="mx-auto max-h-[70vh] rounded-xl object-contain"
                 />
               ) : (

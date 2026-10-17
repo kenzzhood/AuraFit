@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { useQuery } from "@tanstack/react-query";
-import posthog from "posthog-js";
 import { JobStatus } from "@prisma/client";
+import { track } from "@/lib/analytics/track";
 import { GenerationProgress } from "./GenerationProgress";
 import { LookSelector } from "./LookSelector";
 import { LookDetailPanel } from "./LookDetailPanel";
-import type { GenerationJobResult, GenerationLookResult } from "@/types/generation";
+import type { GenerationJobResult, GenerationLookResult, LookProduct } from "@/types/generation";
+import { ChipRow } from "@/components/ui/ChipRow";
 import {
   clearGenerateSession,
   loadGenerateSession,
@@ -69,6 +70,62 @@ export function GenerateForm() {
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [startingGenerate, setStartingGenerate] = useState(false);
   const [savedOutfitId, setSavedOutfitId] = useState<string | null>(null);
+  const [renderQuality, setRenderQuality] = useState<string>("medium");
+  const prefsLoaded = useRef(false);
+
+  const entitlementsQ = useQuery({
+    queryKey: ["billing-entitlement"],
+    queryFn: async () => {
+      const r = await fetch("/api/billing/entitlement");
+      if (!r.ok) return null;
+      return r.json() as Promise<{
+        boards: { available: number };
+        hd: { available: number };
+        billingEnabled: boolean;
+      }>;
+    },
+  });
+
+  useEffect(() => {
+    if (prefsLoaded.current) return;
+    prefsLoaded.current = true;
+    void (async () => {
+      try {
+        const r = await fetch("/api/me");
+        if (!r.ok) return;
+        const data = (await r.json()) as {
+          user?: {
+            stylePreference?: {
+              aesthetics?: unknown;
+              colors?: unknown;
+              budgetMin?: number | null;
+              budgetMax?: number | null;
+              region?: string | null;
+            } | null;
+          };
+        };
+        const pref = data.user?.stylePreference;
+        if (!pref) return;
+        if (typeof pref.budgetMin === "number" && pref.budgetMin > 0) {
+          setBudgetMin(pref.budgetMin);
+        }
+        if (typeof pref.budgetMax === "number" && pref.budgetMax > 0) {
+          setBudgetMax(pref.budgetMax);
+        }
+        const parts: string[] = [];
+        if (Array.isArray(pref.aesthetics) && pref.aesthetics.length) {
+          parts.push(String(pref.aesthetics.slice(0, 3).join(", ")));
+        }
+        if (Array.isArray(pref.colors) && pref.colors.length) {
+          parts.push(`colors: ${String(pref.colors.slice(0, 4).join(", "))}`);
+        }
+        if (pref.region) parts.push(String(pref.region));
+        if (parts.length) setStyle((s) => (s.trim() ? s : parts.join(" · ")));
+      } catch {
+        /* ignore */
+      }
+    })();
+  }, []);
 
   const showError = (message: string) => {
     setFormSuccess(null);
@@ -222,8 +279,98 @@ export function GenerateForm() {
     if (!job?.result) return;
     setDoneJob(job);
     if (job.result.boardImageUrl) setBoardImageUrl(job.result.boardImageUrl);
+    if (job.result.renderQuality) setRenderQuality(job.result.renderQuality);
     if (job.result.looks?.length) setLooks(job.result.looks);
   }, [finishedJobQ.data]);
+
+  // Poll product search sessions so "Verifying…" slots fill without a full refresh.
+  useEffect(() => {
+    if (step !== 3) return;
+    const sessionIds = new Set<string>(
+      doneJob?.result?.productSearchSessionIds ?? []
+    );
+    for (const l of looks) {
+      for (const p of l.products ?? []) {
+        if (p.sessionId) sessionIds.add(p.sessionId);
+      }
+    }
+    if (sessionIds.size === 0) return;
+
+    let cancelled = false;
+    const poll = async () => {
+      for (const sid of sessionIds) {
+        if (cancelled) return;
+        try {
+          const r = await fetch(`/api/products/session/${sid}`);
+          if (!r.ok) continue;
+          const data = (await r.json()) as {
+            status?: string;
+            products?: Array<{
+              title: string;
+              url: string;
+              source: string;
+              price?: number;
+              currency?: string;
+              image?: string;
+              verified?: boolean;
+              matchCategory?: string;
+              canonicalUrl?: string;
+              availability?: string;
+            }>;
+          };
+          if (data.status !== "READY" && data.status !== "PARTIAL") continue;
+          const verified = (data.products ?? []).filter(
+            (p) => p.verified !== false
+          );
+          if (!verified.length) continue;
+
+          setLooks((prev) =>
+            prev.map((look) => {
+              const products = [...(look.products ?? [])];
+              let changed = false;
+              for (let i = 0; i < products.length; i++) {
+                const p = products[i]!;
+                if (p.verified === true || p.kind === "wardrobe") continue;
+                const cat = p.matchCategory ?? "garment";
+                const match = verified.find(
+                  (v) =>
+                    (v.matchCategory ?? "garment").toLowerCase() ===
+                    cat.toLowerCase()
+                );
+                if (match) {
+                  products[i] = {
+                    ...p,
+                    title: match.title,
+                    productUrl: match.url,
+                    source: match.source,
+                    price: match.price,
+                    currency: match.currency,
+                    imageUrl: match.image ?? p.imageUrl,
+                    verified: true,
+                    canonicalUrl: match.canonicalUrl,
+                    availability: match.availability as LookProduct["availability"],
+                    sessionId: sid,
+                  };
+                  changed = true;
+                }
+              }
+              return changed ? { ...look, products } : look;
+            })
+          );
+        } catch {
+          /* ignore */
+        }
+      }
+    };
+
+    void poll();
+    const id = window.setInterval(poll, 4000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- session set derived once per results step
+  }, [step, doneJob?.result?.productSearchSessionIds, jobId]);
 
   const onDropPhoto = useCallback(async (files: File[]) => {
     const f = files[0];
@@ -243,7 +390,7 @@ export function GenerateForm() {
           base64,
         }),
       });
-      const data = await up.json();
+      const data = (await up.json().catch(() => ({}))) as { error?: string; url?: string };
       if (!up.ok) throw new Error(data.error ?? "Upload failed");
       setUserPhotoUrl(data.url as string);
     } catch (e) {
@@ -257,9 +404,14 @@ export function GenerateForm() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: onDropPhoto,
-    accept: { "image/*": [".png", ".jpg", ".jpeg", ".webp"] },
+    accept: {
+      "image/*": [".png", ".jpg", ".jpeg", ".webp", ".heic", ".heif"],
+    },
     maxFiles: 1,
     disabled: uploadingPhoto,
+    // Safari throws "The string did not match the expected pattern" when the
+    // File System Access API is used with a restrictive accept list.
+    useFsAccessApi: false,
   });
 
   const toggleItem = (id: string) => {
@@ -330,30 +482,50 @@ export function GenerateForm() {
         renderQuality: "medium",
       }),
     });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error ?? "Failed");
-    setJobId(data.jobId as string);
-    if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
-      posthog.capture("generation_started", {
-        path,
-        job_id: data.jobId,
-        has_photo: true,
-      });
+    const data = (await r.json()) as { error?: unknown; jobId?: string };
+    if (!r.ok) {
+      throw new Error(
+        typeof data.error === "string" ? data.error : "Failed to start generation"
+      );
     }
+    setJobId(data.jobId as string);
+    track("generation_started", {
+      path,
+      job_id: data.jobId,
+      has_photo: true,
+    });
   };
 
   const onJobComplete = useCallback((job: JobShape) => {
     setDoneJob(job);
+
+    if (job.status === JobStatus.FAILED) {
+      showError(
+        job.error ??
+          "Generation could not finish. Try widening your budget or changing location."
+      );
+      setStep(2);
+      return;
+    }
+
     const r = job.result;
     if (r?.boardImageUrl) setBoardImageUrl(r.boardImageUrl);
-    if (r?.looks?.length) {
-      setLooks(r.looks);
+    if (r?.renderQuality) setRenderQuality(r.renderQuality);
+    const nextLooks =
+      r?.looks?.length && r.looks.some((l) => (l.products?.length ?? 0) > 0)
+        ? r.looks
+        : r?.looks?.length
+          ? r.looks
+          : [];
+    if (nextLooks.length) {
+      setLooks(nextLooks);
+      setSelectedLook(0);
     } else {
-      setLooks(Array.from({ length: 6 }, (_, i) => ({
-        label: `Look ${i + 1}`,
-        productSearchQuery: "outfit",
-        products: [],
-      })));
+      showError(
+        "No looks with verified shop links were found. Try again with a wider budget or different location."
+      );
+      setStep(2);
+      return;
     }
     setStep(3);
   }, []);
@@ -411,11 +583,42 @@ export function GenerateForm() {
         ? String((data as { id: unknown }).id)
         : outfitId;
     if (nextOutfitId) setSavedOutfitId(nextOutfitId);
-    if (process.env.NEXT_PUBLIC_POSTHOG_KEY) {
-      posthog.capture("outfit_saved_from_generate", { lookIndex: selectedLook });
-    }
+    track("outfit_saved_from_generate", { lookIndex: selectedLook });
     showSuccess("Saved to Outfits");
   };
+
+  const handleLookUpdate = useCallback(
+    (index: number, next: GenerationLookResult) => {
+      setLooks((prev) => prev.map((l, i) => (i === index ? next : l)));
+    },
+    []
+  );
+
+  const handleBoardHd = useCallback(
+    async (lookIndex: number) => {
+      if (!jobId) throw new Error("Missing generation job");
+      const r = await fetch("/api/generate/hd", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId, lookIndex }),
+      });
+      const data = (await r.json()) as { error?: string };
+      if (!r.ok) {
+        throw new Error(data.error ?? "HD render failed");
+      }
+      const statusR = await fetch(`/api/generate/status/${jobId}`);
+      if (statusR.ok) {
+        const job = (await statusR.json()) as JobShape;
+        setDoneJob(job);
+        if (job.result?.boardImageUrl) setBoardImageUrl(job.result.boardImageUrl);
+        if (job.result?.renderQuality) setRenderQuality(job.result.renderQuality);
+        if (job.result?.looks?.length) setLooks(job.result.looks);
+      }
+      void entitlementsQ.refetch();
+      showSuccess("HD board ready — sharper editorial render.");
+    },
+    [jobId, entitlementsQ]
+  );
 
   const resetSession = () => {
     clearGenerateSession();
@@ -815,21 +1018,14 @@ export function GenerateForm() {
             </div>
           )}
 
+          <ChipRow
+            label="Style type"
+            options={STYLE_TYPES}
+            value={styleType as (typeof STYLE_TYPES)[number]}
+            onChange={setStyleType}
+          />
+
           <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className="text-xs text-aura-muted">Style type</label>
-              <select
-                value={styleType}
-                onChange={(e) => setStyleType(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-aura-border bg-aura-ink px-3 py-2 text-sm"
-              >
-                {STYLE_TYPES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </div>
             <div>
               <label className="text-xs text-aura-muted">Occasion</label>
               <input
@@ -947,10 +1143,17 @@ export function GenerateForm() {
             </button>
           </div>
           <p className="text-center text-xs leading-5 text-aura-muted">
-            A full board can take a few minutes because we verify real product
-            links and render your image with product references. Keep this page
-            open — we will show each step while it works.
+            A full board usually finishes in about two minutes. We search live
+            stores, keep only the garments that appear on your board, then
+            render the image. Keep this page open — we will show each step.
           </p>
+          {entitlementsQ.data?.billingEnabled && (
+            <p className="text-center text-[11px] text-aura-champagne/80">
+              {entitlementsQ.data.boards.available} board
+              {entitlementsQ.data.boards.available === 1 ? "" : "s"} remaining
+              this period
+            </p>
+          )}
         </div>
       )}
 
@@ -994,8 +1197,7 @@ export function GenerateForm() {
             <p className="mt-1 text-sm text-aura-dim">
               Tap a number to see the full breakdown and shop links. Add individual
               pieces or the full look to your cart — use the bag icon anytime.
-              We keep enriching the catalog in the background, so more verified
-              links can appear after the board is ready.
+              Every shop link is the exact garment shown on the board.
             </p>
           </div>
 
@@ -1004,6 +1206,10 @@ export function GenerateForm() {
               boardImageUrl={boardImageUrl}
               selectedLook={selectedLook}
               onSelectLook={setSelectedLook}
+              lookCount={looks.length}
+              degradedHint={
+                doneJob?.result?.providerMeta?.failures?.[0]?.message ?? null
+              }
             />
             <div ref={detailPanelRef} className="scroll-mt-20">
               <LookDetailPanel
@@ -1011,6 +1217,13 @@ export function GenerateForm() {
                 lookIndex={selectedLook}
                 outfitId={savedOutfitId ?? doneJob?.result?.outfitId}
                 onSave={selectedLook != null ? saveSnapshot : undefined}
+                jobId={jobId}
+                userPhotoUrl={userPhotoUrl}
+                boardImageUrl={boardImageUrl}
+                renderQuality={renderQuality}
+                hdAvailable={entitlementsQ.data?.hd.available ?? 0}
+                onLookUpdate={handleLookUpdate}
+                onBoardHd={handleBoardHd}
               />
             </div>
           </div>

@@ -12,6 +12,13 @@ Store secrets only in gitignored files:
 - `apps/mobile/.env`
 - `.azure/` (Azure Developer CLI local state)
 
+Optional crawler unlockers (leave empty to skip; crawler container only, never the web app):
+
+- `BRIGHTDATA_API_TOKEN`
+- `BRIGHTDATA_WEB_UNLOCKER_ZONE`
+- `OXYLABS_USERNAME`
+- `OXYLABS_PASSWORD`
+
 Never commit `secrets/*.enc` or encrypted bundles.
 
-If credentials were ever committed to git history, follow [GIT_HISTORY_PURGE.md](../GIT_HISTORY_PURGE.md) after rotating keys in your provider dashboards.
+If credentials were ever committed to git history, follow [docs/security/git-history-purge.md](../docs/security/git-history-purge.md) after rotating keys in your provider dashboards.

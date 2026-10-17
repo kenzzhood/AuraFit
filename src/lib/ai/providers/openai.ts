@@ -5,7 +5,9 @@ import type {
   AnalyzePersonInput,
   ChatMessageInput,
   GenerateLooksInput,
+  GenerateLooksResult,
 } from "./types";
+import { padLooksToCount, resolveLookCount } from "./azure";
 
 function client() {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -21,6 +23,11 @@ export const openaiAIProvider: AIProvider = {
   },
 
   async analyzePerson({ imageUrl }: AnalyzePersonInput) {
+    if (process.env.ALLOW_OPENAI_AI_FALLBACK !== "true") {
+      throw new Error(
+        "OpenAI person analysis disabled — configure Azure OpenAI or set ALLOW_OPENAI_AI_FALLBACK=true"
+      );
+    }
     const c = client();
     const completion = await c.chat.completions.create({
       model: process.env.OPENAI_MODEL ?? "gpt-4o",
@@ -39,14 +46,19 @@ export const openaiAIProvider: AIProvider = {
     return raw ? (JSON.parse(raw) as PersonAnalysis) : null;
   },
 
-  async generateLooks(input: GenerateLooksInput) {
+  async generateLooks(input: GenerateLooksInput): Promise<GenerateLooksResult> {
+    if (process.env.ALLOW_OPENAI_AI_FALLBACK !== "true") {
+      throw new Error(
+        "OpenAI look planning disabled — configure Azure OpenAI or set ALLOW_OPENAI_AI_FALLBACK=true"
+      );
+    }
     const c = client();
     const completion = await c.chat.completions.create({
       model: process.env.OPENAI_MODEL ?? "gpt-4o",
       messages: [
         {
           role: "system",
-          content: 'Return JSON {"looks":[6 outfit plans]}',
+          content: `Return JSON {"looks":[${resolveLookCount(input)} outfit plans],"retailerSites":[]}`,
         },
         { role: "user", content: JSON.stringify(input) },
       ],
@@ -54,9 +66,12 @@ export const openaiAIProvider: AIProvider = {
     });
     const raw = completion.choices[0]?.message?.content;
     const parsed = raw
-      ? (JSON.parse(raw) as { looks: PlannedLook[] }).looks
-      : [];
-    return parsed.slice(0, 6);
+      ? (JSON.parse(raw) as { looks?: PlannedLook[]; retailerSites?: unknown })
+      : { looks: [] };
+    return {
+      looks: padLooksToCount(parsed.looks ?? [], resolveLookCount(input)),
+      retailerSites: undefined,
+    };
   },
 
   async *generateChat(messages: ChatMessageInput[]) {

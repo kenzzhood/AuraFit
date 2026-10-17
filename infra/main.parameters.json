@@ -44,6 +44,21 @@
     "crawlerApiKey": {
       "value": "${CRAWLER_API_KEY=dev-crawler-key}"
     },
+    "brightDataApiToken": {
+      "value": "${BRIGHTDATA_API_TOKEN=}"
+    },
+    "brightDataWebUnlockerZone": {
+      "value": "${BRIGHTDATA_WEB_UNLOCKER_ZONE=}"
+    },
+    "oxylabsUsername": {
+      "value": "${OXYLABS_USERNAME=}"
+    },
+    "oxylabsPassword": {
+      "value": "${OXYLABS_PASSWORD=}"
+    },
+    "serpApiKey": {
+      "value": "${SERPAPI_KEY=}"
+    },
     "inngestEventKey": {
       "value": "${INNGEST_EVENT_KEY}"
     },

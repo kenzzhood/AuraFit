@@ -1,7 +1,8 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { ensureAppUser } from "@/lib/user";
+import { DeletedUserError, ensureAppUser } from "@/lib/user";
+import { sanitizePostForPublic } from "@/lib/api/sanitize-public";
 import { PostVisibility } from "@prisma/client";
 
 export async function GET(
@@ -13,9 +14,23 @@ export async function GET(
 
   const { userId } = await auth();
   const cu = userId ? await currentUser() : null;
-  const viewer = userId
-    ? await ensureAppUser(userId, cu?.primaryEmailAddress?.emailAddress)
-    : null;
+  let viewer: Awaited<ReturnType<typeof ensureAppUser>> | null = null;
+  if (userId) {
+    try {
+      viewer = await ensureAppUser(
+        userId,
+        cu?.primaryEmailAddress?.emailAddress
+      );
+    } catch (e) {
+      if (e instanceof DeletedUserError) {
+        return NextResponse.json(
+          { error: "Account has been deleted" },
+          { status: 403 }
+        );
+      }
+      throw e;
+    }
+  }
 
   const profile = await prisma.user.findFirst({
     where: { username: decoded, deletedAt: null },
@@ -65,11 +80,12 @@ export async function GET(
     orderBy: { publishedAt: "desc" },
     take: 48,
     include: {
-      outfit: {
-        include: {
-          generatedImages: { take: 1, orderBy: { createdAt: "desc" } },
+        outfit: {
+          include: {
+            generatedImages: { take: 1, orderBy: { createdAt: "desc" } },
+            items: { include: { productCache: true } },
+          },
         },
-      },
       _count: { select: { likes: true, comments: true } },
     },
   });
@@ -79,7 +95,7 @@ export async function GET(
     followerCount: profile._count.followers,
     followingCount: profile._count.following,
     isFollowing,
-    posts,
+    posts: posts.map((post) => sanitizePostForPublic(post)),
     isOwnProfile: viewer?.id === profile.id,
   });
 }

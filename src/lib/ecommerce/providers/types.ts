@@ -24,7 +24,12 @@ export interface NormalizedProduct {
   matchCategory?: string;
   matchConfidence?: number;
   rating?: number;
+  lastCrawledAt?: string;
+  pdpVerified?: boolean;
+  region?: string;
 }
+
+import type { RetailerSiteOverride } from "@/lib/ecommerce/sites/dynamic-retailers";
 
 export interface ProductQuery {
   query: string;
@@ -34,6 +39,8 @@ export interface ProductQuery {
   budgetMax?: number;
   /** Keywords from look plan for ranking */
   aestheticKeywords?: string[];
+  /** GPT-selected retailer sites for this generation (merged with static fallback server-side). */
+  retailerSites?: RetailerSiteOverride[];
 }
 
 export interface ProductSearchProvider {

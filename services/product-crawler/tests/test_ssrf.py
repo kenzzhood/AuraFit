@@ -30,3 +30,22 @@ def test_blocks_private_ip_literal():
 def test_blocks_file_scheme():
     with pytest.raises(UnsafeUrlError):
         assert_safe_crawl_url("file:///etc/passwd")
+
+
+@pytest.mark.asyncio
+async def test_brightdata_refuses_localhost(monkeypatch):
+    monkeypatch.setenv("BRIGHTDATA_API_TOKEN", "tok")
+    from engines.unlockers import fetch_via_brightdata
+
+    with pytest.raises(UnsafeUrlError):
+        await fetch_via_brightdata("http://localhost:8080/admin")
+
+
+@pytest.mark.asyncio
+async def test_oxylabs_refuses_metadata(monkeypatch):
+    monkeypatch.setenv("OXYLABS_USERNAME", "user")
+    monkeypatch.setenv("OXYLABS_PASSWORD", "pass")
+    from engines.unlockers import fetch_via_oxylabs
+
+    with pytest.raises(UnsafeUrlError):
+        await fetch_via_oxylabs("http://169.254.169.254/latest/meta-data/")

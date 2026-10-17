@@ -3,6 +3,8 @@ import {
   assertAllowedUserMediaUrl,
   assertSafeExternalUrl,
 } from "@/lib/security/ssrf";
+import { MAX_PRODUCT_IMAGE_REFS } from "@/lib/image/constants";
+import { PRODUCT_IMAGE_USER_AGENT } from "@/lib/media/product-proxy";
 
 function getImageEndpointAndKey(): { endpoint?: string; apiKey?: string } {
   return {
@@ -67,6 +69,8 @@ type FetchedImageFile = {
   contentType: string;
 };
 
+const productImageCache = new Map<string, Promise<FetchedImageFile>>();
+
 async function fetchAsToFile(
   url: string,
   fallbackName: string,
@@ -80,10 +84,27 @@ async function fetchAsToFile(
   // Per-image fetch timeout. One dead/slow product thumbnail must NOT stall
   // the whole multi-image edit payload — we'd rather drop that ref and let
   // Promise.allSettled in the caller collect whatever finished in time.
-  const fetched = await fetch(url, { signal: AbortSignal.timeout(5_000) });
+  // Manual redirects: re-validate each Location against SSRF guards.
+  const { safeFetch } = await import("@/lib/security/ssrf");
+  const fetched = await safeFetch(url, {
+    signal: AbortSignal.timeout(5_000),
+    maxRedirects: 2,
+    headers: options?.userMediaOnly
+      ? undefined
+      : {
+          "User-Agent": PRODUCT_IMAGE_USER_AGENT,
+          Accept: "image/*",
+        },
+  });
   if (!fetched.ok) {
+    let host = "invalid";
+    try {
+      host = new URL(url).hostname;
+    } catch {
+      /* keep invalid */
+    }
     throw new Error(
-      `image fetch failed (${url}): ${fetched.status} ${fetched.statusText}`
+      `image fetch failed (${host}): ${fetched.status} ${fetched.statusText}`
     );
   }
   const contentType = fetched.headers.get("content-type") ?? "image/jpeg";
@@ -98,6 +119,63 @@ async function fetchAsToFile(
     type: contentType,
   });
   return { file, byteLength: buf.length, contentType };
+}
+
+async function cachedProductFile(
+  url: string,
+  fallbackName: string
+): Promise<FetchedImageFile> {
+  const existing = productImageCache.get(url);
+  if (existing) return existing;
+  const pending = fetchAsToFile(url, fallbackName);
+  productImageCache.set(url, pending);
+  try {
+    return await pending;
+  } catch (e) {
+    productImageCache.delete(url);
+    throw e;
+  }
+}
+
+/** Probe + cache product thumbnails so the prompt Image N matches uploaded files. */
+export async function prefetchProductImageUrls(
+  urls: string[],
+  cap = MAX_PRODUCT_IMAGE_REFS
+): Promise<string[]> {
+  const unique = [
+    ...new Set(urls.filter((u) => typeof u === "string" && u.length > 0)),
+  ];
+  const settled = await Promise.all(
+    unique.map(async (u) => {
+      try {
+        await cachedProductFile(u, "product-prefetch");
+        return u;
+      } catch {
+        return null;
+      }
+    })
+  );
+  const okUrls = settled.filter((u): u is string => !!u);
+  const failed = settled.length - okUrls.length;
+  if (failed > 0) {
+    const hosts = [
+      ...new Set(
+        unique
+          .filter((_, i) => !settled[i])
+          .map((u) => {
+            try {
+              return new URL(u).hostname;
+            } catch {
+              return "invalid";
+            }
+          })
+      ),
+    ];
+    console.warn(
+      `[prefetchProductImageUrls] ok=${okUrls.length} failed=${failed} hosts=${hosts.join(",")}`
+    );
+  }
+  return okUrls.slice(0, cap);
 }
 
 function extractImage(
@@ -134,13 +212,11 @@ export async function generateFashionBoard(
   // can't preserve identity — fall straight through to text-only generation.
   const canEdit = isGptImage && !!referenceImageUrl;
 
-  // Cap product references aggressively. Each extra ref adds upload latency
-  // and slows the model. 4 product images + 1 user photo = 5 total, well
-  // within gpt-image-2's accepted input set, and 3× faster end-to-end than
-  // shipping the previous cap of 12 thumbnails.
+  // Cap product references. Generation already prefetches and passes only
+  // reachable URLs; keep the array 1:1 with the prompt's Image 2..N.
   const productUrls = (productImageUrls ?? [])
     .filter((u) => typeof u === "string" && u.length > 0)
-    .slice(0, 4);
+    .slice(0, MAX_PRODUCT_IMAGE_REFS);
   const hasProductRefs = canEdit && productUrls.length > 0;
 
   // Hard ceiling on each Azure image API call. gpt-image-2 normally responds
@@ -149,50 +225,38 @@ export async function generateFashionBoard(
   const IMAGE_API_TIMEOUT_MS = 90_000;
 
   // === Level 1: multi-image edit (user photo + product images) ===========
+  // When product refs are present we must not fall through to photo-only or
+  // text-only generation — those paths invent garments that will not match
+  // the shop links.
   if (hasProductRefs) {
-    try {
-      const userPhoto = await fetchAsToFile(
-        referenceImageUrl!,
-        "reference-person",
-        { userMediaOnly: true }
-      );
-      // Fetch product images in parallel; tolerate individual failures so one
-      // dead thumbnail URL doesn't blow up the whole call.
-      const productResults = await Promise.allSettled(
-        productUrls.map((u, i) => fetchAsToFile(u, `product-${i + 1}`))
-      );
-      const productFiles = productResults
-        .filter(
-          (r): r is PromiseFulfilledResult<FetchedImageFile> =>
-            r.status === "fulfilled"
-        )
-        .map((r) => r.value);
+    const userPhoto = await fetchAsToFile(
+      referenceImageUrl!,
+      "reference-person",
+      { userMediaOnly: true }
+    );
+    const productFiles = await Promise.all(
+      productUrls.map((u, i) => cachedProductFile(u, `product-${i + 1}`))
+    );
 
-      if (productFiles.length > 0) {
-        const imageArray = [
-          userPhoto.file,
-          ...productFiles.map((p) => p.file),
-        ];
-        const editResponse = await client.images.edit(
-          {
-            model: deployment,
-            prompt,
-            // gpt-image-* supports an array of images for multi-reference edits.
-            image: imageArray as unknown as Parameters<
-              typeof client.images.edit
-            >[0]["image"],
-            n: 1,
-            size: "1536x1024",
-            quality: gptImageQuality as "low" | "medium" | "high",
-          },
-          { timeout: IMAGE_API_TIMEOUT_MS }
-        );
-        return extractImage(editResponse.data?.[0], "multi-image edit");
-      }
-      // If every product fetch failed, drop down to single-image edit.
-    } catch {
-      // fall through to single-edit
+    if (productFiles.length === 0) {
+      throw new Error("product reference images failed to load");
     }
+
+    const imageArray = [userPhoto.file, ...productFiles.map((p) => p.file)];
+    const editResponse = await client.images.edit(
+      {
+        model: deployment,
+        prompt,
+        image: imageArray as unknown as Parameters<
+          typeof client.images.edit
+        >[0]["image"],
+        n: 1,
+        size: "1536x1024",
+        quality: gptImageQuality as "low" | "medium" | "high",
+      },
+      { timeout: IMAGE_API_TIMEOUT_MS }
+    );
+    return extractImage(editResponse.data?.[0], "multi-image edit");
   }
 
   // === Level 2: single-image edit (user photo only) ======================

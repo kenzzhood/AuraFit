@@ -35,6 +35,8 @@ model User {
   stylePreference  StylePreference?
   wardrobes        Wardrobe[]
   cart             Cart?
+  billingAccount   BillingAccount?
+  consentRecords   ConsentRecord[]
 }
 
 model StylePreference {
@@ -211,31 +213,50 @@ model ProductCache {
 
 /// Long-lived indexed product for discovery (separate from TTL ProductCache)
 model ProductIndex {
-  id            String              @id @default(cuid())
-  externalId    String
-  source        String
-  title         String
-  brand         String?
-  price         Int?
-  currency      String              @default("INR")
-  imageUrl      String?
-  productUrl    String              @unique
-  category      String?
-  colors        Json?
-  aestheticTags Json?
-  rating        Float?
-  availability  ProductAvailability @default(UNKNOWN)
-  region        String              @default("IN")
-  contentHash   String?
-  raw           Json?
-  lastCrawledAt DateTime?
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
-  embedding     ProductEmbedding?
+  id              String              @id @default(cuid())
+  externalId      String
+  source          String
+  sourceType      SourceType?
+  sourceId        String?
+  title           String
+  brand           String?
+  price           Int?
+  priceInr        Decimal?            @db.Decimal(12, 2)
+  currency        String              @default("INR")
+  imageUrl        String?
+  imageHash       String?
+  productUrl      String              @unique
+  host            String?
+  gender          String?
+  category        String?
+  attributes      Json?
+  colors          Json?
+  aestheticTags   Json?
+  rating          Float?
+  ratingCount     Int?
+  shipsToIn       Boolean?
+  linkStatus      LinkStatus          @default(UNVERIFIED)
+  verifiedAt      DateTime?
+  verifyReason    String?
+  deadSince       DateTime?
+  feedUpdatedAt   DateTime?
+  affiliateNetwork String?
+  availability    ProductAvailability @default(UNKNOWN)
+  region          String              @default("IN")
+  contentHash     String?
+  raw             Json?
+  lastCrawledAt   DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  embedding       ProductEmbedding?
+  verifications   VerificationEvent[]
 
   @@unique([source, externalId])
   @@index([region, category])
   @@index([contentHash])
+  @@index([linkStatus, verifiedAt])
+  @@index([host])
+  @@index([gender, category])
 }
 
 model ProductEmbedding {
@@ -343,19 +364,85 @@ model Message {
 }
 
 model AffiliateClick {
-  id             String    @id @default(cuid())
-  userId         String
-  outfitId       String?
-  source         String
-  targetUrl      String
-  productCacheId String?
-  clickedAt      DateTime  @default(now())
-  convertedAt    DateTime?
-  outfit         Outfit?   @relation(fields: [outfitId], references: [id])
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                  String    @id @default(cuid())
+  userId              String
+  outfitId            String?
+  source              String
+  targetUrl           String
+  productCacheId      String?
+  verifyStatusAtClick String?
+  fallbackUsed        Boolean?  @default(false)
+  fallbackProductId   String?
+  finalRedirectUrl    String?
+  clickedAt           DateTime  @default(now())
+  convertedAt         DateTime?
+  outfit              Outfit?   @relation(fields: [outfitId], references: [id])
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, clickedAt])
+}
+
+model VerificationEvent {
+  id             String        @id @default(cuid())
+  productIndexId String?
+  status         LinkStatus
+  httpStatus     Int?
+  reason         String?
+  finalUrl       String?
+  latencyMs      Int?
+  context        String
+  createdAt      DateTime      @default(now())
+  productIndex   ProductIndex? @relation(fields: [productIndexId], references: [id], onDelete: SetNull)
+
+  @@index([productIndexId, createdAt])
+}
+
+model DiscoveryLog {
+  id           String   @id @default(cuid())
+  requestId    String
+  userId       String?
+  intent       Json
+  poolBySource Json
+  poolByHost   Json
+  picks        Json
+  latencyMs    Int
+  flags        Json
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId])
+}
+
+model CoverageGap {
+  id        String   @id @default(cuid())
+  intent    Json
+  poolSize  Int
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model DiscoveryCache {
+  key       String   @id
+  payload   Json
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
+model IngestRun {
+  id         String    @id @default(cuid())
+  source     String
+  startedAt  DateTime
+  finishedAt DateTime?
+  fetched    Int       @default(0)
+  upserted   Int       @default(0)
+  failed     Int       @default(0)
+  notes      String?
+
+  @@index([source, startedAt])
 }
 
 model AnalyticsEvent {
@@ -443,6 +530,25 @@ enum ProductAvailability {
   UNKNOWN
 }
 
+enum LinkStatus {
+  UNVERIFIED
+  LIVE_IN_STOCK
+  LIVE_OOS
+  DEAD
+  BLOCKED
+  GEO_BLOCKED
+  UNKNOWN
+}
+
+enum SourceType {
+  AFFILIATE_FEED
+  SHOPIFY_JSON
+  SITEMAP_JSONLD
+  D2C_CRAWL
+  LEGACY_GOOGLE
+  LEGACY_SERPAPI
+}
+
 enum PostVisibility {
   PRIVATE
   PUBLIC
@@ -456,4 +562,253 @@ enum OutfitCategory {
   FOOTWEAR
   ACCESSORY
   OTHER
+}
+
+// ── Billing (Aurafit digital subscriptions + credits) ───────────────────────
+
+model BillingAccount {
+  id                   String               @id @default(cuid())
+  userId               String               @unique
+  razorpayCustomerId   String?              @unique
+  revenueCatAppUserId  String?              @unique
+  planKey              String               @default("free")
+  status               BillingStatus        @default(ACTIVE)
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean              @default(false)
+  graceUntil           DateTime?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  user                 User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptions        Subscription[]
+  transactions         PaymentTransaction[]
+  creditLedger         CreditLedgerEntry[]
+  reservations         UsageReservation[]
+  entitlements         Entitlement[]
+  refunds              Refund[]
+  auditLogs            BillingAuditLog[]
+
+  @@index([planKey, status])
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  billingAccountId     String
+  provider             BillingProvider
+  providerSubscriptionId String           @unique
+  planKey              String
+  status               SubscriptionStatus @default(CREATED)
+  amountMinor          Int
+  currency             String             @default("INR")
+  interval             BillingInterval
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  canceledAt           DateTime?
+  raw                  Json?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  billingAccount       BillingAccount     @relation(fields: [billingAccountId], references: [id], onDelete: Cascade)
+  transactions         PaymentTransaction[]
+
+  @@index([billingAccountId, status])
+  @@index([planKey])
+}
+
+model PaymentTransaction {
+  id                 String              @id @default(cuid())
+  billingAccountId   String
+  subscriptionId     String?
+  provider           BillingProvider
+  providerPaymentId  String?
+  providerOrderId    String?
+  catalogKey         String
+  kind               PaymentKind
+  status             PaymentStatus       @default(CREATED)
+  amountMinor        Int
+  currency           String              @default("INR")
+  creditsGranted     Int                 @default(0)
+  creditKind         CreditKind?
+  raw                Json?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  billingAccount     BillingAccount      @relation(fields: [billingAccountId], references: [id], onDelete: Cascade)
+  subscription       Subscription?       @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  refunds            Refund[]
+
+  @@unique([provider, providerPaymentId])
+  @@index([billingAccountId, createdAt])
+  @@index([providerOrderId])
+  @@index([status])
+}
+
+model BillingWebhookEvent {
+  id              String          @id @default(cuid())
+  provider        BillingProvider
+  providerEventId String
+  eventType       String
+  payload         Json
+  signatureValid  Boolean         @default(false)
+  processedAt     DateTime?
+  processingError String?
+  createdAt       DateTime        @default(now())
+
+  @@unique([provider, providerEventId])
+  @@index([processedAt])
+  @@index([eventType, createdAt])
+}
+
+model Entitlement {
+  id               String         @id @default(cuid())
+  billingAccountId String
+  key              String
+  value            Json
+  source           String
+  expiresAt        DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  billingAccount   BillingAccount @relation(fields: [billingAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([billingAccountId, key])
+  @@index([expiresAt])
+}
+
+model CreditLedgerEntry {
+  id               String         @id @default(cuid())
+  billingAccountId String
+  kind             CreditKind
+  delta            Int
+  balanceAfter     Int
+  reason           String
+  referenceId      String?
+  metadata         Json?
+  createdAt        DateTime       @default(now())
+  billingAccount   BillingAccount @relation(fields: [billingAccountId], references: [id], onDelete: Cascade)
+
+  @@index([billingAccountId, kind, createdAt])
+  @@index([referenceId])
+}
+
+model UsageReservation {
+  id               String            @id @default(cuid())
+  billingAccountId String
+  kind             CreditKind
+  amount           Int               @default(1)
+  status           ReservationStatus @default(HELD)
+  jobId            String?
+  expiresAt        DateTime
+  finalizedAt      DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  billingAccount   BillingAccount    @relation(fields: [billingAccountId], references: [id], onDelete: Cascade)
+
+  @@index([billingAccountId, status])
+  @@index([jobId])
+  @@index([expiresAt])
+}
+
+model Refund {
+  id                 String             @id @default(cuid())
+  billingAccountId   String
+  transactionId      String
+  providerRefundId   String?
+  amountMinor        Int
+  currency           String             @default("INR")
+  reason             String?
+  status             RefundStatus       @default(CREATED)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  billingAccount     BillingAccount     @relation(fields: [billingAccountId], references: [id], onDelete: Cascade)
+  transaction        PaymentTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@unique([transactionId, providerRefundId])
+  @@index([billingAccountId])
+}
+
+model BillingAuditLog {
+  id               String         @id @default(cuid())
+  billingAccountId String?
+  actor            String
+  action           String
+  metadata         Json?
+  createdAt        DateTime       @default(now())
+  billingAccount   BillingAccount? @relation(fields: [billingAccountId], references: [id], onDelete: SetNull)
+
+  @@index([billingAccountId, createdAt])
+  @@index([action, createdAt])
+}
+
+model ConsentRecord {
+  id        String   @id @default(cuid())
+  userId    String
+  document  String
+  version   String
+  accepted  Boolean  @default(true)
+  ipHash    String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, document, createdAt])
+}
+
+enum BillingStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  SUSPENDED
+}
+
+enum BillingProvider {
+  RAZORPAY
+  REVENUECAT
+  MANUAL
+}
+
+enum SubscriptionStatus {
+  CREATED
+  ACTIVE
+  PAST_DUE
+  PAUSED
+  CANCELED
+  EXPIRED
+}
+
+enum BillingInterval {
+  MONTH
+  YEAR
+  ONE_TIME
+}
+
+enum PaymentKind {
+  SUBSCRIPTION
+  CREDIT_PACK
+  ONE_TIME
+}
+
+enum PaymentStatus {
+  CREATED
+  PENDING
+  CAPTURED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum CreditKind {
+  STANDARD_BOARD
+  HD_RENDER
+}
+
+enum ReservationStatus {
+  HELD
+  CAPTURED
+  RELEASED
+  EXPIRED
+}
+
+enum RefundStatus {
+  CREATED
+  PROCESSED
+  FAILED
 }

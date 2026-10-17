@@ -34,7 +34,7 @@ Built for hackathons, portfolios, and production deployment on **Azure Container
 
 | Asset | Link |
 |-------|------|
-| **Live demo** | Start with `npm run azure:start` — URL in [AZURE_DEPLOY.md](AZURE_DEPLOY.md) |
+| **Live demo** | Start with `npm run azure:start` — URL in [docs/deploy/azure-runbook.md](docs/deploy/azure-runbook.md) |
 | **Demo video** | *Add YouTube/Loom URL* |
 | **Android APK** | Build with [docs/MOBILE_BUILD.md](docs/MOBILE_BUILD.md) — *add Expo artifact or Release URL* |
 | **Pitch deck** | *Add link or commit to `docs/`* |
@@ -87,6 +87,8 @@ flowchart TB
   Gen --> Store
   api --> Redis
 ```
+
+![AuraFit Architecture](docs/screenshots/architecture.png)
 
 Extended design: [docs/architecture-v2.md](docs/architecture-v2.md) · [docs/product-discovery.md](docs/product-discovery.md)
 
@@ -175,6 +177,30 @@ cp apps/mobile/.env.example apps/mobile/.env
 | `INNGEST_*` | Production | Background jobs |
 | `REDIS_URL` | Production | Distributed rate limits |
 
+### Catalogue search flags
+
+These are read at runtime from the environment. Unset values keep today's search path. Set a flag to `false` to turn that behaviour off without deleting the code.
+
+| Variable | Start default | Purpose |
+|----------|---------------|---------|
+| `GOOGLE_SHOPPING_ENABLED` | `true` | Crawler Google Shopping (`udm=28`) path |
+| `SERPAPI_ENABLED` | `true` | SerpAPI path, still requires `SERPAPI_KEY` |
+| `LIVE_PLAYWRIGHT_IN_REQUEST` | `true` | In-request Playwright recovery crawl |
+| `VERIFIER_V2` | `false` | New link verifier |
+| `CLICK_REVALIDATE` | `false` | Re-check a link at click time |
+| `HYBRID_SEARCH` | `false` | Postgres full-text plus vector search |
+| `DISCOVERY_V2` | `false` | Index-only discovery, scoring, and diversity |
+| `SLOT_QUERY_MODE` | `v1` | `v2` fans out several queries per slot |
+| `REQUIRE_GENDER` | `false` | Do not assume men when gender is missing |
+| `CACHE_BACKEND` | `memory` | `postgres` uses the shared discovery cache table |
+| `DELIVERY_TIERS` | `false` | India delivery labels |
+| `GENERATION_SHORTLIST` | `false` | Verify a shortlist before painting a board |
+| `INGEST_FLIPKART_ENABLED` | `false` | Flipkart feed job |
+| `INGEST_ADMITAD_ENABLED` | `false` | Admitad feed job |
+| `INGEST_AMAZON_ENABLED` | `false` | Amazon Creators API job |
+| `INGEST_SHOPIFY_ENABLED` | `false` | Shopify `/products.json` job |
+| `INGEST_SITEMAP_ENABLED` | `false` | Sitemap JSON-LD job |
+
 \* Without Azure OpenAI, generation degrades to demo products and heuristics.
 
 See [`.env.example`](.env.example) for all variables.
@@ -185,9 +211,9 @@ See [`.env.example`](.env.example) for all variables.
 
 | Path | Guide |
 |------|-------|
-| Azure (production + pause/resume) | [AZURE_DEPLOY.md](AZURE_DEPLOY.md) |
-| Vercel + Supabase (hackathon MVP) | [HACKATHON_SETUP.md](HACKATHON_SETUP.md) |
-| Step-by-step checklist | [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) |
+| Azure (production + pause/resume) | [docs/deploy/azure-runbook.md](docs/deploy/azure-runbook.md) |
+| Vercel + Supabase (hackathon MVP) | [docs/hackathon/setup.md](docs/hackathon/setup.md) |
+| Step-by-step checklist | [docs/deploy/checklist.md](docs/deploy/checklist.md) |
 
 ```bash
 # Azure one-liner flow
@@ -212,8 +238,8 @@ cd services/product-crawler && python3 -m pytest tests/
 
 - Report vulnerabilities privately — see [SECURITY.md](SECURITY.md)
 - **No API keys in this repo** — [docs/SETUP_YOUR_KEYS.md](docs/SETUP_YOUR_KEYS.md)
-- Before public release: [GIT_HISTORY_PURGE.md](GIT_HISTORY_PURGE.md) if secrets were ever committed
-- Latest audit: [FINAL_SECURITY_REPORT.md](FINAL_SECURITY_REPORT.md)
+- Before public release: [docs/security/git-history-purge.md](docs/security/git-history-purge.md) if secrets were ever committed
+- Latest audit: [docs/security/audit.md](docs/security/audit.md)
 
 ---
 
@@ -227,12 +253,13 @@ We welcome contributions. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 | Document | Description |
 |----------|-------------|
+| [docs/README.md](docs/README.md) | **Full documentation index** |
 | [docs/SETUP_YOUR_KEYS.md](docs/SETUP_YOUR_KEYS.md) | **Bring your own API keys** |
-| [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) | Zero-to-production deploy |
-| [AZURE_DEPLOY.md](AZURE_DEPLOY.md) | Azure ops runbook |
-| [HACKATHON_SETUP.md](HACKATHON_SETUP.md) | Vercel + Supabase stack |
-| [HACKATHON_SUBMISSION_CHECKLIST.md](HACKATHON_SUBMISSION_CHECKLIST.md) | Submission pass/fail |
-| [RELEASE_READINESS_REPORT.md](RELEASE_READINESS_REPORT.md) | Public release gate |
+| [docs/deploy/checklist.md](docs/deploy/checklist.md) | Zero-to-production deploy |
+| [docs/deploy/azure-runbook.md](docs/deploy/azure-runbook.md) | Azure ops runbook |
+| [docs/hackathon/setup.md](docs/hackathon/setup.md) | Vercel + Supabase stack |
+| [docs/hackathon/submission-checklist.md](docs/hackathon/submission-checklist.md) | Submission pass/fail |
+| [docs/security/release-readiness.md](docs/security/release-readiness.md) | Public release gate |
 | [docs/architecture-v2.md](docs/architecture-v2.md) | System design |
 | [docs/MOBILE_BUILD.md](docs/MOBILE_BUILD.md) | EAS / APK builds |
 | [docs/mobile-setup.md](docs/mobile-setup.md) | Mobile dev setup |

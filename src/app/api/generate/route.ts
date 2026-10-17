@@ -2,7 +2,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { after } from "next/server";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { ensureAppUser } from "@/lib/user";
+import { DeletedUserError, ensureAppUser } from "@/lib/user";
 import { generateJobSchema } from "@/types/api";
 import { JobStatus, JobType } from "@prisma/client";
 import { tryRemoteEnqueueGeneration } from "@/lib/queue/producer";
@@ -13,17 +13,32 @@ import {
   assertAllowedUserMediaUrl,
   UnsafeUrlError,
 } from "@/lib/security/ssrf";
+import {
+  EntitlementError,
+  assertCanGenerate,
+} from "@/lib/billing/entitlements";
 
 export async function POST(req: Request) {
   const { userId } = await auth();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const cu = await currentUser();
-  const user = await ensureAppUser(
-    userId,
-    cu?.primaryEmailAddress?.emailAddress
-  );
+  let user;
+  try {
+    const cu = await currentUser();
+    user = await ensureAppUser(
+      userId,
+      cu?.primaryEmailAddress?.emailAddress
+    );
+  } catch (e) {
+    if (e instanceof DeletedUserError) {
+      return NextResponse.json(
+        { error: "Account has been deleted" },
+        { status: 403 }
+      );
+    }
+    throw e;
+  }
 
   const lim = await rateLimit(
     `gen:${user.id}`,
@@ -51,14 +66,46 @@ export async function POST(req: Request) {
     }
   }
 
+  const isPreviewOnly =
+    parsed.data.previewOnly === true ||
+    parsed.data.renderQuality === "preview";
+
+  let reservationId: string | null = null;
+  try {
+    const entitlement = await assertCanGenerate(user.id, {
+      previewOnly: isPreviewOnly,
+    });
+    reservationId = entitlement.reservationId;
+  } catch (e) {
+    if (e instanceof EntitlementError) {
+      return NextResponse.json(
+        { error: e.message, code: e.code },
+        { status: 402 }
+      );
+    }
+    throw e;
+  }
+
   const job = await prisma.generationJob.create({
     data: {
       userId: user.id,
       jobType: JobType.GENERATION,
       status: JobStatus.QUEUED,
-      payload: parsed.data as object,
+      payload: {
+        ...(parsed.data as object),
+        billingReservationId: reservationId,
+      },
     },
   });
+
+  if (reservationId) {
+    await prisma.usageReservation
+      .update({
+        where: { id: reservationId },
+        data: { jobId: job.id },
+      })
+      .catch(() => undefined);
+  }
 
   const payload = {
     jobId: job.id,
@@ -83,6 +130,10 @@ export async function POST(req: Request) {
             },
           })
           .catch(() => undefined);
+        if (reservationId) {
+          const { finalizeUsage } = await import("@/lib/billing/entitlements");
+          await finalizeUsage(reservationId, false, job.id).catch(() => undefined);
+        }
       }
     });
   }

@@ -1,4 +1,5 @@
 import { normalizeProduct, normalizeProductBatch } from "@/lib/ecommerce/normalize";
+import { sitesForCrawlerApi } from "@/lib/ecommerce/sites/dynamic-retailers";
 import type { Product } from "@/lib/ecommerce/product";
 import type { ProductQuery, ProductSearchProvider } from "./types";
 
@@ -26,6 +27,9 @@ export const crawlLiveProductProvider: ProductSearchProvider = {
       availability: p.availability,
       matchCategory: p.matchCategory,
       matchConfidence: p.matchConfidence,
+      pdpVerified: p.verified === true,
+      lastCrawledAt: new Date().toISOString(),
+      region: q.region,
     }));
   },
 };
@@ -35,7 +39,9 @@ export async function crawlProductsLive(
   q: ProductQuery,
   options?: { maxResults?: number }
 ): Promise<Product[]> {
-  const maxResults = options?.maxResults ?? 3;
+  const maxResults =
+    options?.maxResults ??
+    Number(process.env.PRODUCT_CRAWL_MAX_RESULTS ?? 12);
   const url = `${CRAWLER_URL()}/crawl/search`;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -55,8 +61,13 @@ export async function crawlProductsLive(
         budget_min: q.budgetMin,
         budget_max: q.budgetMax,
         max_results: maxResults,
+        sites: q.retailerSites?.length
+          ? sitesForCrawlerApi(q.retailerSites)
+          : undefined,
       }),
-      signal: AbortSignal.timeout(120_000),
+      signal: AbortSignal.timeout(
+        Number(process.env.PRODUCT_CRAWL_TIMEOUT_MS ?? 45_000)
+      ),
     });
   } catch (e) {
     throw e;

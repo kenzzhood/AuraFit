@@ -32,11 +32,11 @@ const securityHeaders = [
     value: [
       "default-src 'self'",
       // Clerk (dev + production) + analytics
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.accounts.dev https://clerk.accounts.dev https://*.clerk.com https://clerk.com https://challenges.cloudflare.com https://app.posthog.com https://browser.sentry-cdn.com",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.accounts.dev https://clerk.accounts.dev https://*.clerk.com https://clerk.com https://challenges.cloudflare.com https://app.posthog.com https://browser.sentry-cdn.com https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.clarity.ms https://scripts.clarity.ms https://*.clarity.ms https://cdn.mxpnl.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.clerk.accounts.dev https://*.clerk.com",
       "font-src 'self' https://fonts.gstatic.com https://*.clerk.accounts.dev https://*.clerk.com",
-      "img-src 'self' blob: data: https://res.cloudinary.com https://*.blob.core.windows.net https://*.azureedge.net https://img.clerk.com https://images.unsplash.com",
-      "connect-src 'self' https://*.clerk.accounts.dev https://clerk.accounts.dev https://*.clerk.com https://clerk.com wss://*.clerk.accounts.dev wss://*.clerk.com https://clerk-telemetry.com https://app.posthog.com https://*.sentry.io",
+      "img-src 'self' blob: data: https://res.cloudinary.com https://*.blob.core.windows.net https://*.azureedge.net https://img.clerk.com https://images.unsplash.com https://www.google-analytics.com https://c.clarity.ms https://*.clarity.ms",
+      "connect-src 'self' https://*.clerk.accounts.dev https://clerk.accounts.dev https://*.clerk.com https://clerk.com wss://*.clerk.accounts.dev wss://*.clerk.com https://clerk-telemetry.com https://app.posthog.com https://*.sentry.io https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.clarity.ms https://scripts.clarity.ms https://*.clarity.ms https://cdn.mxpnl.com https://api-js.mixpanel.com https://api.mixpanel.com",
       "frame-src 'self' https://accounts.google.com https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com",
       "worker-src 'self' blob:",
     ].join("; "),
@@ -56,6 +56,7 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       {
         protocol: "https",

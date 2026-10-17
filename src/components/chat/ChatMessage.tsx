@@ -7,10 +7,12 @@ export function ChatMessage({
   role,
   children,
   embedded,
+  imageUrls,
 }: {
   role: "user" | "assistant";
   children: ReactNode;
   embedded?: ReactNode;
+  imageUrls?: string[];
 }) {
   const isUser = role === "user";
   return (
@@ -28,6 +30,19 @@ export function ChatMessage({
             : "border border-aura-border bg-aura-ink/60 text-aura-foreground"
         )}
       >
+        {imageUrls && imageUrls.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-2">
+            {imageUrls.map((url) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={url}
+                src={url}
+                alt=""
+                className="h-16 w-16 rounded-lg object-cover"
+              />
+            ))}
+          </div>
+        )}
         <div className="whitespace-pre-wrap">{children}</div>
         {embedded && (
           <div className="mt-3 border-t border-aura-border/50 pt-3">{embedded}</div>

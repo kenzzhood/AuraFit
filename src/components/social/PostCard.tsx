@@ -28,7 +28,10 @@ export function PostCard({ post }: { post: PostWithRelations }) {
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={img}
-            alt=""
+            alt={
+              post.caption?.trim() ||
+              `Look by @${post.user.username ?? "user"}`
+            }
             className="h-full w-full object-cover transition group-hover:scale-[1.02]"
           />
         ) : (

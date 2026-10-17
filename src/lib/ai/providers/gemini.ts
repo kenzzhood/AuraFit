@@ -1,9 +1,10 @@
-import type { PlannedLook, PersonAnalysis } from "@/types/generation";
+import type { PersonAnalysis } from "@/types/generation";
 import type {
   AIProvider,
   AnalyzePersonInput,
   ChatMessageInput,
   GenerateLooksInput,
+  GenerateLooksResult,
 } from "./types";
 
 /**
@@ -20,7 +21,7 @@ export const geminiAIProvider: AIProvider = {
     throw new Error("Gemini analyzePerson not wired yet — set AI_PROVIDERS=azure,openai");
   },
 
-  async generateLooks(_input: GenerateLooksInput): Promise<PlannedLook[]> {
+  async generateLooks(_input: GenerateLooksInput): Promise<GenerateLooksResult> {
     throw new Error("Gemini generateLooks not wired yet");
   },
 

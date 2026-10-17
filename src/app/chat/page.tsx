@@ -1,6 +1,7 @@
+import { Suspense } from "react";
 import { ChatInterface } from "@/components/chat/ChatInterface";
 
-export default function ChatPage() {
+function ChatPageBody() {
   return (
     <div className="mx-auto max-w-6xl">
       <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-aura-sage">
@@ -10,11 +11,24 @@ export default function ChatPage() {
         Chat with Aurafit
       </h1>
       <p className="mt-3 max-w-lg text-sm text-aura-dim">
-        Streaming tokens append live as the assistant replies.
+        Attach a photo and get shoppable looks in this thread — search, swap a
+        piece, or match a garment. Generating a board uses a look credit.
       </p>
       <div className="mt-10">
         <ChatInterface />
       </div>
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense
+      fallback={
+        <p className="text-center text-sm text-aura-muted">Loading…</p>
+      }
+    >
+      <ChatPageBody />
+    </Suspense>
   );
 }

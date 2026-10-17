@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import posthog from "posthog-js";
+import { track } from "@/lib/analytics/track";
 import { motion, AnimatePresence } from "framer-motion";
 import type { CheckoutResponse } from "@/types/cart";
 import { useCartStore } from "@/store/useCartStore";
@@ -15,12 +15,10 @@ async function openRetailerLinks(
   items: CheckoutResponse["groups"][number]["items"],
   retailer: string
 ) {
-  if (process.env.NEXT_PUBLIC_POSTHOG_KEY) {
-    posthog.capture("retailer_checkout_clicked", {
-      retailer,
-      item_count: items.length,
-    });
-  }
+  track("retailer_checkout_clicked", {
+    retailer,
+    item_count: items.length,
+  });
 
   for (const item of items) {
     try {
@@ -72,15 +70,21 @@ export function CheckoutDrawer({
             className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
           />
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="checkout-drawer-title"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 320 }}
-            className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-3xl border border-aura-border bg-aura-stage p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl md:inset-x-auto md:bottom-auto md:left-1/2 md:top-1/2 md:w-full md:max-w-lg md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl"
+            className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto overscroll-contain rounded-t-3xl border border-aura-border bg-aura-stage p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl md:inset-x-auto md:bottom-auto md:left-1/2 md:top-1/2 md:w-full md:max-w-lg md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl"
           >
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
-                <h2 className="font-display text-lg font-semibold text-aura-foreground">
+                <h2
+                  id="checkout-drawer-title"
+                  className="font-display text-lg font-semibold text-aura-foreground"
+                >
                   Checkout
                 </h2>
                 <p className="mt-1 text-sm text-aura-muted">

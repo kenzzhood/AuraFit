@@ -4,6 +4,8 @@ import type {
   ProductSearchProvider,
   ProductSource,
 } from "./types";
+import { usableMerchantUrl } from "@/lib/ecommerce/fingerprint";
+import { sitesForCrawlerApi } from "@/lib/ecommerce/sites/dynamic-retailers";
 
 /**
  * Self-hosted verified-product provider.
@@ -13,9 +15,10 @@ import type {
  *   1. The crawler first tries real Google Shopping (`udm=28`). When Google
  *      doesn't bot-block the request (rare from cloud IPs) we get cards back
  *      in <1 s with merchant URLs + thumbnails.
- *   2. Otherwise it falls through to retailer search (Flipkart + Amazon.in
- *      via Playwright) with per-detail-page validation. Every returned row
- *      is a real, in-stock product from the retailer's own search results.
+ *   2. Otherwise it falls through to retailer search (Amazon, Myntra, Ajio,
+ *      Flipkart, and other marketplaces via Playwright) with per-detail-page
+ *      validation. Every returned row is a real, in-stock product. Boutique
+ *      Shopify stores are last-resort only so they cannot hide the big shops.
  *
  * Either path returns:
  *   - a real merchant URL (Flipkart/Amazon.in/Myntra/Ajio/Nykaa/…)
@@ -30,7 +33,7 @@ const CRAWLER_KEY = () => process.env.CRAWLER_API_KEY ?? "";
 
 /** Playwright multi-retailer fallback needs headroom from cloud cold starts. */
 const SYNC_CRAWLER_TIMEOUT_MS = Number(
-  process.env.GENERATION_CRAWLER_TIMEOUT_MS ?? 75_000
+  process.env.GENERATION_CRAWLER_TIMEOUT_MS ?? 20_000
 );
 
 const CIRCUIT_FAILURE_THRESHOLD = Number(
@@ -105,7 +108,11 @@ export const googleShoppingProductProvider: ProductSearchProvider = {
           category: q.category,
           budget_min: q.budgetMin,
           budget_max: q.budgetMax,
-          max_results: 4,
+          max_results: 12,
+          fast: true,
+          sites: q.retailerSites?.length
+            ? sitesForCrawlerApi(q.retailerSites)
+            : undefined,
         }),
         signal: AbortSignal.timeout(SYNC_CRAWLER_TIMEOUT_MS),
       });
@@ -153,8 +160,12 @@ export const googleShoppingProductProvider: ProductSearchProvider = {
     }
 
     return rows
-      .filter((r) => r.title && r.url && r.image)
-      .slice(0, 6)
+      .map((r) => {
+        const productUrl = r.url ? usableMerchantUrl(r.url) : null;
+        return productUrl ? { ...r, url: productUrl } : null;
+      })
+      .filter((r): r is NonNullable<typeof r> => !!r && !!r.title && !!r.url && !!r.image)
+      .slice(0, 16)
       .map((r, i) => {
         const source = (r.source as ProductSource | undefined) ??
           (inferSourceFromHost(r.url) as ProductSource | string);
@@ -175,6 +186,7 @@ export const googleShoppingProductProvider: ProductSearchProvider = {
           category: r.matchCategory ?? q.category,
           storeName: r.storeName,
           verified: r.verified !== false,
+          pdpVerified: r.verified === true,
           availability:
             r.availability === "out_of_stock"
               ? "out_of_stock"
@@ -182,6 +194,7 @@ export const googleShoppingProductProvider: ProductSearchProvider = {
                 ? "in_stock"
                 : "unknown",
           matchCategory: r.matchCategory ?? q.category,
+          region: q.region,
         };
       });
   },

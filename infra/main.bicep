@@ -74,6 +74,26 @@ param azureStorageConnectionString string
 @secure()
 param crawlerApiKey string
 
+@description('Optional Bright Data Web Unlocker API token for the crawler.')
+@secure()
+param brightDataApiToken string = ''
+
+@description('Bright Data Web Unlocker zone name for the crawler.')
+@secure()
+param brightDataWebUnlockerZone string = ''
+
+@description('Optional Oxylabs Realtime username for the crawler.')
+@secure()
+param oxylabsUsername string = ''
+
+@description('Optional Oxylabs Realtime password for the crawler.')
+@secure()
+param oxylabsPassword string = ''
+
+@description('Optional SerpAPI key for internet-wide Google Shopping product search.')
+@secure()
+param serpApiKey string = ''
+
 @description('Inngest event key (self-hosted or Inngest Cloud).')
 @secure()
 param inngestEventKey string
@@ -149,7 +169,11 @@ module crawler 'modules/container-app-crawler.bicep' = {
     registryResourceId: registry.outputs.resourceId
     imageName: crawlerImageName
     crawlerApiKey: crawlerApiKey
-    minReplicas: 0
+    brightDataApiToken: brightDataApiToken
+    brightDataWebUnlockerZone: brightDataWebUnlockerZone
+    oxylabsUsername: oxylabsUsername
+    oxylabsPassword: oxylabsPassword
+    minReplicas: 1
     cpu: '2.0'
     memory: '4Gi'
   }
@@ -177,12 +201,13 @@ module web 'modules/container-app-web.bicep' = {
     azureStorageConnectionString: azureStorageConnectionString
     productCrawlerUrl: 'https://${crawlerInternalFqdn}'
     crawlerApiKey: crawlerApiKey
+    serpApiKey: serpApiKey
     inngestEventKey: inngestEventKey
     inngestSigningKey: inngestSigningKey
     inngestBaseUrl: 'https://${inngestInternalFqdn}'
     appUrl: 'https://${webFqdn}'
     corsAllowedOrigins: 'aurafit://,https://${webFqdn},https://aurafit.app,https://www.aurafit.app'
-    minReplicas: 0
+    minReplicas: 1
     cpu: '2.0'
     memory: '4Gi'
   }

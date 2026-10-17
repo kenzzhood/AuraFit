@@ -2,7 +2,7 @@ import { getStorageProvider } from "@/lib/storage/provider";
 
 export async function uploadUserImage(params: {
   clerkUserId: string;
-  kind: "wardrobe" | "profile" | "outfit_render";
+  kind: "wardrobe" | "profile" | "outfit_render" | "chat";
   fileName: string;
   buffer: Buffer;
   contentType: string;

@@ -1,4 +1,8 @@
-"""Crawl4AI engine for semantic / structured extraction."""
+"""Crawl4AI engine for semantic / structured extraction.
+
+Optional: crawl4ai is not in requirements.txt because it pins lxml 5.x while
+Scrapling needs lxml 6.x. HTML parse still runs; this import fails closed.
+"""
 from __future__ import annotations
 
 from typing import Any

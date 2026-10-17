@@ -1,4 +1,5 @@
 import { createHash } from "crypto";
+import { rewriteLegacyRetailerUrl } from "./fingerprint";
 import type { Product, ProductAvailability } from "./product";
 
 export type RawProductInput = Record<string, unknown>;
@@ -35,8 +36,8 @@ export function normalizeProduct(
   const title = String(
     raw.title ?? raw.name ?? raw.product_title ?? "Product"
   );
-  const url = String(
-    raw.url ?? raw.productUrl ?? raw.link ?? raw.product_link ?? ""
+  const url = rewriteLegacyRetailerUrl(
+    String(raw.url ?? raw.productUrl ?? raw.link ?? raw.product_link ?? "")
   );
   const externalId = String(
     raw.externalId ??
@@ -75,7 +76,9 @@ export function normalizeProduct(
     // Verification metadata from the crawler's product-detail resolver. We
     // require `verified === true` to ever show a product as a real link.
     verified: raw.verified === true,
-    canonicalUrl: raw.canonicalUrl ? String(raw.canonicalUrl) : undefined,
+    canonicalUrl: raw.canonicalUrl
+      ? rewriteLegacyRetailerUrl(String(raw.canonicalUrl))
+      : undefined,
     matchCategory: raw.matchCategory ? String(raw.matchCategory) : undefined,
     matchConfidence:
       typeof raw.matchConfidence === "number"
@@ -83,6 +86,13 @@ export function normalizeProduct(
         : raw.matchConfidence
           ? parseFloat(String(raw.matchConfidence))
           : undefined,
+    lastCrawledAt:
+      typeof raw.lastCrawledAt === "string"
+        ? raw.lastCrawledAt
+        : raw.lastCrawledAt instanceof Date
+          ? raw.lastCrawledAt.toISOString()
+          : undefined,
+    pdpVerified: raw.pdpVerified === true,
   };
 
   return product;

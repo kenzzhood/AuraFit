@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Spotlight } from "@/components/ui/spotlight";
 
 const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1509631179647-0177331693ae?q=85&w=2000&auto=format&fit=crop";
+  "https://images.unsplash.com/photo-1509631179647-0177331693ae?q=85&w=1200&auto=format&fit=crop";
 
 export function Hero() {
   return (

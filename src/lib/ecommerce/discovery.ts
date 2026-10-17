@@ -19,7 +19,15 @@ import { googleShoppingProductProvider } from "./providers/google-shopping";
 import { crawlLiveProductProvider } from "./providers/crawl-live";
 import { demoProductProvider } from "./providers/demo";
 import { enqueueProductCrawl } from "./crawl-queue";
-import type { PersonAnalysis, PlannedLook } from "@/types/generation";
+import { filterProductsToRegion } from "./buyability";
+import { retailerDomain } from "./fingerprint";
+import {
+  diversifyProducts,
+  hasMarketplaceCoverage,
+  preferMarketplaceProducts,
+} from "./retailer-diversity";
+import { readDiscoveryFlags } from "@/lib/flags";
+import { writeDiscoveryLog } from "./discovery-log";
 
 export type DiscoverProductsResult = {
   products: Product[];
@@ -35,17 +43,17 @@ export type DiscoverProductsResult = {
 };
 
 function getDiscoveryLayers(): string[] {
-  // Default order (self-hosted fashion index):
-  //   1. cache  — per-process / Redis cache (instant)
-  //   2. index  — owned pgvector catalog (fast, free, grows nightly)
-  //   3. crawl  — async Playwright backfill when index is sparse (non-blocking)
+  // Default order:
+  //   1. cache     — per-process / Redis cache (instant)
+  //   2. index     — owned pgvector catalog
+  //   3. shopping  — Google Shopping via SerpAPI, then self-hosted crawler
+  //   4. crawl     — async Playwright backfill when the pool is still thin
   //
-  // Opt-in layers (set PRODUCT_DISCOVERY_LAYERS explicitly):
-  //   shopping — paid SerpAPI / Google Shopping (emergency fallback only)
-  //   demo     — placeholder products for dev/tests
+  // `demo` is never in the default chain — opt in for tests/dev.
   return parseProviderOrder("PRODUCT_DISCOVERY_LAYERS", [
     "cache",
     "index",
+    "shopping",
     "crawl",
   ]);
 }
@@ -87,6 +95,35 @@ export function locationToRegion(
 const minResults = () =>
   Number(process.env.PRODUCT_CRAWL_MIN_RESULTS ?? 4);
 
+const CACHED_POOL_CAP = 24;
+
+export function candidatePoolTarget(): number {
+  const n = Number(process.env.PRODUCT_CANDIDATE_POOL_TARGET ?? 20);
+  return Number.isFinite(n) && n > 0 ? Math.min(n, 40) : 20;
+}
+
+function distinctRetailerCount(products: Product[]): number {
+  const domains = new Set(
+    products.map((p) => retailerDomain(p.canonicalUrl ?? p.url)).filter(Boolean)
+  );
+  return domains.size;
+}
+
+/**
+ * Keep searching until the pool is large AND the big shops are in it.
+ * Boutique-heavy cache/index rows (Banana Club + Flipkart) used to look
+ * "full" and skip Amazon / Myntra / Ajio entirely.
+ */
+function poolNeedsExpansion(products: Product[]): boolean {
+  if (products.length < candidatePoolTarget()) return true;
+  if (distinctRetailerCount(products) < 3) return true;
+  return !hasMarketplaceCoverage(products);
+}
+
+function stampRegion(products: Product[], region: ProductQuery["region"]): Product[] {
+  return products.map((p) => (p.region ? p : { ...p, region }));
+}
+
 /**
  * Domains that have been confirmed to produce blank/broken pages for real
  * users even when our crawler validates them as "verified". Products from
@@ -97,8 +134,9 @@ const minResults = () =>
  * Add domains here whenever a retailer is disabled in sites.yaml until we
  * can verify that the crawled URLs work reliably for real users.
  */
-const BLOCKED_PRODUCT_DOMAINS = new Set([
-  "snitch.co.in", // Men's-only brand; Playwright validation passes but pages render blank for real users
+const BLOCKED_PRODUCT_DOMAINS = new Set<string>([
+  // Empty by default — every shoppable store stays in the mix.
+  // Add a host here only when its PDPs are confirmed blank for real users.
 ]);
 
 function isFromBlockedDomain(url?: string): boolean {
@@ -126,29 +164,25 @@ function hasVerifiedShoppableProduct(products: Product[]): boolean {
 }
 
 /**
- * Opt-in emergency shopping search (SerpAPI / Google Shopping).
- *
- * NOT used in the default discovery chain. Enable by setting
- * PRODUCT_DISCOVERY_LAYERS=cache,shopping,index,crawl and SERPAPI_KEY.
- *
- * Both backends return verified products with `imageUrl` and merchant URL.
+ * Google Shopping via SerpAPI (when keyed) plus the self-hosted crawler
+ * fallback. Both run when SerpAPI is thin so the pool is not a single SERP page.
  */
 async function fetchShoppingProviders(
   q: ProductQuery
 ): Promise<{ products: Product[]; meta: ProviderMeta }> {
   const failures: ProviderMeta["failures"] = [];
   const providersUsed: string[] = [];
+  let products: Product[] = [];
+
+  const flags = readDiscoveryFlags();
 
   // Primary: SerpAPI Google Shopping — broad, fast, parallel-safe.
-  if (serpApiProductProvider.isConfigured()) {
+  if (flags.serpapiEnabled && serpApiProductProvider.isConfigured()) {
     try {
       const raw = await serpApiProductProvider.search(q);
       if (raw.length) {
         providersUsed.push("serpapi");
-        return {
-          products: dedupeProducts(raw.map((p) => normalizedToProduct(p))),
-          meta: { providersUsed },
-        };
+        products = dedupeProducts(raw.map((p) => normalizedToProduct(p)));
       }
     } catch (e) {
       failures.push({
@@ -159,16 +193,20 @@ async function fetchShoppingProviders(
     }
   }
 
-  // Fallback: self-hosted Google Shopping via our crawler container.
-  if (googleShoppingProductProvider.isConfigured()) {
+  // Self-hosted Google Shopping / retailer search when SerpAPI is missing or thin.
+  if (
+    flags.googleShoppingEnabled &&
+    googleShoppingProductProvider.isConfigured() &&
+    products.length < candidatePoolTarget()
+  ) {
     try {
       const raw = await googleShoppingProductProvider.search(q);
       if (raw.length) {
         providersUsed.push("google-shopping");
-        return {
-          products: dedupeProducts(raw.map((p) => normalizedToProduct(p))),
-          meta: { providersUsed },
-        };
+        products = dedupeProducts([
+          ...products,
+          ...raw.map((p) => normalizedToProduct(p)),
+        ]);
       }
     } catch (e) {
       failures.push({
@@ -180,7 +218,7 @@ async function fetchShoppingProviders(
   }
 
   return {
-    products: [],
+    products,
     meta: {
       degraded: failures.length > 0,
       failures: failures.length ? failures : undefined,
@@ -217,14 +255,24 @@ export async function discoverProducts(params: {
   syncCrawlFallback?: boolean;
   /** Skip google-shopping; go straight to sync Playwright (recovery path). */
   syncCrawlOnly?: boolean;
+  /**
+   * Skip the live shopping layer for this query. Used for non-hero slots when
+   * SerpAPI is not configured — the self-hosted Google Shopping fallback runs
+   * on the shared Playwright pool, and fanning every slot into it saturates
+   * the browsers. Hero slots still get the full internet-wide search.
+   */
+  skipShoppingLayer?: boolean;
 }): Promise<DiscoverProductsResult> {
+  const started = Date.now();
   const q = params.query;
+  const flags = readDiscoveryFlags();
   const layers = getDiscoveryLayers();
   const providerMeta: ProviderMeta = { providersUsed: [] };
   let products: Product[] = [];
   let status: SessionStatus = "partial";
 
-  // Layer 1: per-process cache (instant)
+  // Layer 1: per-process cache (instant). Never the last word when the pool
+  // is thin or single-retailer — shopping still runs below.
   if (!params.syncCrawlOnly && layers.includes("cache")) {
     const cached = await getCachedProducts(q);
     if (cached?.length) {
@@ -234,10 +282,12 @@ export async function discoverProducts(params: {
     }
   }
 
-  // Layer 2: owned pgvector fashion index (primary synchronous source).
-  if (!params.syncCrawlOnly && products.length < minResults() && layers.includes("index")) {
+  // Layer 2: owned pgvector fashion index.
+  if (!params.syncCrawlOnly && poolNeedsExpansion(products) && layers.includes("index")) {
     try {
-      const indexed = await searchProductIndex(q, { limit: 12 });
+      const indexed = await searchProductIndex(q, {
+        limit: candidatePoolTarget(),
+      });
       products = dedupeProducts([...products, ...filterBlockedDomains(indexed)]);
       if (indexed.length) providerMeta.providersUsed!.push("index");
       if (products.length >= minResults()) status = "ready";
@@ -254,17 +304,22 @@ export async function discoverProducts(params: {
     }
   }
 
-  // Layer 3 (opt-in): paid SerpAPI / Google Shopping — only when `shopping`
-  // is explicitly included in PRODUCT_DISCOVERY_LAYERS.
+  // Layer 3: Google Shopping. Honour skipShoppingLayer strictly — supporting
+  // slots must not each trigger a full crawler pass (that is what pushed
+  // generation past 5 minutes).
   if (
     !params.syncCrawlOnly &&
-    products.length < minResults() &&
+    !params.skipShoppingLayer &&
+    poolNeedsExpansion(products) &&
     layers.includes("shopping")
   ) {
     const live = await fetchShoppingProviders(q);
 
     if (live.products.length) {
-      products = dedupeProducts([...products, ...live.products]);
+      products = dedupeProducts([
+        ...products,
+        ...filterBlockedDomains(live.products),
+      ]);
       providerMeta.providersUsed = [
         ...(providerMeta.providersUsed ?? []),
         ...(live.meta.providersUsed ?? []),
@@ -282,6 +337,7 @@ export async function discoverProducts(params: {
 
   // Layer 3b: sync Playwright crawl — recovery path when index + cache empty.
   if (
+    flags.livePlaywrightInRequest &&
     crawlLiveProductProvider.isConfigured() &&
     (params.syncCrawlOnly ||
       (params.syncCrawlFallback && !hasVerifiedShoppableProduct(products)))
@@ -314,7 +370,7 @@ export async function discoverProducts(params: {
 
   // Layer 4: demo provider — only when explicitly opted into via
   // PRODUCT_DISCOVERY_LAYERS=…,demo. Never reached by default.
-  if (products.length < minResults() && layers.includes("demo")) {
+  if (poolNeedsExpansion(products) && layers.includes("demo")) {
     const demo = await fetchDemoProvider(q);
     products = dedupeProducts([...products, ...demo.products]);
     providerMeta.providersUsed = [
@@ -322,6 +378,13 @@ export async function discoverProducts(params: {
       ...(demo.meta.providersUsed ?? []),
     ];
   }
+
+  products = preferMarketplaceProducts(
+    stampRegion(
+      filterBlockedDomains(filterProductsToRegion(products, q.region)),
+      q.region
+    )
+  );
 
   // Rank before session/cache write
   if (params.rankingContext || products.length) {
@@ -331,6 +394,7 @@ export async function discoverProducts(params: {
       plannedLook: params.rankingContext?.plannedLook,
     });
   }
+  products = diversifyProducts(products, 4);
 
   let sessionId: string | undefined;
   try {
@@ -357,13 +421,12 @@ export async function discoverProducts(params: {
 
 
 
-  // Layer 5: async Playwright crawl — gap-fill when index is sparse.
-  // Non-blocking: returns partial index results immediately; worker updates
-  // the catalog for the next request.
+  // Layer 5: async Playwright crawl — gap-fill when the pool is still thin.
+  // Non-blocking: returns partial results immediately; worker updates the catalog.
   if (
     params.allowAsyncCrawl !== false &&
     layers.includes("crawl") &&
-    products.length < minResults() &&
+    poolNeedsExpansion(products) &&
     process.env.PRODUCT_CRAWLER_URL &&
     sessionId
   ) {
@@ -394,9 +457,12 @@ export async function discoverProducts(params: {
     );
   }
 
-  // Persist to cache + index
+  // Persist the ranked pool (not just the first 4 hits) so later boards can diversify.
   if (products.length) {
-    await setCachedProducts(q, products.map((p) => productToNormalized(p)));
+    await setCachedProducts(
+      q,
+      products.slice(0, CACHED_POOL_CAP).map((p) => productToNormalized(p))
+    );
     if (layers.includes("index")) {
       upsertProductIndexBatch(products, { embed: true }).catch((e) =>
         console.warn("Index upsert failed:", e)
@@ -405,6 +471,15 @@ export async function discoverProducts(params: {
   }
 
   const usedDemo = (providerMeta.providersUsed ?? []).includes("demo");
+
+  await writeDiscoveryLog({
+    userId: params.userId,
+    query: q,
+    products,
+    providersUsed: providerMeta.providersUsed ?? [],
+    latencyMs: Date.now() - started,
+    flags,
+  });
 
   return {
     products,
@@ -477,6 +552,7 @@ export async function discoverProductsBatch(
     generationJobId?: string;
     syncCrawlFallback?: boolean;
     allowAsyncCrawl?: boolean;
+    skipShoppingLayer?: boolean;
   } = {}
 ): Promise<BatchDiscoveryEntry[]> {
   if (!items.length) return [];
@@ -491,6 +567,7 @@ export async function discoverProductsBatch(
         generationJobId: shared.generationJobId,
         rankingContext: item.rankingContext,
         syncCrawlFallback: shared.syncCrawlFallback,
+        skipShoppingLayer: shared.skipShoppingLayer,
         // Batch mode never blocks on the slow async crawl queue.
         allowAsyncCrawl: shared.allowAsyncCrawl ?? false,
       });

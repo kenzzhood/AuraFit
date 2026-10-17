@@ -1,0 +1,17 @@
+{
+  "note": "Offline fixture. Not a live catalogue. Used only by scripts/discovery-baseline.mjs.",
+  "products": [
+    { "id": "p1", "title": "Floral midi dress", "gender": "female", "category": "dress", "host": "bananaclub.co.in", "priceInr": 2499 },
+    { "id": "p2", "title": "Black bodycon dress", "gender": "female", "category": "dress", "host": "bananaclub.co.in", "priceInr": 1999 },
+    { "id": "p3", "title": "Office sheath dress", "gender": "female", "category": "dress", "host": "bananaclub.co.in", "priceInr": 3299 },
+    { "id": "p4", "title": "Silk saree", "gender": "female", "category": "ethnic", "host": "bananaclub.co.in", "priceInr": 4999 },
+    { "id": "p5", "title": "Cotton kurta", "gender": "male", "category": "ethnic", "host": "bananaclub.co.in", "priceInr": 1499 },
+    { "id": "p6", "title": "Oxford shirt", "gender": "male", "category": "top", "host": "bananaclub.co.in", "priceInr": 1799 },
+    { "id": "p7", "title": "Pleated trousers", "gender": "male", "category": "bottom", "host": "myntra.com", "priceInr": 2199 },
+    { "id": "p8", "title": "Leather loafers", "gender": "male", "category": "shoes", "host": "myntra.com", "priceInr": 3499 },
+    { "id": "p9", "title": "Linen blouse", "gender": "female", "category": "top", "host": "myntra.com", "priceInr": 1899 },
+    { "id": "p10", "title": "Wide leg trousers", "gender": "female", "category": "bottom", "host": "amazon.in", "priceInr": 1599 },
+    { "id": "p11", "title": "Block heels", "gender": "female", "category": "shoes", "host": "amazon.in", "priceInr": 2799 },
+    { "id": "p12", "title": "Festive lehenga", "gender": "female", "category": "ethnic", "host": "ajio.com", "priceInr": 7999 }
+  ]
+}

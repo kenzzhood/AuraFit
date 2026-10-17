@@ -11,14 +11,20 @@ export function LandingHeader() {
       transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
       className="fixed left-0 right-0 top-0 z-50 border-b border-aura-border/60 bg-aura-void/85 backdrop-blur-md"
     >
-      <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-3.5 md:px-12">
+      <div className="mx-auto flex max-w-[1400px] flex-col gap-3 px-6 py-3.5 sm:flex-row sm:items-center sm:justify-between md:px-12">
         <Link
           href="/"
           className="font-display text-base font-semibold tracking-tight text-aura-foreground"
         >
           Aurafit
         </Link>
-        <nav className="flex items-center gap-6 text-[13px] font-medium tracking-wide text-aura-dim md:gap-9">
+        <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] font-medium tracking-wide text-aura-dim md:gap-x-9">
+          <Link
+            href="/pricing"
+            className="transition-colors hover:text-aura-champagne"
+          >
+            Pricing
+          </Link>
           <Link
             href="/explore"
             className="transition-colors hover:text-aura-champagne"

@@ -2,6 +2,7 @@ import { nanoid } from "nanoid";
 import type { CartItem } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { buildAffiliateUrlFromProviders } from "@/lib/ecommerce/affiliate/provider";
+import { isAllowedAffiliateUrl } from "@/lib/security/affiliate-url";
 import type {
   CartItemInput,
   CartItemPublic,
@@ -149,6 +150,11 @@ export async function addItemsToCart(
   inputs: CartItemInput[]
 ): Promise<CartResponse> {
   const cart = await getOrCreateCart(userId);
+  for (const input of inputs) {
+    if (!isAllowedAffiliateUrl(input.productUrl)) {
+      throw new Error(`Product URL not allowed: ${input.productUrl}`);
+    }
+  }
   const data = inputs.map((input) => {
     const productUrl = input.productUrl;
     const affiliateUrl = resolveAffiliateUrl(productUrl, "cart_add");
@@ -183,7 +189,9 @@ export async function addItemsToCart(
 }
 
 export function buildCheckoutResponse(items: CartItem[]): CheckoutResponse {
-  const publicItems = items.map(toCartItemPublic);
+  const publicItems = items
+    .map(toCartItemPublic)
+    .filter((item) => isAllowedAffiliateUrl(item.effectiveUrl));
   const currency = publicItems[0]?.currency ?? "INR";
   const byRetailer = new Map<string, CartItemPublic[]>();
 

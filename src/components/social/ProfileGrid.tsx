@@ -22,7 +22,11 @@ export function ProfileGrid({ posts }: { posts: GridPost[] }) {
             <div className="aspect-square bg-aura-highlight/10">
               {img ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={img} alt="" className="h-full w-full object-cover" />
+                <img
+                  src={img}
+                  alt={p.caption?.trim() || "Outfit look"}
+                  className="h-full w-full object-cover"
+                />
               ) : (
                 <div className="flex h-full items-center justify-center text-[10px] text-aura-muted">
                   Post

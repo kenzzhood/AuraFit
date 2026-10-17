@@ -2,6 +2,12 @@ import type {
   PersonAnalysis,
   PlannedLook,
 } from "@/types/generation";
+import type { RetailerSiteOverride } from "@/lib/ecommerce/sites/dynamic-retailers";
+
+export type GenerateLooksResult = {
+  looks: PlannedLook[];
+  retailerSites?: RetailerSiteOverride[];
+};
 
 export type AnalyzePersonInput = {
   imageUrl: string;
@@ -40,6 +46,8 @@ export type GenerateLooksInput = {
   personAnalysis?: PersonAnalysis | null;
   wardrobeSummary?: string;
   wardrobeContext?: WardrobeContext;
+  /** Chat uses 2 or 3; /generate defaults to 6 when unset. */
+  lookCount?: 2 | 3 | 6;
 };
 
 export type ChatMessageInput = {
@@ -51,7 +59,7 @@ export interface AIProvider {
   readonly name: string;
   isConfigured(): boolean;
   analyzePerson(input: AnalyzePersonInput): Promise<PersonAnalysis | null>;
-  generateLooks(input: GenerateLooksInput): Promise<PlannedLook[]>;
+  generateLooks(input: GenerateLooksInput): Promise<GenerateLooksResult>;
   generateChat(messages: ChatMessageInput[]): AsyncIterable<string>;
   generateEmbeddings(text: string): Promise<number[]>;
 }

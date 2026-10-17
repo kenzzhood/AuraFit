@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ensureAppUser } from "@/lib/user";
 import { z } from "zod";
+import { rateLimit } from "@/lib/redis";
+import { rateLimitedResponse } from "@/lib/api/rate-limit-response";
 
 const schema = z.object({
   username: z
@@ -21,6 +23,11 @@ export async function POST(req: Request) {
   const user = await ensureAppUser(userId, cu?.primaryEmailAddress?.emailAddress);
   if (user.deletedAt) {
     return NextResponse.json({ error: "Account deactivated" }, { status: 403 });
+  }
+
+  const lim = await rateLimit(`follow:${user.id}`, 40, 15 * 60);
+  if (!lim.ok) {
+    return rateLimitedResponse("follow", lim.retryAfterSec);
   }
 
   const parsed = schema.safeParse(await req.json());
@@ -62,6 +69,11 @@ export async function DELETE(req: Request) {
   }
   const cu = await currentUser();
   const user = await ensureAppUser(userId, cu?.primaryEmailAddress?.emailAddress);
+
+  const lim = await rateLimit(`follow:${user.id}`, 40, 15 * 60);
+  if (!lim.ok) {
+    return rateLimitedResponse("follow", lim.retryAfterSec);
+  }
 
   const parsed = schema.safeParse(await req.json());
   if (!parsed.success) {

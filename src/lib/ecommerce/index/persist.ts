@@ -2,6 +2,7 @@ import { ProductAvailability as PrismaAvailability } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { productContentHash, normalizeProduct } from "@/lib/ecommerce/normalize";
 import type { Product } from "@/lib/ecommerce/product";
+import { isIndexableProductUrl } from "@/lib/ecommerce/fingerprint";
 import { upsertProductEmbedding } from "./embeddings";
 
 function toPrismaAvailability(
@@ -15,7 +16,10 @@ function toPrismaAvailability(
 export async function upsertProductIndex(
   product: Product,
   options?: { embed?: boolean }
-): Promise<string> {
+): Promise<string | null> {
+  if (!isIndexableProductUrl(product.url)) {
+    return null;
+  }
   const hash = productContentHash(product);
   const row = await prisma.productIndex.upsert({
     where: { productUrl: product.url },
@@ -71,7 +75,8 @@ export async function upsertProductIndexBatch(
 ): Promise<string[]> {
   const ids: string[] = [];
   for (const p of products) {
-    ids.push(await upsertProductIndex(p, options));
+    const id = await upsertProductIndex(p, options);
+    if (id) ids.push(id);
   }
   return ids;
 }
@@ -92,6 +97,7 @@ export function indexRowToProduct(row: {
   rating: number | null;
   availability: PrismaAvailability;
   region: string;
+  lastCrawledAt?: Date | null;
   raw?: unknown;
 }): Product {
   const availabilityMap: Record<PrismaAvailability, Product["availability"]> = {
@@ -131,6 +137,10 @@ export function indexRowToProduct(row: {
         typeof raw.matchCategory === "string" ? raw.matchCategory : undefined,
       matchConfidence:
         typeof raw.matchConfidence === "number" ? raw.matchConfidence : undefined,
+      lastCrawledAt: row.lastCrawledAt
+        ? row.lastCrawledAt.toISOString()
+        : undefined,
+      pdpVerified: raw.verified === true || raw.pdpVerified === true,
     },
     row.source
   );

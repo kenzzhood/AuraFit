@@ -106,7 +106,11 @@ export default function OutfitsPage() {
                 <div className="aspect-[3/4] bg-aura-highlight/10">
                   {img ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={img} alt="" className="h-full w-full object-cover" />
+                    <img
+                      src={img}
+                      alt={o.name ?? o.occasion ?? "Saved outfit"}
+                      className="h-full w-full object-cover"
+                    />
                   ) : (
                     <div className="flex h-full items-center justify-center px-4 text-center text-xs text-aura-muted">
                       {o.occasion ?? "Saved outfit"}
