@@ -27,7 +27,12 @@ import {
   preferMarketplaceProducts,
 } from "./retailer-diversity";
 import { readDiscoveryFlags } from "@/lib/flags";
-import { writeDiscoveryLog } from "./discovery-log";
+import {
+  discoveryV2SkipsExternalSearch,
+  shouldRecordCoverageGap,
+  writeCoverageGap,
+  writeDiscoveryLog,
+} from "./discovery-log";
 
 export type DiscoverProductsResult = {
   products: Product[];
@@ -267,6 +272,7 @@ export async function discoverProducts(params: {
   const q = params.query;
   const flags = readDiscoveryFlags();
   const layers = getDiscoveryLayers();
+  const skipExternal = discoveryV2SkipsExternalSearch(flags.discoveryV2);
   const providerMeta: ProviderMeta = { providersUsed: [] };
   let products: Product[] = [];
   let status: SessionStatus = "partial";
@@ -308,6 +314,7 @@ export async function discoverProducts(params: {
   // slots must not each trigger a full crawler pass (that is what pushed
   // generation past 5 minutes).
   if (
+    !skipExternal &&
     !params.syncCrawlOnly &&
     !params.skipShoppingLayer &&
     poolNeedsExpansion(products) &&
@@ -337,6 +344,7 @@ export async function discoverProducts(params: {
 
   // Layer 3b: sync Playwright crawl — recovery path when index + cache empty.
   if (
+    !skipExternal &&
     flags.livePlaywrightInRequest &&
     crawlLiveProductProvider.isConfigured() &&
     (params.syncCrawlOnly ||
@@ -370,7 +378,7 @@ export async function discoverProducts(params: {
 
   // Layer 4: demo provider — only when explicitly opted into via
   // PRODUCT_DISCOVERY_LAYERS=…,demo. Never reached by default.
-  if (poolNeedsExpansion(products) && layers.includes("demo")) {
+  if (!skipExternal && poolNeedsExpansion(products) && layers.includes("demo")) {
     const demo = await fetchDemoProvider(q);
     products = dedupeProducts([...products, ...demo.products]);
     providerMeta.providersUsed = [
@@ -424,6 +432,7 @@ export async function discoverProducts(params: {
   // Layer 5: async Playwright crawl — gap-fill when the pool is still thin.
   // Non-blocking: returns partial results immediately; worker updates the catalog.
   if (
+    !skipExternal &&
     params.allowAsyncCrawl !== false &&
     layers.includes("crawl") &&
     poolNeedsExpansion(products) &&
@@ -471,6 +480,17 @@ export async function discoverProducts(params: {
   }
 
   const usedDemo = (providerMeta.providersUsed ?? []).includes("demo");
+
+  if (shouldRecordCoverageGap(flags.discoveryV2, products.length)) {
+    await writeCoverageGap({
+      intent: {
+        query: q.query,
+        category: q.category ?? null,
+        region: q.region ?? null,
+      },
+      poolSize: products.length,
+    });
+  }
 
   await writeDiscoveryLog({
     userId: params.userId,
