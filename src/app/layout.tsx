@@ -1,19 +1,22 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { DM_Sans, Playfair_Display } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "./providers";
 
-const dmSans = DM_Sans({
-  subsets: ["latin"],
+// Bundled woff2 files so the stall compiles with no call to fonts.google.com.
+const dmSans = localFont({
+  src: "../fonts/dm-sans-latin.woff2",
   variable: "--font-dm-sans",
-  weight: ["400", "500", "600", "700"],
+  weight: "100 1000",
+  display: "swap",
 });
 
-const playfair = Playfair_Display({
-  subsets: ["latin"],
+const playfair = localFont({
+  src: "../fonts/playfair-display-latin.woff2",
   variable: "--font-playfair",
-  weight: ["400", "500", "600", "700"],
+  weight: "100 1000",
+  display: "swap",
 });
 
 const appUrl =
@@ -50,6 +53,7 @@ export const metadata: Metadata = {
     : {}),
 };
 
+const stallMode = process.env.STALL_MODE === "true";
 const clerkPk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
 
 export default function RootLayout({
@@ -70,7 +74,7 @@ export default function RootLayout({
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
-        {clerkPk ? (
+        {!stallMode && clerkPk ? (
           <ClerkProvider publishableKey={clerkPk}>
             <Providers>{children}</Providers>
           </ClerkProvider>

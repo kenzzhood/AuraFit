@@ -22,9 +22,28 @@ The IGDC stall build is a separate kiosk at `/stall`. Its on-screen name is **Au
 
 ---
 
+## Windows quick start
+
+The demo laptop is Windows with Chrome. Postgres, Clerk, Redis, and Docker are not required.
+
+1. Install **Node.js LTS** from [https://nodejs.org/](https://nodejs.org/) if it is not already installed. Use the Windows installer from that page. Close and reopen File Explorer after installing so `node` and `npm` are on your PATH.
+2. Get this branch onto the laptop:
+   - Download the ZIP: [AuraFit stall branch](https://github.com/kenzzhood/AuraFit/archive/refs/heads/cursor/autofit-igdc-stall-0b54.zip). Unzip it. The folder name will look like `AuraFit-cursor-autofit-igdc-stall-0b54`.
+   - Or, in Command Prompt: `git clone https://github.com/kenzzhood/AuraFit.git` then `cd AuraFit` and `git checkout cursor/autofit-igdc-stall-0b54`.
+3. Double-click **`start-autofit.bat`** in that folder. The first run downloads dependencies and needs the internet. When the stall is ready, Chrome opens at [http://localhost:3000/stall](http://localhost:3000/stall) in kiosk (fullscreen) mode. If Chrome is not installed, the default browser opens instead. Leave the black command window open. Close that window to stop the stall.
+4. When Chrome asks for the camera, click **Allow**. Localhost is a secure context, so the webcam works without HTTPS. Pinch a card, or click it. Mouse and touch work if hand tracking drops.
+5. Live Azure generation is optional. Demo previews work with no key.
+   - In File Explorer, open the **View** menu and turn on **File name extensions**.
+   - Copy `.env.example`, paste it in the same folder, and rename the copy to `.env` (the name is `.env` only, not `.env.txt`).
+   - Right-click `.env`, choose **Open with**, then **Notepad**.
+   - Fill in `AZURE_FOUNDRY_ENDPOINT`, `AZURE_FOUNDRY_API_KEY`, `AZURE_FOUNDRY_IMAGE_DEPLOYMENT`, and `AZURE_FOUNDRY_API_VERSION`. Save.
+   - Close the command window and double-click `start-autofit.bat` again. The header pill switches to **Live · Azure AI Foundry**.
+
+After that first install, catalog, characters, hand tracking, and demo previews work with the internet off. Only live image generation calls Azure. Placeholder Postgres and Clerk lines in `.env` are ignored by the stall.
+
 ## Running at the stall
 
-On the demo laptop (Windows or Mac, Chrome):
+On a Mac, or from a terminal on Windows:
 
 ```bash
 npm install
@@ -48,7 +67,7 @@ Live try-on is off until a key is present. Demo previews are the default.
 
 1. In [Azure AI Foundry](https://ai.azure.com), create a project and deploy **gpt-image-1** (or a newer Foundry image model that supports image edits, such as gpt-image-1.5). Name the deployment, for example `gpt-image-1`.
 2. Copy the endpoint (host only is enough, for example `https://YOUR-RESOURCE.cognitiveservices.azure.com` or `https://YOUR-RESOURCE.openai.azure.com`) and a key.
-3. From the repo root: `cp .env.example .env`
+3. From the repo root: `cp .env.example .env`. On Windows, use the Notepad steps in **Windows quick start**.
 4. Set:
    - `AZURE_FOUNDRY_ENDPOINT`
    - `AZURE_FOUNDRY_API_KEY`

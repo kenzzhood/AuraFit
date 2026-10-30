@@ -1,0 +1,3 @@
+# cmd.exe requires CRLF. Git checks this file out with CRLF on every OS.
+start-autofit.bat text eol=crlf
+*.woff2 binary
