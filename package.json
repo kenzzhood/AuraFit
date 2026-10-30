@@ -8,6 +8,7 @@
   "scripts": {
     "dev:mobile": "npm run start --workspace=@aurafit/mobile",
     "dev": "next dev --turbopack",
+    "stall": "node scripts/start-stall.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -39,6 +40,7 @@
     "@clerk/nextjs": "^7.3.5",
     "@clerk/themes": "^2.4.57",
     "@hookform/resolvers": "^3.10.0",
+    "@mediapipe/tasks-vision": "^1.2.0",
     "@prisma/client": "^6.4.0",
     "@sentry/nextjs": "^8.53.0",
     "@tanstack/react-query": "^5.67.0",

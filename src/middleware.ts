@@ -1,5 +1,10 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse, type NextRequest, type NextMiddleware } from "next/server";
+import {
+  NextResponse,
+  type NextFetchEvent,
+  type NextRequest,
+  type NextMiddleware,
+} from "next/server";
 
 const isPublicRoute = createRouteMatcher([
   "/",
@@ -95,7 +100,19 @@ const guardOrAllow: NextMiddleware = (req: NextRequest) => {
   return NextResponse.next();
 };
 
-export default clerkPk ? withClerk : guardOrAllow;
+const stallEntry: NextMiddleware = (req: NextRequest, event: NextFetchEvent) => {
+  const path = req.nextUrl.pathname;
+  if (path === "/stall" || path.startsWith("/stall/") || path.startsWith("/api/stall")) {
+    return NextResponse.next();
+  }
+  if (process.env.STALL_MODE === "true" && path === "/") {
+    return NextResponse.redirect(new URL("/stall", req.url));
+  }
+  if (!clerkPk) return guardOrAllow(req, event);
+  return withClerk(req, event);
+};
+
+export default stallEntry;
 
 export const config = {
   matcher: [

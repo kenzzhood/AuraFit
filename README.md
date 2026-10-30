@@ -18,6 +18,70 @@ AuraFit is a full-stack AI fashion platform:
 
 Built for hackathons, portfolios, and production deployment on **Azure Container Apps** or **Vercel + Supabase**.
 
+The IGDC stall build is a separate kiosk at `/stall`. Its on-screen name is **Autofit** (`APP_DISPLAY_NAME` in `src/stall/brand.ts`). Change that one line to show AuraFit again.
+
+---
+
+## Running at the stall
+
+On the demo laptop (Windows or Mac, Chrome):
+
+```bash
+npm install
+npm run stall
+```
+
+Open [http://localhost:3000/stall](http://localhost:3000/stall). With `npm run stall`, `/` redirects there. Then:
+
+1. Allow the camera when Chrome asks. Localhost is a secure context, so the webcam works without HTTPS.
+2. Press **Full screen** (or F11). The layout is landscape for a TV or monitor.
+3. Pinch a card, or click it. Pinch and drag a picture into the cart on the left. An open palm, or **Take photo**, starts a 3-2-1 countdown.
+4. The catalog and character portraits are local. The kiosk does not scrape stores during the demo.
+5. If hand tracking fails, mouse and touch still drag, scroll and press. Escape returns to the start screen.
+6. The result screen returns to the start screen after about 90 seconds.
+
+`npm run stall` copies the MediaPipe wasm into `public/mediapipe/wasm` and starts Next.js in dev mode so Clerk and Postgres are not required.
+
+## Adding your Azure key
+
+Live try-on is off until a key is present. Demo previews are the default.
+
+1. In [Azure AI Foundry](https://ai.azure.com), create a project and deploy **gpt-image-1** (or a newer Foundry image model that supports image edits, such as gpt-image-1.5). Name the deployment, for example `gpt-image-1`.
+2. Copy the endpoint (host only is enough, for example `https://YOUR-RESOURCE.cognitiveservices.azure.com` or `https://YOUR-RESOURCE.openai.azure.com`) and a key.
+3. From the repo root: `cp .env.example .env`
+4. Set:
+   - `AZURE_FOUNDRY_ENDPOINT`
+   - `AZURE_FOUNDRY_API_KEY`
+   - `AZURE_FOUNDRY_IMAGE_DEPLOYMENT` (the deployment name, not the model family if you renamed it)
+   - `AZURE_FOUNDRY_API_VERSION` (default `2025-04-01-preview`)
+5. Restart `npm run stall`. The header pill switches from **Demo preview** to **Live · Azure AI Foundry**. No code change and no key in the browser.
+6. Set `AUTOFIT_FORCE_DEMO=true` to rehearse the fallback even when a key is present.
+
+The stall does not call the public OpenAI API. `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY` and `AZURE_OPENAI_DEPLOYMENT_IMAGE` are accepted as aliases if the Foundry variables are empty.
+
+## Try-on prompts
+
+Both prompts live in `src/stall/prompts.ts`.
+
+- **Make your own style:** a full-body photoreal edit. It keeps the visitor's face, skin tone and body shape, and applies each cart item's colour, pattern and cut from the reference images.
+- **Try your favorite character:** the same identity lock, then one character's hairstyle, outfit and signature accessories in a single transfer. The character portrait is only a colour and shape guide.
+
+Find my look (budget, occasion, six outfits) is not in this build.
+
+## Stall catalog
+
+Products are real listings stored in `public/catalog/catalog.json` with images in `public/catalog/images/`. Live Amazon.in and Myntra blocked this network, so the pages were read from Internet Archive snapshots of those same public listings. Nothing in the file is invented.
+
+| Category | Myntra | Amazon.in | Total |
+| --- | ---: | ---: | ---: |
+| Tops (dresses, tops, shirts) | 51 | 49 | 100 |
+| Pants | 100 | 0 | 100 |
+| Jackets and coats | 100 | 0 | 100 |
+| Accessories (25 watches, 25 necklaces, 25 shoes, 25 hats) | 100 | 0 | 100 |
+| **Total** | **351** | **49** | **400** |
+
+126 character portraits live in `public/characters/`. They are original geometric stand-ins, not official art. The names refer to copyrighted series. Do not swap in studio artwork in a public repo without a licence. That caveat is also in `public/characters/characters.json`.
+
 ---
 
 ## Screenshots

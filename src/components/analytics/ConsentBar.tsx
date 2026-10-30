@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   CONSENT_EVENT,
@@ -29,6 +30,7 @@ async function persistConsentServer(accepted: boolean) {
  * Compact fixed bottom consent bar. Shows when consent is unset or reopened via Cookie settings.
  */
 export function ConsentBar() {
+  const pathname = usePathname();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -54,7 +56,7 @@ export function ConsentBar() {
     setVisible(false);
   }, []);
 
-  if (!visible) return null;
+  if (!visible || pathname?.startsWith("/stall")) return null;
 
   return (
     <div
