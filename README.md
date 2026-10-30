@@ -18,6 +18,163 @@ AuraFit is a full-stack AI fashion platform:
 
 Built for hackathons, portfolios, and production deployment on **Azure Container Apps** or **Vercel + Supabase**.
 
+The IGDC stall build is a separate kiosk at `/stall`. Its on-screen name is **Autofit** (`APP_DISPLAY_NAME` in `src/stall/brand.ts`). Change that one line to show AuraFit again.
+
+---
+
+## Windows quick start
+
+The demo laptop is Windows with Chrome. Postgres, Clerk, Redis, and Docker are not required.
+
+1. Install **Node.js LTS** from [https://nodejs.org/](https://nodejs.org/) if it is not already installed. Use the Windows installer from that page. Close and reopen File Explorer after installing so `node` and `npm` are on your PATH.
+2. Get this branch onto the laptop:
+   - Download the ZIP: [AuraFit stall branch](https://github.com/kenzzhood/AuraFit/archive/refs/heads/cursor/autofit-igdc-stall-0b54.zip). Unzip it. The folder name will look like `AuraFit-cursor-autofit-igdc-stall-0b54`.
+   - Or, in Command Prompt: `git clone https://github.com/kenzzhood/AuraFit.git` then `cd AuraFit` and `git checkout cursor/autofit-igdc-stall-0b54`.
+3. Double-click **`start-autofit.bat`** in that folder. The first run downloads dependencies and needs the internet. When the stall is ready, Chrome opens at [http://localhost:3000/stall](http://localhost:3000/stall) in kiosk (fullscreen) mode. If Chrome is not installed, the default browser opens instead. Leave the black command window open. Close that window to stop the stall.
+4. When Chrome asks for the camera, click **Allow**. Localhost is a secure context, so the webcam works without HTTPS. Pinch a card, or click it. Mouse and touch work if hand tracking drops.
+5. Live Azure generation is optional. Demo previews work with no key.
+   - In File Explorer, open the **View** menu and turn on **File name extensions**.
+   - Copy `.env.example`, paste it in the same folder, and rename the copy to `.env` (the name is `.env` only, not `.env.txt`).
+   - Right-click `.env`, choose **Open with**, then **Notepad**.
+   - Fill in `AZURE_FOUNDRY_ENDPOINT`, `AZURE_FOUNDRY_API_KEY`, `AZURE_FOUNDRY_IMAGE_DEPLOYMENT`, and `AZURE_FOUNDRY_API_VERSION`. Save.
+   - Close the command window and double-click `start-autofit.bat` again. The header pill switches to **Live · Azure AI Foundry**.
+
+After that first install, catalog, characters, hand tracking, and demo previews work with the internet off. Only live image generation calls Azure. Placeholder Postgres and Clerk lines in `.env` are ignored by the stall.
+
+## Running at the stall
+
+On a Mac, or from a terminal on Windows:
+
+```bash
+npm install
+npm run stall
+```
+
+Open [http://localhost:3000/stall](http://localhost:3000/stall). With `npm run stall`, `/` redirects there. Then:
+
+1. Allow the camera when Chrome asks. Localhost is a secure context, so the webcam works without HTTPS.
+2. Press **Full screen** (or F11). The layout is landscape for a TV or monitor.
+3. Pinch a card, or click it. Pinch and drag a picture into the cart on the left. An open palm, or **Take photo**, starts a 3-2-1 countdown.
+4. The catalog and character portraits are local. The kiosk does not scrape stores during the demo.
+5. If hand tracking fails, mouse and touch still drag, scroll and press. Escape returns to the start screen.
+6. The result screen returns to the start screen after about 90 seconds.
+
+`npm run stall` copies the MediaPipe wasm into `public/mediapipe/wasm` and starts Next.js in dev mode so Clerk and Postgres are not required.
+
+## Adding your Azure key
+
+Live try-on is off until a key is present. Demo previews are the default.
+
+1. In [Azure AI Foundry](https://ai.azure.com), create a project and deploy **gpt-image-1** (or a newer Foundry image model that supports image edits, such as gpt-image-1.5). Name the deployment, for example `gpt-image-1`.
+2. Copy the endpoint (host only is enough, for example `https://YOUR-RESOURCE.cognitiveservices.azure.com` or `https://YOUR-RESOURCE.openai.azure.com`) and a key.
+3. From the repo root: `cp .env.example .env`. On Windows, use the Notepad steps in **Windows quick start**.
+4. Set:
+   - `AZURE_FOUNDRY_ENDPOINT`
+   - `AZURE_FOUNDRY_API_KEY`
+   - `AZURE_FOUNDRY_IMAGE_DEPLOYMENT` (the deployment name, not the model family if you renamed it)
+   - `AZURE_FOUNDRY_API_VERSION` (default `2025-04-01-preview`)
+5. Restart `npm run stall`. The header pill switches from **Demo preview** to **Live · Azure AI Foundry**. No code change and no key in the browser.
+6. Set `AUTOFIT_FORCE_DEMO=true` to rehearse the fallback even when a key is present.
+
+The stall does not call the public OpenAI API. `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY` and `AZURE_OPENAI_DEPLOYMENT_IMAGE` are accepted as aliases if the Foundry variables are empty.
+
+## Try-on prompts
+
+Both prompts live in `src/stall/prompts.ts`.
+
+- **Make your own style:** a full-body photoreal edit. It keeps the visitor's face, skin tone and body shape, and applies each cart item's colour, pattern and cut from the reference images.
+- **Try your favorite character:** the same identity lock, then one character's hairstyle, outfit and signature accessories in a single transfer. The character portrait is only a colour and shape guide.
+
+Find my look (budget, occasion, six outfits) is not in this build.
+
+## Stall catalog
+
+Products are real Myntra and Amazon.in listings. Photos sit next to the JSON in one folder per category, so the kiosk stays offline. The stall reads these folders when a request comes in (`src/stall/folder-catalog.ts`). There is no single `catalog.json`.
+
+```
+public/catalog/tops/
+public/catalog/bottoms/
+public/catalog/coats/
+public/catalog/dresses/
+public/catalog/accessories/watches/
+public/catalog/accessories/necklaces/
+public/catalog/accessories/shoes/
+public/catalog/accessories/hats/
+```
+
+Each folder has `items.json`, the product photos, and `_template.json`. The category and accessory type come from the folder, not from the JSON.
+
+The committed set is a short, hand-picked catalog so the gesture UI can browse it without a long scroll. About 40 pieces in each clothing folder and about 12 in each accessory folder. Photos are sharp Myntra studio shots on clean backgrounds, with men and women and the style chips spread through the grid.
+
+| Category | Items |
+| --- | ---: |
+| Tops | 40 |
+| Bottoms | 40 |
+| Dresses (including sarees) | 40 |
+| Jackets and coats (including sherwanis) | 40 |
+| Watches | 12 |
+| Necklaces | 12 |
+| Shoes | 12 |
+| Hats | 12 |
+| **Total** | **208** |
+
+Every item has one style. Across the catalog: casual 35, festive 26, formal 21, vintage 21, smart casual 15, old money 14, minimalist 13, sporty 13, streetwear 13, party 12, boho 8, aesthetic 6, y2k 6, korean 5. Tops are split evenly between men and women. Dresses are women’s wear, including grand ethnic pieces. Sherwanis are in coats. Drop another photo and a JSON entry in the same folder to grow a category; the stall picks up new files on the next request.
+
+### Add a product
+
+1. Put the photo in the category folder. Example: `public/catalog/tops/my-shirt.jpg`.
+2. Copy `_template.json` to `my-shirt.json` in that same folder, or add an object to the `items` array in `items.json`.
+3. Restart the stall (`start-autofit.bat` or `npm run stall`).
+
+`_template.json` is ignored. A file whose `id` is `example-id` is ignored. The photo file name must match `image`, and it must sit in the same folder (no subfolders, no `..`).
+
+```json
+{
+  "id": "my-shirt",
+  "title": "Product title",
+  "brand": "Brand",
+  "priceInr": 1999,
+  "mrpInr": 3999,
+  "url": "https://www.myntra.com/product/example/buy",
+  "image": "my-shirt.jpg",
+  "store": "myntra",
+  "gender": "women",
+  "style": "casual",
+  "color": "Black"
+}
+```
+
+`store` is `myntra` or `amazon`. `gender` is `women`, `men`, or `unisex`. `style` is one of: `old-money`, `aesthetic`, `casual`, `formal`, `festive`, `streetwear`, `y2k`, `minimalist`, `boho`, `party`, `sporty`, `korean`, `vintage`, `smart-casual`.
+
+You can also keep many products in one `items.json`:
+
+```json
+{ "items": [ { "id": "my-shirt" } ] }
+```
+
+## Characters
+
+100 anime characters are in `public/characters/anime/` and 50 game characters are in `public/characters/games/`. The Try your favorite character screen has an Anime / Games toggle. Each entry is a local reference image plus a written outfit and hair description. Azure `images.edit` sends that image as reference image 2. The prompt copies the hair and the clothes from it and keeps the visitor’s face.
+
+The portraits are reference art for this kiosk. The names and artwork belong to their rights holders.
+
+### Add a character
+
+Use the same drop-in shape. Copy `_template.json` in `public/characters/anime/` or `public/characters/games/`.
+
+```json
+{
+  "id": "naruto",
+  "name": "Naruto Uzumaki",
+  "series": "Naruto",
+  "image": "naruto.png",
+  "look": "spiky blond hair, orange and black jacket, orange trousers, headband",
+  "hair": "spiky blond hair"
+}
+```
+
+Put `naruto.png` in that same folder, then restart the stall.
+
 ---
 
 ## Screenshots

@@ -1,0 +1,13 @@
+{
+  "id": "example-id",
+  "title": "Product title",
+  "brand": "Brand",
+  "priceInr": 1999,
+  "mrpInr": 3999,
+  "url": "https://www.myntra.com/product/example/buy",
+  "image": "your-photo.jpg",
+  "store": "myntra",
+  "gender": "women",
+  "style": "casual",
+  "color": "Black"
+}

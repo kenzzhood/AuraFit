@@ -25,14 +25,14 @@ const securityHeaders = [
   },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+    value: "camera=(self), microphone=(), geolocation=(), interest-cohort=()",
   },
   {
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
       // Clerk (dev + production) + analytics
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.accounts.dev https://clerk.accounts.dev https://*.clerk.com https://clerk.com https://challenges.cloudflare.com https://app.posthog.com https://browser.sentry-cdn.com https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.clarity.ms https://scripts.clarity.ms https://*.clarity.ms https://cdn.mxpnl.com",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://*.clerk.accounts.dev https://clerk.accounts.dev https://*.clerk.com https://clerk.com https://challenges.cloudflare.com https://app.posthog.com https://browser.sentry-cdn.com https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.clarity.ms https://scripts.clarity.ms https://*.clarity.ms https://cdn.mxpnl.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.clerk.accounts.dev https://*.clerk.com",
       "font-src 'self' https://fonts.gstatic.com https://*.clerk.accounts.dev https://*.clerk.com",
       "img-src 'self' blob: data: https://res.cloudinary.com https://*.blob.core.windows.net https://*.azureedge.net https://img.clerk.com https://images.unsplash.com https://www.google-analytics.com https://c.clarity.ms https://*.clarity.ms",
