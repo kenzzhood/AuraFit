@@ -14,6 +14,7 @@ function item(partial: Partial<CatalogItem> & Pick<CatalogItem, "id" | "category
     gender: "women",
     accessoryType: null,
     color: null,
+    style: "casual",
     ...partial,
   };
 }
@@ -24,7 +25,8 @@ const hero: CharacterItem = {
   series: "Attack on Titan",
   look: "brown jacket",
   hair: "short brown",
-  image: "/characters/images/eren-yeager.svg",
+  image: "/characters/anime/eren-yeager.jpg",
+  group: "anime",
 };
 
 describe("cart limits", () => {
@@ -34,10 +36,15 @@ describe("cart limits", () => {
     const replaced = addProduct(cart, item({ id: "shirt", category: "tops" }));
     expect(replaced.cart.top?.id).toBe("shirt");
     expect(replaced.effect).toBe("replaced");
-    cart = addProduct(replaced.cart, item({ id: "jean", category: "pants" })).cart;
+    cart = addProduct(replaced.cart, item({ id: "jean", category: "bottoms" })).cart;
+    cart = addProduct(cart, item({ id: "gown", category: "dresses" })).cart;
     cart = addProduct(cart, item({ id: "jacket", category: "coats" })).cart;
     expect(cart.pant?.id).toBe("jean");
+    expect(cart.dress?.id).toBe("gown");
     expect(cart.coat?.id).toBe("jacket");
+    const nextDress = addProduct(cart, item({ id: "saree", category: "dresses" }));
+    expect(nextDress.effect).toBe("replaced");
+    expect(nextDress.cart.dress?.id).toBe("saree");
   });
 
   it("allows up to three accessories and only one of each type", () => {

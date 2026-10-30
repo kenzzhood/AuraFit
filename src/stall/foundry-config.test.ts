@@ -58,10 +58,11 @@ describe("prompts", () => {
     url: "https://www.myntra.com/ethnic-dresses/example/buy",
     image: "/catalog/images/myntra-1.jpg",
     store: "myntra",
-    category: "tops",
+    category: "dresses",
     gender: "women",
     accessoryType: null,
     color: "Red",
+    style: "party",
   };
 
   it("keeps identity and garment fidelity in both modes", () => {
@@ -72,12 +73,14 @@ describe("prompts", () => {
       series: "Attack on Titan",
       look: "short brown undercut and Survey Corps jacket",
       hair: "short brown undercut",
-      image: "/characters/images/eren-yeager.svg",
+      image: "/characters/anime/eren-yeager.jpg",
+      group: "anime",
     });
     expect(style).toContain("Preserve the visitor's face");
     expect(style).toContain("skin tone");
     expect(style).toContain("body shape");
     expect(style).toContain("Red floral midi dress");
+    expect(character).toContain("Reference image 2");
     expect(character).toContain("hairstyle");
     expect(character).toContain("Eren Yeager");
     expect(character).toContain("still be the visitor");

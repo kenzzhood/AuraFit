@@ -377,6 +377,7 @@ def collect_pages(pages: list[tuple[str, str, str | None]], parser) -> list[dict
 
 
 def main() -> None:
+    raise SystemExit("Use scripts/build-folder-catalog.py. The stall catalog is one folder per category.")
     IMG_DIR.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
     raw_items = collect_pages(LISTINGS, myntra_products)

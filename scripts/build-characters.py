@@ -177,6 +177,7 @@ def svg(name: str, hair: str, outfit: str, accent: str) -> str:
 
 
 def main() -> None:
+    raise SystemExit("Use scripts/build-character-refs.py. Characters live in public/characters/anime and public/characters/games.")
     IMG.mkdir(parents=True, exist_ok=True)
     items = []
     for name, series, look, hair, outfit, accent in RAW:

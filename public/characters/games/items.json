@@ -1,0 +1,404 @@
+{
+  "items": [
+    {
+      "id": "mario",
+      "name": "Mario",
+      "series": "Super Mario",
+      "image": "mario.png",
+      "look": "red cap with an M, red shirt, blue overalls, white gloves, brown shoes",
+      "hair": "brown hair under a red cap"
+    },
+    {
+      "id": "peach",
+      "name": "Princess Peach",
+      "series": "Super Mario",
+      "image": "peach.png",
+      "look": "blonde hair, gold crown, pink gown, blue brooch, long gloves",
+      "hair": "blonde hair"
+    },
+    {
+      "id": "link",
+      "name": "Link",
+      "series": "The Legend of Zelda",
+      "image": "link.png",
+      "look": "blond hair, green pointed cap, green tunic, brown belt, boots",
+      "hair": "blond hair"
+    },
+    {
+      "id": "zelda",
+      "name": "Princess Zelda",
+      "series": "The Legend of Zelda",
+      "image": "zelda.png",
+      "look": "blonde hair, gold tiara, white and pink royal dress or a blue traveling tunic",
+      "hair": "blonde hair"
+    },
+    {
+      "id": "lara",
+      "name": "Lara Croft",
+      "series": "Tomb Raider",
+      "image": "lara.png",
+      "look": "brown ponytail, teal tank top, brown shorts, boots, holsters",
+      "hair": "brown ponytail"
+    },
+    {
+      "id": "kratos",
+      "name": "Kratos",
+      "series": "God of War",
+      "image": "kratos.png",
+      "look": "bald head, red body tattoo as paint, leather skirt, boots, chain across the chest",
+      "hair": "bald"
+    },
+    {
+      "id": "2b",
+      "name": "2B",
+      "series": "NieR: Automata",
+      "image": "2b.png",
+      "look": "short white hair, black blindfold, black dress with a high slit, thigh boots, gloves",
+      "hair": "short white hair"
+    },
+    {
+      "id": "cloud",
+      "name": "Cloud Strife",
+      "series": "Final Fantasy VII",
+      "image": "cloud.png",
+      "look": "spiky blond hair, sleeveless black turtleneck, purple shoulder pauldron, dark baggy trousers",
+      "hair": "spiky blond hair"
+    },
+    {
+      "id": "tifa",
+      "name": "Tifa Lockhart",
+      "series": "Final Fantasy VII",
+      "image": "tifa.png",
+      "look": "long black hair, white crop top, black suspenders, black miniskirt, gloves, boots",
+      "hair": "long black hair"
+    },
+    {
+      "id": "aerith",
+      "name": "Aerith Gainsborough",
+      "series": "Final Fantasy VII",
+      "image": "aerith.png",
+      "look": "long brown braid with a pink ribbon, pink dress, red bolero jacket, brown boots",
+      "hair": "long brown braid"
+    },
+    {
+      "id": "sephiroth",
+      "name": "Sephiroth",
+      "series": "Final Fantasy VII",
+      "image": "sephiroth.png",
+      "look": "very long silver hair, long black coat, silver pauldrons, black leather",
+      "hair": "very long silver hair"
+    },
+    {
+      "id": "geralt",
+      "name": "Geralt of Rivia",
+      "series": "The Witcher",
+      "image": "geralt.jpg",
+      "look": "long white hair, wolf medallion, dark leather armor, swords on the back left as straps",
+      "hair": "long white hair"
+    },
+    {
+      "id": "chief",
+      "name": "Master Chief",
+      "series": "Halo",
+      "image": "chief.png",
+      "look": "olive MJOLNIR armor, gold visor, full helmet",
+      "hair": "helmet, no hair visible"
+    },
+    {
+      "id": "ezio",
+      "name": "Ezio Auditore",
+      "series": "Assassin's Creed",
+      "image": "ezio.png",
+      "look": "brown hair, white hooded robe with red sash, leather bracers, hidden-blade gauntlet",
+      "hair": "brown hair"
+    },
+    {
+      "id": "altair",
+      "name": "Altair",
+      "series": "Assassin's Creed",
+      "image": "altair.jpg",
+      "look": "white hooded robe, red sash, leather belt",
+      "hair": "hood over brown hair"
+    },
+    {
+      "id": "kassandra",
+      "name": "Kassandra",
+      "series": "Assassin's Creed",
+      "image": "kassandra.png",
+      "look": "brown hair, Greek leather armor, red cape, bracers",
+      "hair": "brown hair"
+    },
+    {
+      "id": "ellie",
+      "name": "Ellie",
+      "series": "The Last of Us",
+      "image": "ellie.png",
+      "look": "brown ponytail, freckles left as the visitor's skin, flannel shirt, jeans, backpack",
+      "hair": "brown ponytail"
+    },
+    {
+      "id": "joel",
+      "name": "Joel",
+      "series": "The Last of Us",
+      "image": "joel.png",
+      "look": "short brown hair, beard left off, flannel shirt, jeans, jacket",
+      "hair": "short brown hair"
+    },
+    {
+      "id": "drake",
+      "name": "Nathan Drake",
+      "series": "Uncharted",
+      "image": "drake.png",
+      "look": "brown hair, henley shirt, jeans, shoulder holster, boots",
+      "hair": "brown hair"
+    },
+    {
+      "id": "snake",
+      "name": "Solid Snake",
+      "series": "Metal Gear",
+      "image": "snake.png",
+      "look": "brown hair, bandana, sneaking suit or olive tactical gear",
+      "hair": "brown hair under a bandana"
+    },
+    {
+      "id": "bayonetta",
+      "name": "Bayonetta",
+      "series": "Bayonetta",
+      "image": "bayonetta.png",
+      "look": "black hair in a beehive, glasses, black bodysuit, long gloves, heels",
+      "hair": "black hair in a beehive"
+    },
+    {
+      "id": "dante",
+      "name": "Dante",
+      "series": "Devil May Cry",
+      "image": "dante.png",
+      "look": "white hair, long red coat, black shirt, black gloves, boots",
+      "hair": "white hair"
+    },
+    {
+      "id": "vergil",
+      "name": "Vergil",
+      "series": "Devil May Cry",
+      "image": "vergil.png",
+      "look": "white hair swept back, long blue coat, dark vest",
+      "hair": "white hair swept back"
+    },
+    {
+      "id": "ryu",
+      "name": "Ryu",
+      "series": "Street Fighter",
+      "image": "ryu.png",
+      "look": "brown hair, red headband, white gi, black belt, red gloves, barefoot wraps",
+      "hair": "brown hair"
+    },
+    {
+      "id": "cammy",
+      "name": "Cammy",
+      "series": "Street Fighter",
+      "image": "cammy.png",
+      "look": "blonde braids, green leotard, red beret, red gauntlets, combat boots",
+      "hair": "blonde braids"
+    },
+    {
+      "id": "jinx",
+      "name": "Jinx",
+      "series": "League of Legends",
+      "image": "jinx.png",
+      "look": "long blue braids, crop top, shorts, tattoos as body paint, belts",
+      "hair": "long blue braids"
+    },
+    {
+      "id": "vi",
+      "name": "Vi",
+      "series": "League of Legends",
+      "image": "vi.png",
+      "look": "pink undercut, red jacket, hoodie, huge gauntlets, jeans",
+      "hair": "pink undercut"
+    },
+    {
+      "id": "mercy",
+      "name": "Mercy",
+      "series": "Overwatch",
+      "image": "mercy.png",
+      "look": "blonde high ponytail, white and gold suit, halo, wings as a light backpack",
+      "hair": "blonde high ponytail"
+    },
+    {
+      "id": "samus",
+      "name": "Samus Aran",
+      "series": "Metroid",
+      "image": "samus.png",
+      "look": "blonde ponytail, orange power suit with a helmet, or the blue zero suit",
+      "hair": "blonde ponytail"
+    },
+    {
+      "id": "sora",
+      "name": "Sora",
+      "series": "Kingdom Hearts",
+      "image": "sora.png",
+      "look": "spiky brown hair, crown necklace, black red and white jacket, baggy shorts, oversized shoes",
+      "hair": "spiky brown hair"
+    },
+    {
+      "id": "ada",
+      "name": "Ada Wong",
+      "series": "Resident Evil",
+      "image": "ada.png",
+      "look": "black bob, red dress or a red turtleneck and black skirt, holster",
+      "hair": "black bob"
+    },
+    {
+      "id": "joker",
+      "name": "Joker",
+      "series": "Persona 5",
+      "image": "joker.png",
+      "look": "wavy black hair, long black coat, red gloves, white mask as a handheld prop, plaid pants",
+      "hair": "wavy black hair"
+    },
+    {
+      "id": "steve",
+      "name": "Steve",
+      "series": "Minecraft",
+      "image": "steve.png",
+      "look": "brown hair and beard, cyan t-shirt, blue trousers, grey shoes",
+      "hair": "brown hair"
+    },
+    {
+      "id": "sonic",
+      "name": "Sonic",
+      "series": "Sonic the Hedgehog",
+      "image": "sonic.png",
+      "look": "blue outfit, white gloves, red sneakers with a white strap",
+      "hair": "blue quills styled as swept hair"
+    },
+    {
+      "id": "shadow",
+      "name": "Shadow",
+      "series": "Sonic the Hedgehog",
+      "image": "shadow.png",
+      "look": "black and red outfit, white gloves, inhibitor rings, hover shoes",
+      "hair": "black and red swept hair"
+    },
+    {
+      "id": "cynthia",
+      "name": "Cynthia",
+      "series": "Pokemon",
+      "image": "cynthia.png",
+      "look": "long blonde hair, black coat over a black top, black pants, heels",
+      "hair": "long blonde hair"
+    },
+    {
+      "id": "raiden-shogun",
+      "name": "Raiden Shogun",
+      "series": "Genshin Impact",
+      "image": "raiden-shogun.png",
+      "look": "long purple braid, purple kimono with gold embroidery, hair ornament",
+      "hair": "long purple braid"
+    },
+    {
+      "id": "hu-tao",
+      "name": "Hu Tao",
+      "series": "Genshin Impact",
+      "image": "hu-tao.png",
+      "look": "long brown twintails, plum-blossom hat, dark coat with red lining, shorts",
+      "hair": "long brown twintails"
+    },
+    {
+      "id": "zhongli",
+      "name": "Zhongli",
+      "series": "Genshin Impact",
+      "image": "zhongli.png",
+      "look": "long dark hair with an amber tip, brown tailcoat, gold vest, gloves",
+      "hair": "long dark hair with an amber tip"
+    },
+    {
+      "id": "keqing",
+      "name": "Keqing",
+      "series": "Genshin Impact",
+      "image": "keqing.jpg",
+      "look": "light purple twintails, purple and white dress-coat, stockings, heels",
+      "hair": "light purple twintails"
+    },
+    {
+      "id": "doom",
+      "name": "Doom Slayer",
+      "series": "Doom",
+      "image": "doom.png",
+      "look": "green Praetor armor, helmet with a visor, heavy boots",
+      "hair": "helmet"
+    },
+    {
+      "id": "lady",
+      "name": "Lady Dimitrescu",
+      "series": "Resident Evil",
+      "image": "lady.png",
+      "look": "black hair, wide white hat, long white dress, black gloves, pearl necklace",
+      "hair": "black hair under a wide hat"
+    },
+    {
+      "id": "kiryu",
+      "name": "Kazuma Kiryu",
+      "series": "Yakuza",
+      "image": "kiryu.png",
+      "look": "short black hair, grey suit, red shirt open at the collar",
+      "hair": "short black hair"
+    },
+    {
+      "id": "phoenix",
+      "name": "Phoenix Wright",
+      "series": "Ace Attorney",
+      "image": "phoenix.png",
+      "look": "spiky black hair, blue suit, red tie, attorney badge",
+      "hair": "spiky black hair"
+    },
+    {
+      "id": "shepard",
+      "name": "Commander Shepard",
+      "series": "Mass Effect",
+      "image": "shepard.png",
+      "look": "short hair, N7 armor in black and red, or a dark dress uniform",
+      "hair": "short hair"
+    },
+    {
+      "id": "fox",
+      "name": "Fox McCloud",
+      "series": "Star Fox",
+      "image": "fox.png",
+      "look": "orange-red flight jacket, white scarf, green boots, headset",
+      "hair": "headset over swept hair"
+    },
+    {
+      "id": "luigi",
+      "name": "Luigi",
+      "series": "Super Mario",
+      "image": "luigi.png",
+      "look": "green cap with an L, green shirt, blue overalls, white gloves",
+      "hair": "brown hair under a green cap"
+    },
+    {
+      "id": "ganondorf",
+      "name": "Ganondorf",
+      "series": "The Legend of Zelda",
+      "image": "ganondorf.png",
+      "look": "long red hair, dark armor, cape, heavy gauntlets",
+      "hair": "long red hair"
+    },
+    {
+      "id": "cortana",
+      "name": "Cortana",
+      "series": "Halo",
+      "image": "cortana.png",
+      "look": "blue holographic bodysuit, short hair, barefoot look rendered as a blue outfit",
+      "hair": "short blue hair"
+    },
+    {
+      "id": "connor",
+      "name": "Connor Kenway",
+      "series": "Assassin's Creed",
+      "image": "connor.png",
+      "look": "hooded colonial coat, red sash, tomahawk strap, boots",
+      "hair": "dark hair under a hood"
+    }
+  ]
+}

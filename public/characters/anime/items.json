@@ -1,0 +1,804 @@
+{
+  "items": [
+    {
+      "id": "naruto",
+      "name": "Naruto Uzumaki",
+      "series": "Naruto",
+      "image": "naruto.png",
+      "look": "spiky blond hair, orange and black jacket, black shirt, orange trousers, blue sandals, leaf headband",
+      "hair": "spiky blond hair"
+    },
+    {
+      "id": "sasuke",
+      "name": "Sasuke Uchiha",
+      "series": "Naruto",
+      "image": "sasuke.png",
+      "look": "spiky black hair, white high-collar shirt, blue shorts, rope belt",
+      "hair": "spiky black hair"
+    },
+    {
+      "id": "sakura",
+      "name": "Sakura Haruno",
+      "series": "Naruto",
+      "image": "sakura.png",
+      "look": "short pink hair, red dress over black shorts, dark arm guards",
+      "hair": "short pink hair"
+    },
+    {
+      "id": "kakashi",
+      "name": "Kakashi Hatake",
+      "series": "Naruto",
+      "image": "kakashi.png",
+      "look": "silver spiky hair, dark mask, green flak jacket, dark blue clothes",
+      "hair": "silver spiky hair"
+    },
+    {
+      "id": "itachi",
+      "name": "Itachi Uchiha",
+      "series": "Naruto",
+      "image": "itachi.png",
+      "look": "long black hair in a low ponytail, black cloak with red clouds",
+      "hair": "long black hair"
+    },
+    {
+      "id": "gaara",
+      "name": "Gaara",
+      "series": "Naruto",
+      "image": "gaara.png",
+      "look": "short red hair, gourd on the back, dark clothes under a crimson coat",
+      "hair": "short red hair"
+    },
+    {
+      "id": "rock-lee",
+      "name": "Rock Lee",
+      "series": "Naruto",
+      "image": "rock-lee.png",
+      "look": "black bowl-cut hair, green jumpsuit, orange leg warmers",
+      "hair": "black bowl-cut hair"
+    },
+    {
+      "id": "minato",
+      "name": "Minato Namikaze",
+      "series": "Naruto",
+      "image": "minato.png",
+      "look": "spiky blond hair, white cloak with flame hems, green flak jacket",
+      "hair": "spiky blond hair"
+    },
+    {
+      "id": "luffy",
+      "name": "Monkey D. Luffy",
+      "series": "One Piece",
+      "image": "luffy.png",
+      "look": "black hair under a straw hat, open red vest, blue shorts, sandals",
+      "hair": "black hair under a straw hat"
+    },
+    {
+      "id": "zoro",
+      "name": "Roronoa Zoro",
+      "series": "One Piece",
+      "image": "zoro.png",
+      "look": "short green hair, black bandana, open shirt, green haramaki sash, black trousers",
+      "hair": "short green hair"
+    },
+    {
+      "id": "nami",
+      "name": "Nami",
+      "series": "One Piece",
+      "image": "nami.png",
+      "look": "orange hair, striped bikini top, jeans, blue shoulder tattoo as a small motif",
+      "hair": "long orange hair"
+    },
+    {
+      "id": "sanji",
+      "name": "Sanji",
+      "series": "One Piece",
+      "image": "sanji.png",
+      "look": "blond hair covering one eye, black suit, dress shirt",
+      "hair": "blond hair covering one eye"
+    },
+    {
+      "id": "robin",
+      "name": "Nico Robin",
+      "series": "One Piece",
+      "image": "robin.png",
+      "look": "long black hair, cowboy hat, purple crop top and shorts or a long coat",
+      "hair": "long black hair"
+    },
+    {
+      "id": "boa",
+      "name": "Boa Hancock",
+      "series": "One Piece",
+      "image": "boa.png",
+      "look": "long black hair, red and gold qipao, cape, high heels",
+      "hair": "long black hair"
+    },
+    {
+      "id": "deku",
+      "name": "Izuku Midoriya",
+      "series": "My Hero Academia",
+      "image": "deku.png",
+      "look": "messy dark green hair, green jumpsuit, white gloves, red boots, mask around the neck",
+      "hair": "messy dark green hair"
+    },
+    {
+      "id": "bakugo",
+      "name": "Katsuki Bakugo",
+      "series": "My Hero Academia",
+      "image": "bakugo.png",
+      "look": "spiky ash-blond hair, black tank top, orange X straps, grenade gauntlets",
+      "hair": "spiky ash-blond hair"
+    },
+    {
+      "id": "uraraka",
+      "name": "Ochaco Uraraka",
+      "series": "My Hero Academia",
+      "image": "uraraka.png",
+      "look": "short brown hair, pink and black bodysuit, round cheek pads, helmet at the hip",
+      "hair": "short brown hair"
+    },
+    {
+      "id": "todoroki",
+      "name": "Shoto Todoroki",
+      "series": "My Hero Academia",
+      "image": "todoroki.png",
+      "look": "hair split white and red, white costume with a dark ice-colored panel",
+      "hair": "hair split white and red"
+    },
+    {
+      "id": "gojo",
+      "name": "Satoru Gojo",
+      "series": "Jujutsu Kaisen",
+      "image": "gojo.png",
+      "look": "white hair, black blindfold, dark high-collar jacket, black trousers",
+      "hair": "white hair"
+    },
+    {
+      "id": "megumi",
+      "name": "Megumi Fushiguro",
+      "series": "Jujutsu Kaisen",
+      "image": "megumi.png",
+      "look": "spiky black hair, dark blue uniform jacket",
+      "hair": "spiky black hair"
+    },
+    {
+      "id": "nobara",
+      "name": "Nobara Kugisaki",
+      "series": "Jujutsu Kaisen",
+      "image": "nobara.png",
+      "look": "short orange-brown hair, dark uniform, hammer and nails left as a small belt pouch",
+      "hair": "short orange-brown hair"
+    },
+    {
+      "id": "nezuko",
+      "name": "Nezuko Kamado",
+      "series": "Demon Slayer",
+      "image": "nezuko.png",
+      "look": "long black hair fading to orange, pink kimono, hemp-leaf haori, checkered obi, bamboo muzzle",
+      "hair": "long black hair fading to orange"
+    },
+    {
+      "id": "zenitsu",
+      "name": "Zenitsu Agatsuma",
+      "series": "Demon Slayer",
+      "image": "zenitsu.png",
+      "look": "yellow hair with an orange tip, yellow triangle haori, dark uniform",
+      "hair": "yellow hair"
+    },
+    {
+      "id": "inosuke",
+      "name": "Inosuke Hashibira",
+      "series": "Demon Slayer",
+      "image": "inosuke.jpg",
+      "look": "black hair under a grey boar mask, fur mantle, bare chest, dark hakama",
+      "hair": "black hair under a boar mask"
+    },
+    {
+      "id": "shinobu",
+      "name": "Shinobu Kocho",
+      "series": "Demon Slayer",
+      "image": "shinobu.png",
+      "look": "black hair with purple tips in a bun, butterfly hairpin, white haori with butterfly wings",
+      "hair": "black hair with purple tips"
+    },
+    {
+      "id": "mikasa",
+      "name": "Mikasa Ackerman",
+      "series": "Attack on Titan",
+      "image": "mikasa.png",
+      "look": "short black hair, long red scarf, Survey Corps jacket, white shirt, dark trousers",
+      "hair": "short black hair"
+    },
+    {
+      "id": "eren",
+      "name": "Eren Yeager",
+      "series": "Attack on Titan",
+      "image": "eren.jpg",
+      "look": "brown undercut, Survey Corps jacket, white shirt, brown trousers, harness",
+      "hair": "brown undercut"
+    },
+    {
+      "id": "armin",
+      "name": "Armin Arlert",
+      "series": "Attack on Titan",
+      "image": "armin.png",
+      "look": "short blond hair, Survey Corps jacket, white shirt, brown boots",
+      "hair": "short blond hair"
+    },
+    {
+      "id": "goku",
+      "name": "Son Goku",
+      "series": "Dragon Ball",
+      "image": "goku.png",
+      "look": "tall spiky black hair, orange gi, blue undershirt, blue belt, blue wristbands and boots",
+      "hair": "tall spiky black hair"
+    },
+    {
+      "id": "vegeta",
+      "name": "Vegeta",
+      "series": "Dragon Ball",
+      "image": "vegeta.png",
+      "look": "flame-shaped black hair, white and gold armor, dark blue bodysuit, white gloves and boots",
+      "hair": "flame-shaped black hair"
+    },
+    {
+      "id": "bulma",
+      "name": "Bulma",
+      "series": "Dragon Ball",
+      "image": "bulma.jpg",
+      "look": "short blue hair, casual jacket and cropped pants or a pink outfit",
+      "hair": "short blue hair"
+    },
+    {
+      "id": "gohan",
+      "name": "Son Gohan",
+      "series": "Dragon Ball",
+      "image": "gohan.png",
+      "look": "spiky black hair, purple gi or a green tracksuit with a sword on the back",
+      "hair": "spiky black hair"
+    },
+    {
+      "id": "sailor-moon",
+      "name": "Usagi Tsukino",
+      "series": "Sailor Moon",
+      "image": "sailor-moon.jpg",
+      "look": "blonde hair in twin buns with long pigtails, white and blue sailor uniform, red bow, gold tiara",
+      "hair": "blonde odango pigtails"
+    },
+    {
+      "id": "sailor-mars",
+      "name": "Rei Hino",
+      "series": "Sailor Moon",
+      "image": "sailor-mars.png",
+      "look": "long black hair, purple sailor uniform, red bow",
+      "hair": "long black hair"
+    },
+    {
+      "id": "tuxedo-mask",
+      "name": "Mamoru Chiba",
+      "series": "Sailor Moon",
+      "image": "tuxedo-mask.png",
+      "look": "black hair, black tuxedo, white mask as a small eye mask, top hat and cape",
+      "hair": "black hair"
+    },
+    {
+      "id": "light",
+      "name": "Light Yagami",
+      "series": "Death Note",
+      "image": "light.png",
+      "look": "light brown hair, tan suit, white shirt, red tie",
+      "hair": "light brown hair"
+    },
+    {
+      "id": "l",
+      "name": "L Lawliet",
+      "series": "Death Note",
+      "image": "l.png",
+      "look": "messy black hair, loose white long-sleeve shirt, blue jeans, no shoes",
+      "hair": "messy black hair"
+    },
+    {
+      "id": "misa",
+      "name": "Misa Amane",
+      "series": "Death Note",
+      "image": "misa.png",
+      "look": "blonde pigtails, black gothic lolita dress, cross necklace, lace",
+      "hair": "blonde pigtails"
+    },
+    {
+      "id": "edward",
+      "name": "Edward Elric",
+      "series": "Fullmetal Alchemist",
+      "image": "edward.jpg",
+      "look": "long blond braid, red coat, black shirt, leather trousers, metal automail arm as a silver gauntlet",
+      "hair": "long blond braid"
+    },
+    {
+      "id": "winry",
+      "name": "Winry Rockbell",
+      "series": "Fullmetal Alchemist",
+      "image": "winry.jpg",
+      "look": "blonde hair in a ponytail, tube top, blue work pants, tool belt",
+      "hair": "blonde ponytail"
+    },
+    {
+      "id": "roy",
+      "name": "Roy Mustang",
+      "series": "Fullmetal Alchemist",
+      "image": "roy.png",
+      "look": "black hair, blue military coat, white gloves, black trousers",
+      "hair": "black hair"
+    },
+    {
+      "id": "spike",
+      "name": "Spike Spiegel",
+      "series": "Cowboy Bebop",
+      "image": "spike.png",
+      "look": "fluffy green hair, blue suit, white shirt, yellow shirt loosely tied",
+      "hair": "fluffy green hair"
+    },
+    {
+      "id": "faye",
+      "name": "Faye Valentine",
+      "series": "Cowboy Bebop",
+      "image": "faye.png",
+      "look": "short purple hair, yellow shorts outfit, red jacket",
+      "hair": "short purple hair"
+    },
+    {
+      "id": "vash",
+      "name": "Vash the Stampede",
+      "series": "Trigun",
+      "image": "vash.png",
+      "look": "spiky blond hair, round orange glasses, long red coat, black undersuit",
+      "hair": "spiky blond hair"
+    },
+    {
+      "id": "ichigo",
+      "name": "Ichigo Kurosaki",
+      "series": "Bleach",
+      "image": "ichigo.png",
+      "look": "spiky orange hair, black shihakusho, white under-sash",
+      "hair": "spiky orange hair"
+    },
+    {
+      "id": "rukia",
+      "name": "Rukia Kuchiki",
+      "series": "Bleach",
+      "image": "rukia.png",
+      "look": "short black hair, black shihakusho, white sash",
+      "hair": "short black hair"
+    },
+    {
+      "id": "orihime",
+      "name": "Orihime Inoue",
+      "series": "Bleach",
+      "image": "orihime.jpg",
+      "look": "long orange hair with hairpins, school uniform or a white cape",
+      "hair": "long orange hair"
+    },
+    {
+      "id": "byakuya",
+      "name": "Byakuya Kuchiki",
+      "series": "Bleach",
+      "image": "byakuya.png",
+      "look": "long black hair, white scarf, black captain haori over a shihakusho, kenseikan hairpiece",
+      "hair": "long black hair"
+    },
+    {
+      "id": "killua",
+      "name": "Killua Zoldyck",
+      "series": "Hunter x Hunter",
+      "image": "killua.jpg",
+      "look": "spiky silver hair, blue tunic, baggy shorts, skateboard optional",
+      "hair": "spiky silver hair"
+    },
+    {
+      "id": "gon",
+      "name": "Gon Freecss",
+      "series": "Hunter x Hunter",
+      "image": "gon.jpg",
+      "look": "spiky black hair, green jacket and shorts, boots",
+      "hair": "spiky black hair"
+    },
+    {
+      "id": "kurapika",
+      "name": "Kurapika",
+      "series": "Hunter x Hunter",
+      "image": "kurapika.png",
+      "look": "blond hair, blue tabard over black clothes, chains",
+      "hair": "blond hair"
+    },
+    {
+      "id": "hisoka",
+      "name": "Hisoka Morow",
+      "series": "Hunter x Hunter",
+      "image": "hisoka.png",
+      "look": "red hair, face paint as star and teardrop, jester crop top and shorts",
+      "hair": "red hair"
+    },
+    {
+      "id": "rei",
+      "name": "Rei Ayanami",
+      "series": "Neon Genesis Evangelion",
+      "image": "rei.jpg",
+      "look": "short light-blue hair, white plugsuit",
+      "hair": "short light-blue hair"
+    },
+    {
+      "id": "shinji",
+      "name": "Shinji Ikari",
+      "series": "Neon Genesis Evangelion",
+      "image": "shinji.png",
+      "look": "short brown hair, blue plugsuit",
+      "hair": "short brown hair"
+    },
+    {
+      "id": "zero-two",
+      "name": "Zero Two",
+      "series": "Darling in the Franxx",
+      "image": "zero-two.png",
+      "look": "long pink hair, red horns as a hairpiece, white and red military uniform",
+      "hair": "long pink hair"
+    },
+    {
+      "id": "power",
+      "name": "Power",
+      "series": "Chainsaw Man",
+      "image": "power.png",
+      "look": "long blonde hair, red horns as a hairpiece, white shirt, loose black tie, dark trousers",
+      "hair": "long blonde hair"
+    },
+    {
+      "id": "makima",
+      "name": "Makima",
+      "series": "Chainsaw Man",
+      "image": "makima.png",
+      "look": "long light-red hair in a braid, white shirt, black tie, black trousers",
+      "hair": "long light-red braid"
+    },
+    {
+      "id": "denji",
+      "name": "Denji",
+      "series": "Chainsaw Man",
+      "image": "denji.png",
+      "look": "messy blond hair, white shirt, loose tie, dark trousers",
+      "hair": "messy blond hair"
+    },
+    {
+      "id": "anya",
+      "name": "Anya Forger",
+      "series": "Spy x Family",
+      "image": "anya.png",
+      "look": "short pink hair with two cones, black dress with gold buttons, white knee socks",
+      "hair": "short pink hair"
+    },
+    {
+      "id": "yor",
+      "name": "Yor Forger",
+      "series": "Spy x Family",
+      "image": "yor.png",
+      "look": "long black hair, gold headband, red off-shoulder sweater dress, black tights",
+      "hair": "long black hair"
+    },
+    {
+      "id": "loid",
+      "name": "Loid Forger",
+      "series": "Spy x Family",
+      "image": "loid.png",
+      "look": "blond hair, green suit, white shirt, green tie",
+      "hair": "blond hair"
+    },
+    {
+      "id": "violet",
+      "name": "Violet Evergarden",
+      "series": "Violet Evergarden",
+      "image": "violet.png",
+      "look": "blonde hair with a blue ribbon, emerald jacket dress, brooch, white gloves",
+      "hair": "blonde hair with a ribbon"
+    },
+    {
+      "id": "rem",
+      "name": "Rem",
+      "series": "Re:Zero",
+      "image": "rem.png",
+      "look": "short light-blue hair covering one eye, black and white maid dress, rose hairpin",
+      "hair": "short light-blue hair"
+    },
+    {
+      "id": "emilia",
+      "name": "Emilia",
+      "series": "Re:Zero",
+      "image": "emilia.jpg",
+      "look": "long silver hair, white and purple dress, purple gem, flower hairpin",
+      "hair": "long silver hair"
+    },
+    {
+      "id": "miku",
+      "name": "Hatsune Miku",
+      "series": "Vocaloid",
+      "image": "miku.jpg",
+      "look": "long teal twin tails, sleeveless grey top, teal necktie, black skirt, thigh-highs",
+      "hair": "long teal twin tails"
+    },
+    {
+      "id": "asuna",
+      "name": "Asuna Yuuki",
+      "series": "Sword Art Online",
+      "image": "asuna.png",
+      "look": "long orange-brown hair, white and red knights uniform",
+      "hair": "long orange-brown hair"
+    },
+    {
+      "id": "kirito",
+      "name": "Kirito",
+      "series": "Sword Art Online",
+      "image": "kirito.png",
+      "look": "black hair, long black coat over a black outfit",
+      "hair": "black hair"
+    },
+    {
+      "id": "megumin",
+      "name": "Megumin",
+      "series": "KonoSuba",
+      "image": "megumin.png",
+      "look": "brown hair, eyepatch, witch hat, red robe, staff left as a slim prop",
+      "hair": "brown hair"
+    },
+    {
+      "id": "aqua",
+      "name": "Aqua",
+      "series": "KonoSuba",
+      "image": "aqua.png",
+      "look": "long blue hair, blue hair loop, feather hairpin, blue vest and detached sleeves",
+      "hair": "long blue hair"
+    },
+    {
+      "id": "saber",
+      "name": "Artoria Pendragon",
+      "series": "Fate",
+      "image": "saber.png",
+      "look": "blonde hair in a bun, blue dress with silver armor panels",
+      "hair": "blonde hair in a bun"
+    },
+    {
+      "id": "rin",
+      "name": "Rin Tohsaka",
+      "series": "Fate",
+      "image": "rin.png",
+      "look": "black twin tails, red turtleneck, black pleated skirt",
+      "hair": "black twin tails"
+    },
+    {
+      "id": "jotaro",
+      "name": "Jotaro Kujo",
+      "series": "JoJo's Bizarre Adventure",
+      "image": "jotaro.png",
+      "look": "black hair under a chain-trimmed cap, long dark coat, gold chain",
+      "hair": "black hair under a cap"
+    },
+    {
+      "id": "dio",
+      "name": "Dio Brando",
+      "series": "JoJo's Bizarre Adventure",
+      "image": "dio.png",
+      "look": "blond hair, heart headband, yellow jacket, open chest, dark trousers",
+      "hair": "blond hair"
+    },
+    {
+      "id": "giorno",
+      "name": "Giorno Giovanna",
+      "series": "JoJo's Bizarre Adventure",
+      "image": "giorno.png",
+      "look": "blond hair with donut curls, pink suit, ladybug brooches",
+      "hair": "blond hair with curls"
+    },
+    {
+      "id": "jolyne",
+      "name": "Jolyne Cujoh",
+      "series": "JoJo's Bizarre Adventure",
+      "image": "jolyne.png",
+      "look": "green hair in two buns, butterfly crop top, green pants",
+      "hair": "green hair in two buns"
+    },
+    {
+      "id": "inuyasha",
+      "name": "Inuyasha",
+      "series": "Inuyasha",
+      "image": "inuyasha.png",
+      "look": "long silver hair, dog ears as a hairpiece, red fire-rat robe, beads",
+      "hair": "long silver hair"
+    },
+    {
+      "id": "kagome",
+      "name": "Kagome Higurashi",
+      "series": "Inuyasha",
+      "image": "kagome.png",
+      "look": "long black hair, green and white school uniform, yellow backpack",
+      "hair": "long black hair"
+    },
+    {
+      "id": "sesshomaru",
+      "name": "Sesshomaru",
+      "series": "Inuyasha",
+      "image": "sesshomaru.jpg",
+      "look": "long silver hair, white kimono, magenta markings as face paint left off, fur stole",
+      "hair": "long silver hair"
+    },
+    {
+      "id": "lelouch",
+      "name": "Lelouch Lamperouge",
+      "series": "Code Geass",
+      "image": "lelouch.png",
+      "look": "black hair, black and gold royal uniform or a school blazer with a purple cape",
+      "hair": "black hair"
+    },
+    {
+      "id": "cc",
+      "name": "C.C.",
+      "series": "Code Geass",
+      "image": "cc.png",
+      "look": "long green hair, white straitjacket dress, gold headband",
+      "hair": "long green hair"
+    },
+    {
+      "id": "marin",
+      "name": "Marin Kitagawa",
+      "series": "My Dress-Up Darling",
+      "image": "marin.png",
+      "look": "long blonde hair with pink tips, school uniform with a pink cardigan",
+      "hair": "long blonde hair"
+    },
+    {
+      "id": "tohru",
+      "name": "Tohru",
+      "series": "Miss Kobayashi's Dragon Maid",
+      "image": "tohru.jpg",
+      "look": "long blonde hair, maid headdress, black and white maid dress, horns as a hairpiece",
+      "hair": "long blonde hair"
+    },
+    {
+      "id": "kanna",
+      "name": "Kanna Kamui",
+      "series": "Miss Kobayashi's Dragon Maid",
+      "image": "kanna.png",
+      "look": "pale blue hair, small horns as a hairpiece, knit sweater, backpack",
+      "hair": "pale blue hair"
+    },
+    {
+      "id": "albedo",
+      "name": "Albedo",
+      "series": "Overlord",
+      "image": "albedo.png",
+      "look": "long black hair, white dress, gold trim, black horns as a hairpiece",
+      "hair": "long black hair"
+    },
+    {
+      "id": "mai",
+      "name": "Mai Sakurajima",
+      "series": "Rascal Does Not Dream of Bunny Girl Senpai",
+      "image": "mai.png",
+      "look": "long black hair, school uniform or a black bunny-style leotard with a jacket",
+      "hair": "long black hair"
+    },
+    {
+      "id": "raphtalia",
+      "name": "Raphtalia",
+      "series": "The Rising of the Shield Hero",
+      "image": "raphtalia.png",
+      "look": "raccoon ears as a hairpiece, brown hair, white and red demi-human tunic, short cape",
+      "hair": "brown hair"
+    },
+    {
+      "id": "esdeath",
+      "name": "Esdeath",
+      "series": "Akame ga Kill",
+      "image": "esdeath.png",
+      "look": "long light-blue hair, white military cap, blue uniform with a fur collar",
+      "hair": "long light-blue hair"
+    },
+    {
+      "id": "android-18",
+      "name": "Android 18",
+      "series": "Dragon Ball",
+      "image": "android-18.png",
+      "look": "blonde bob, denim vest, black shirt, striped leggings, boots",
+      "hair": "blonde bob"
+    },
+    {
+      "id": "erza",
+      "name": "Erza Scarlet",
+      "series": "Fairy Tail",
+      "image": "erza.jpg",
+      "look": "long scarlet hair, silver heart-shaped armor or a white blouse and blue skirt",
+      "hair": "long scarlet hair"
+    },
+    {
+      "id": "natsu",
+      "name": "Natsu Dragneel",
+      "series": "Fairy Tail",
+      "image": "natsu.png",
+      "look": "spiky pink hair, white scale-pattern scarf, open black vest, white trousers",
+      "hair": "spiky pink hair"
+    },
+    {
+      "id": "lucy",
+      "name": "Lucy Heartfilia",
+      "series": "Fairy Tail",
+      "image": "lucy.png",
+      "look": "long blonde hair, blue ribbon, white and blue top, short skirt, boots",
+      "hair": "long blonde hair"
+    },
+    {
+      "id": "saitama",
+      "name": "Saitama",
+      "series": "One Punch Man",
+      "image": "saitama.jpg",
+      "look": "bald head, yellow jumpsuit, white cape, red gloves and boots",
+      "hair": "bald"
+    },
+    {
+      "id": "tatsumaki",
+      "name": "Tatsumaki",
+      "series": "One Punch Man",
+      "image": "tatsumaki.png",
+      "look": "short curly green hair, tight black dress, black boots",
+      "hair": "short curly green hair"
+    },
+    {
+      "id": "annie",
+      "name": "Annie Leonhart",
+      "series": "Attack on Titan",
+      "image": "annie.jpg",
+      "look": "blonde bun, Survey Corps jacket, white shirt",
+      "hair": "blonde bun"
+    },
+    {
+      "id": "akame",
+      "name": "Akame",
+      "series": "Akame ga Kill",
+      "image": "akame.png",
+      "look": "long black hair, red mini-dress under a dark short coat, black tights",
+      "hair": "long black hair"
+    },
+    {
+      "id": "rimuru",
+      "name": "Rimuru Tempest",
+      "series": "That Time I Got Reincarnated as a Slime",
+      "image": "rimuru.png",
+      "look": "silver-blue bob, black coat with gold buttons, scarf",
+      "hair": "silver-blue bob"
+    },
+    {
+      "id": "fubuki",
+      "name": "Fubuki",
+      "series": "One Punch Man",
+      "image": "fubuki.png",
+      "look": "long dark green hair, white fur coat, black dress",
+      "hair": "long dark green hair"
+    },
+    {
+      "id": "gray",
+      "name": "Gray Fullbuster",
+      "series": "Fairy Tail",
+      "image": "gray.png",
+      "look": "spiky black hair, open white shirt or shirtless with a cross necklace, dark pants",
+      "hair": "spiky black hair"
+    },
+    {
+      "id": "shanks",
+      "name": "Shanks",
+      "series": "One Piece",
+      "image": "shanks.png",
+      "look": "red hair, scar over one eye left as the visitor's face, black cape, open shirt",
+      "hair": "red hair"
+    },
+    {
+      "id": "all-might",
+      "name": "All Might",
+      "series": "My Hero Academia",
+      "image": "all-might.jpg",
+      "look": "blond hair swept up, blue yellow and red hero suit, white gloves",
+      "hair": "blond hair swept up"
+    }
+  ]
+}

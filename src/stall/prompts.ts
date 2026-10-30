@@ -9,11 +9,13 @@ function garmentLine(item: CatalogItem, index: number): string {
   const slot =
     item.category === "tops"
       ? "top"
-      : item.category === "pants"
-        ? "pants"
-        : item.category === "coats"
-          ? "jacket"
-          : item.accessoryType ?? "accessory";
+      : item.category === "bottoms"
+        ? "bottoms"
+        : item.category === "dresses"
+          ? "dress"
+          : item.category === "coats"
+            ? "jacket"
+            : item.accessoryType ?? "accessory";
   const color = item.color ? `, colour ${item.color}` : "";
   return `Reference image ${index + 2} is the ${slot}: "${item.title}"${color}. Reproduce that item's colour, pattern, texture and cut. Do not redesign it.`;
 }
@@ -33,9 +35,9 @@ export function styleTryOnPrompt(items: CatalogItem[]): string {
 export function characterLookPrompt(character: CharacterItem): string {
   return [
     `Edit the person in reference image 1 so they wear ${character.name}'s whole signature look from ${character.series}.`,
-    "Reference image 2 is only a colour and shape guide, not a person to copy.",
-    "Preserve the visitor's face and identity exactly: same facial structure, eyes, skin tone and age. Preserve their body shape. The result must still be the visitor, not a drawing of the character and not a different person.",
-    `Transfer the full look in one step: hairstyle (cut, colour, length and volume), complete outfit (colour, pattern and cut), and signature accessories. Look to apply: ${character.look}`,
+    "Reference image 2 is the character reference. Use it for the hairstyle and the outfit: copy the hair cut, colour, length and volume, and the clothing colour, pattern, cut and signature accessories.",
+    "Do not copy the character's face. Preserve the visitor's face and identity exactly: same facial structure, eyes, skin tone and age. Preserve their body shape. The result must still be the visitor, not a drawing of the character and not a different person.",
+    `Written backup if a detail is unclear in the reference: ${character.look}`,
     "Photoreal full-body photograph, natural skin, coherent lighting, head-to-toe framing, simple studio background.",
     "No text, watermark, extra people, or weapons.",
   ].join("\n");

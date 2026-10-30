@@ -4,6 +4,7 @@ export type Cart = {
   top: CatalogItem | null;
   pant: CatalogItem | null;
   coat: CatalogItem | null;
+  dress: CatalogItem | null;
   accessories: CatalogItem[];
 };
 
@@ -11,6 +12,7 @@ export const EMPTY_CART: Cart = {
   top: null,
   pant: null,
   coat: null,
+  dress: null,
   accessories: [],
 };
 
@@ -42,13 +44,22 @@ export function addProduct(cart: Cart, item: CatalogItem): CartResult {
       slot: "top",
     };
   }
-  if (item.category === "pants") {
+  if (item.category === "bottoms") {
     const replaced = cart.pant != null && cart.pant.id !== item.id;
     return {
       cart: { ...cart, pant: item },
-      message: replaced ? "Replaced your pants" : null,
+      message: replaced ? "Replaced your bottoms" : null,
       effect: replaced ? "replaced" : "added",
       slot: "pant",
+    };
+  }
+  if (item.category === "dresses") {
+    const replaced = cart.dress != null && cart.dress.id !== item.id;
+    return {
+      cart: { ...cart, dress: item },
+      message: replaced ? "Replaced your dress" : null,
+      effect: replaced ? "replaced" : "added",
+      slot: "dress",
     };
   }
   if (item.category === "coats") {
@@ -104,12 +115,13 @@ export function removeProduct(cart: Cart, id: string): Cart {
     top: cart.top?.id === id ? null : cart.top,
     pant: cart.pant?.id === id ? null : cart.pant,
     coat: cart.coat?.id === id ? null : cart.coat,
+    dress: cart.dress?.id === id ? null : cart.dress,
     accessories: cart.accessories.filter((item) => item.id !== id),
   };
 }
 
 export function cartProducts(cart: Cart): CatalogItem[] {
-  return [cart.top, cart.pant, cart.coat, ...cart.accessories].filter(
+  return [cart.top, cart.pant, cart.dress, cart.coat, ...cart.accessories].filter(
     (item): item is CatalogItem => item != null
   );
 }

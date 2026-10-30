@@ -89,17 +89,91 @@ Find my look (budget, occasion, six outfits) is not in this build.
 
 ## Stall catalog
 
-Products are real listings stored in `public/catalog/catalog.json` with images in `public/catalog/images/`. Live Amazon.in and Myntra blocked this network, so the pages were read from Internet Archive snapshots of those same public listings. Nothing in the file is invented.
+Products are real Myntra and Amazon.in listings. Photos sit next to the JSON in one folder per category, so the kiosk stays offline. The stall reads these folders when a request comes in (`src/stall/folder-catalog.ts`). There is no single `catalog.json`.
 
-| Category | Myntra | Amazon.in | Total |
-| --- | ---: | ---: | ---: |
-| Tops (dresses, tops, shirts) | 51 | 49 | 100 |
-| Pants | 100 | 0 | 100 |
-| Jackets and coats | 100 | 0 | 100 |
-| Accessories (25 watches, 25 necklaces, 25 shoes, 25 hats) | 100 | 0 | 100 |
-| **Total** | **351** | **49** | **400** |
+```
+public/catalog/tops/
+public/catalog/bottoms/
+public/catalog/coats/
+public/catalog/dresses/
+public/catalog/accessories/watches/
+public/catalog/accessories/necklaces/
+public/catalog/accessories/shoes/
+public/catalog/accessories/hats/
+```
 
-126 character portraits live in `public/characters/`. They are original geometric stand-ins, not official art. The names refer to copyrighted series. Do not swap in studio artwork in a public repo without a licence. That caveat is also in `public/characters/characters.json`.
+Each folder has `items.json`, the product photos, and `_template.json`. The category and accessory type come from the folder, not from the JSON.
+
+The committed set is a short, hand-picked catalog so the gesture UI can browse it without a long scroll. About 40 pieces in each clothing folder and about 12 in each accessory folder. Photos are sharp Myntra studio shots on clean backgrounds, with men and women and the style chips spread through the grid.
+
+| Category | Items |
+| --- | ---: |
+| Tops | 40 |
+| Bottoms | 40 |
+| Dresses (including sarees) | 40 |
+| Jackets and coats (including sherwanis) | 40 |
+| Watches | 12 |
+| Necklaces | 12 |
+| Shoes | 12 |
+| Hats | 12 |
+| **Total** | **208** |
+
+Every item has one style. Across the catalog: casual 35, festive 26, formal 21, vintage 21, smart casual 15, old money 14, minimalist 13, sporty 13, streetwear 13, party 12, boho 8, aesthetic 6, y2k 6, korean 5. Tops are split evenly between men and women. Dresses are women’s wear, including grand ethnic pieces. Sherwanis are in coats. Drop another photo and a JSON entry in the same folder to grow a category; the stall picks up new files on the next request.
+
+### Add a product
+
+1. Put the photo in the category folder. Example: `public/catalog/tops/my-shirt.jpg`.
+2. Copy `_template.json` to `my-shirt.json` in that same folder, or add an object to the `items` array in `items.json`.
+3. Restart the stall (`start-autofit.bat` or `npm run stall`).
+
+`_template.json` is ignored. A file whose `id` is `example-id` is ignored. The photo file name must match `image`, and it must sit in the same folder (no subfolders, no `..`).
+
+```json
+{
+  "id": "my-shirt",
+  "title": "Product title",
+  "brand": "Brand",
+  "priceInr": 1999,
+  "mrpInr": 3999,
+  "url": "https://www.myntra.com/product/example/buy",
+  "image": "my-shirt.jpg",
+  "store": "myntra",
+  "gender": "women",
+  "style": "casual",
+  "color": "Black"
+}
+```
+
+`store` is `myntra` or `amazon`. `gender` is `women`, `men`, or `unisex`. `style` is one of: `old-money`, `aesthetic`, `casual`, `formal`, `festive`, `streetwear`, `y2k`, `minimalist`, `boho`, `party`, `sporty`, `korean`, `vintage`, `smart-casual`.
+
+You can also keep many products in one `items.json`:
+
+```json
+{ "items": [ { "id": "my-shirt" } ] }
+```
+
+## Characters
+
+100 anime characters are in `public/characters/anime/` and 50 game characters are in `public/characters/games/`. The Try your favorite character screen has an Anime / Games toggle. Each entry is a local reference image plus a written outfit and hair description. Azure `images.edit` sends that image as reference image 2. The prompt copies the hair and the clothes from it and keeps the visitor’s face.
+
+The portraits are reference art for this kiosk. The names and artwork belong to their rights holders.
+
+### Add a character
+
+Use the same drop-in shape. Copy `_template.json` in `public/characters/anime/` or `public/characters/games/`.
+
+```json
+{
+  "id": "naruto",
+  "name": "Naruto Uzumaki",
+  "series": "Naruto",
+  "image": "naruto.png",
+  "look": "spiky blond hair, orange and black jacket, orange trousers, headband",
+  "hair": "spiky blond hair"
+}
+```
+
+Put `naruto.png` in that same folder, then restart the stall.
 
 ---
 

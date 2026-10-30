@@ -14,13 +14,14 @@ import {
 } from "@/stall/cart";
 import type {
   AccessoryType,
-  CatalogFile,
   CatalogItem,
   Category,
-  CharacterFile,
+  CharacterGroup,
   CharacterItem,
   StallMode,
+  StyleId,
 } from "@/stall/types";
+import { STYLE_OPTIONS } from "@/stall/types";
 import { useHandInput } from "@/components/stall/useHandInput";
 
 type Screen = "home" | "camera" | "studio" | "generating" | "result";
@@ -28,7 +29,8 @@ type EngineMode = "live" | "demo";
 
 const CATEGORIES: { id: Category; label: string }[] = [
   { id: "tops", label: "Tops" },
-  { id: "pants", label: "Pants" },
+  { id: "bottoms", label: "Bottoms" },
+  { id: "dresses", label: "Dresses" },
   { id: "coats", label: "Jackets" },
   { id: "accessories", label: "Accessories" },
 ];
@@ -78,7 +80,8 @@ export function StallApp() {
   const [character, setCharacter] = useState<CharacterItem | null>(null);
   const [category, setCategory] = useState<Category>("tops");
   const [accessory, setAccessory] = useState<AccessoryType | "all">("all");
-  const [series, setSeries] = useState("All");
+  const [style, setStyle] = useState<StyleId | "all">("all");
+  const [cast, setCast] = useState<CharacterGroup>("anime");
   const [toast, setToast] = useState<string | null>(null);
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [characters, setCharacters] = useState<CharacterItem[]>([]);
@@ -109,13 +112,13 @@ export function StallApp() {
   }, [toast]);
 
   useEffect(() => {
-    void fetch("/catalog/catalog.json")
+    void fetch("/api/stall/catalog")
       .then((res) => (res.ok ? res.json() : { items: [] }))
-      .then((data: CatalogFile) => setCatalog(data.items ?? []))
+      .then((data: { items?: CatalogItem[] }) => setCatalog(data.items ?? []))
       .catch(() => setCatalog([]));
-    void fetch("/characters/characters.json")
+    void fetch("/api/stall/characters")
       .then((res) => (res.ok ? res.json() : { items: [] }))
-      .then((data: CharacterFile) => setCharacters(data.items ?? []))
+      .then((data: { items?: CharacterItem[] }) => setCharacters(data.items ?? []))
       .catch(() => setCharacters([]));
     void fetch("/api/stall/mode")
       .then((res) => res.json())
@@ -230,17 +233,14 @@ export function StallApp() {
       if (category === "accessories" && accessory !== "all" && item.accessoryType !== accessory) {
         return false;
       }
+      if (style !== "all" && item.style !== style) return false;
       return true;
     });
-  }, [accessory, catalog, category]);
+  }, [accessory, catalog, category, style]);
 
-  const seriesList = useMemo(
-    () => ["All", ...Array.from(new Set(characters.map((item) => item.series))).sort()],
-    [characters]
-  );
   const visibleCharacters = useMemo(
-    () => characters.filter((item) => series === "All" || item.series === series),
-    [characters, series]
+    () => characters.filter((item) => item.group === cast),
+    [characters, cast]
   );
 
   const canGenerate = mode === "character" ? character != null : !cartIsEmpty(cart);
@@ -394,7 +394,7 @@ export function StallApp() {
               <ModeCard
                 kicker="Build a look"
                 title="Make your own style"
-                body="Drag tops, pants, a jacket and a few accessories into the cart."
+                body="Drag tops, bottoms, a dress, a jacket and a few accessories into the cart."
                 onClick={() => choose("style")}
               />
               <ModeCard
@@ -491,7 +491,8 @@ export function StallApp() {
                   ) : (
                     <>
                       <Slot item={cart.top} empty="Drop a top" onRemove={(id) => setCart(removeProduct(cart, id))} />
-                      <Slot item={cart.pant} empty="Drop pants" onRemove={(id) => setCart(removeProduct(cart, id))} />
+                      <Slot item={cart.pant} empty="Drop bottoms" onRemove={(id) => setCart(removeProduct(cart, id))} />
+                      <Slot item={cart.dress} empty="Drop a dress" onRemove={(id) => setCart(removeProduct(cart, id))} />
                       <Slot item={cart.coat} empty="Drop a jacket" onRemove={(id) => setCart(removeProduct(cart, id))} />
                       {cart.accessories.map((item) => (
                         <CartRow
@@ -535,19 +536,30 @@ export function StallApp() {
                             label={entry.label}
                           />
                         ))
-                      : seriesList.map((entry) => (
-                          <Chip
-                            key={entry}
-                            active={series === entry}
-                            onClick={() => setSeries(entry)}
-                            label={entry}
-                          />
-                        ))}
+                      : (
+                          <>
+                            <Chip label="Anime" active={cast === "anime"} onClick={() => setCast("anime")} />
+                            <Chip label="Games" active={cast === "game"} onClick={() => setCast("game")} />
+                          </>
+                        )}
                   </div>
                   <button type="button" onClick={() => scrollBy(1)} className="h-12 w-12 rounded-full border border-white/15 text-2xl">
                     ›
                   </button>
                 </div>
+                {mode === "style" && (
+                  <div className="mb-3 flex gap-2 overflow-x-auto">
+                    <Chip label="All styles" active={style === "all"} onClick={() => setStyle("all")} />
+                    {STYLE_OPTIONS.map((entry) => (
+                      <Chip
+                        key={entry.id}
+                        active={style === entry.id}
+                        onClick={() => setStyle(entry.id)}
+                        label={entry.label}
+                      />
+                    ))}
+                  </div>
+                )}
                 {mode === "style" && category === "accessories" && (
                   <div className="mb-3 flex gap-2">
                     {ACCESSORIES.map((entry) => (
@@ -587,7 +599,8 @@ export function StallApp() {
                         />
                         <p className="mt-2 line-clamp-2 text-base leading-snug">{item.title}</p>
                         <p className="text-sm text-aura-champagne">
-                          {inr(item.priceInr)} · {item.store === "amazon" ? "Amazon.in" : "Myntra"}
+                          {inr(item.priceInr)} · {STYLE_OPTIONS.find((entry) => entry.id === item.style)?.label} ·{" "}
+                          {item.store === "amazon" ? "Amazon.in" : "Myntra"}
                         </p>
                       </article>
                     ))}
