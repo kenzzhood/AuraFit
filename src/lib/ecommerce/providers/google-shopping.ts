@@ -22,7 +22,7 @@ import { sitesForCrawlerApi } from "@/lib/ecommerce/sites/dynamic-retailers";
  *
  * Either path returns:
  *   - a real merchant URL (Flipkart/Amazon.in/Myntra/Ajio/Nykaa/…)
- *   - an `imageUrl` we can feed into `gpt-image-2.edit()` as a reference
+ *   - an `imageUrl` we can feed into the Azure image edit call as a reference
  *   - `verified: true`
  *   - `matchCategory` so the UI/prompt can slot it into outerwear/top/…
  */
@@ -85,8 +85,11 @@ function inferSourceFromHost(url?: string): ProductSource | string {
 
 export const googleShoppingProductProvider: ProductSearchProvider = {
   name: "google-shopping",
-  isConfigured: () => !!process.env.PRODUCT_CRAWLER_URL,
+  isConfigured: () =>
+    process.env.AURAFIT_ALLOW_GOOGLE_SHOPPING === "true" &&
+    !!process.env.PRODUCT_CRAWLER_URL,
   async search(q: ProductQuery): Promise<NormalizedProduct[]> {
+    if (process.env.AURAFIT_ALLOW_GOOGLE_SHOPPING !== "true") return [];
     if (isCrawlerCircuitOpen()) {
       return [];
     }

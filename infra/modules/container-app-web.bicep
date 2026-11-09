@@ -149,7 +149,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'AZURE_OPENAI_API_KEY', secretRef: 'azure-openai-api-key' }
             { name: 'AZURE_OPENAI_DEPLOYMENT_GPT4O', value: 'gpt-4o' }
             { name: 'AZURE_OPENAI_DEPLOYMENT_EMBED', value: 'text-embedding-3-large' }
-            { name: 'AZURE_OPENAI_DEPLOYMENT_IMAGE', value: 'gpt-image-2' }
+            { name: 'AURAFIT_IMAGE_MODEL', value: 'gpt-image-2.5-sunburst' }
             { name: 'AZURE_OPENAI_API_VERSION', value: '2024-10-01-preview' }
             { name: 'AI_PROVIDERS', value: 'azure,openai' }
             { name: 'AI_PROVIDER', value: 'azure' }

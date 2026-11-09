@@ -52,8 +52,12 @@ coverage
 .turbo
 vercel
 
-# IDE / Cursor AI debug logs
-.cursor/
+# IDE / Cursor AI debug logs. Skills are part of the store engineering standard.
+.cursor/*
+!.cursor/skills/
+
+# Graphify AST cache. The report lives in tooling/graphify.
+graphify-out/
 
 # Mobile secrets (never commit)
 apps/mobile/.env

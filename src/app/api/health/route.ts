@@ -3,6 +3,7 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkCrawlerHealth } from "@/lib/ecommerce/providers/crawl-live";
+import { imageRetirementWarning, readGenerationConfig } from "@/modules/generation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -35,6 +36,24 @@ function studioRouteDiagnostics() {
   }
 }
 
+let imageRetirementLogged = false;
+
+function imageModelStatus() {
+  const config = readGenerationConfig();
+  const warning = imageRetirementWarning(new Date());
+  if (warning && !imageRetirementLogged) {
+    imageRetirementLogged = true;
+    console.warn(warning);
+  }
+  return {
+    id: config.model,
+    version: config.version,
+    retiresOn: config.retiresOn,
+    provider: config.provider,
+    warning,
+  };
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const warm = url.searchParams.get("warm") === "1";
@@ -47,7 +66,7 @@ export async function GET(req: Request) {
   if (debug) {
     if (!debugAllowed) {
       return NextResponse.json(
-        { ok: true, service: "aurafit-web", time: new Date().toISOString() },
+        { ok: true, service: "aurafit-web", imageModel: imageModelStatus(), time: new Date().toISOString() },
         { headers: { "cache-control": "no-store" } }
       );
     }
@@ -55,6 +74,7 @@ export async function GET(req: Request) {
       {
         ok: true,
         service: "aurafit-web",
+        imageModel: imageModelStatus(),
         diagnostics: studioRouteDiagnostics(),
         time: new Date().toISOString(),
       },
@@ -67,6 +87,7 @@ export async function GET(req: Request) {
       {
         ok: true,
         service: "aurafit-web",
+        imageModel: imageModelStatus(),
         time: new Date().toISOString(),
       },
       { headers: { "cache-control": "no-store" } }
@@ -82,6 +103,7 @@ export async function GET(req: Request) {
       {
         ok: true,
         service: "aurafit-web",
+        imageModel: imageModelStatus(),
         time: new Date().toISOString(),
       },
       { headers: { "cache-control": "no-store" } }
@@ -113,6 +135,7 @@ export async function GET(req: Request) {
     {
       ok,
       service: "aurafit-web",
+      imageModel: imageModelStatus(),
       warmed: true,
       checks,
       time: new Date().toISOString(),

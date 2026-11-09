@@ -20,6 +20,7 @@ jobs:
       - run: npm run lint
       - run: npm run type-check
       - run: npm test
+      - run: node scripts/design-audit.mjs
       - name: Dependency audit (production)
         run: npm audit --omit=dev --audit-level=critical
         continue-on-error: true

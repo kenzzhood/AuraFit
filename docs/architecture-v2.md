@@ -20,7 +20,7 @@ Each external dependency is swappable via comma-separated env order. Shared fall
 | System | Env | Default order | Entry |
 |--------|-----|---------------|-------|
 | AI (chat, vision, looks) | `AI_PROVIDERS` | `azure,openai,gemini` | [`src/lib/ai/provider.ts`](../src/lib/ai/provider.ts) |
-| Image (fashion board) | `IMAGE_PROVIDERS` | `azure,openai,noop` | [`src/lib/image/provider.ts`](../src/lib/image/provider.ts) |
+| Image (fashion board) | `IMAGE_PROVIDERS` | `azure,noop` | [`src/lib/image/provider.ts`](../src/lib/image/provider.ts) |
 | Try-on | `TRYON_PROVIDERS` | `replicate,noop` | [`src/lib/tryon/provider.ts`](../src/lib/tryon/provider.ts) |
 | Product discovery | `PRODUCT_DISCOVERY_LAYERS` | `cache,index,shopping,crawl` | [`src/lib/ecommerce/discovery.ts`](../src/lib/ecommerce/discovery.ts) |
 | Live crawler | `PRODUCT_CRAWLER_URL` | Docker `:8100` | [`services/product-crawler/`](../services/product-crawler/) |

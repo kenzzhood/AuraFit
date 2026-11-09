@@ -5,6 +5,7 @@ import {
 } from "@/lib/security/ssrf";
 import { MAX_PRODUCT_IMAGE_REFS } from "@/lib/image/constants";
 import { PRODUCT_IMAGE_USER_AGENT } from "@/lib/media/product-proxy";
+import { readGenerationConfig, IMAGE_QUALITIES, IMAGE_SIZE } from "@/modules/generation";
 
 function getImageEndpointAndKey(): { endpoint?: string; apiKey?: string } {
   return {
@@ -17,10 +18,13 @@ function getImageEndpointAndKey(): { endpoint?: string; apiKey?: string } {
   };
 }
 
+function imageDeployment(): string {
+  return readGenerationConfig().model;
+}
+
 function getImageClient(): OpenAI {
   const { endpoint, apiKey } = getImageEndpointAndKey();
-  const deployment =
-    process.env.AZURE_OPENAI_DEPLOYMENT_IMAGE ?? "dall-e-3";
+  const deployment = imageDeployment();
   const apiVersion =
     process.env.AZURE_OPENAI_IMAGE_API_VERSION ??
     process.env.AZURE_OPENAI_API_VERSION ??
@@ -55,13 +59,12 @@ export type FashionBoardImage = {
 export type BoardQuality = "preview" | "medium" | "hd";
 
 /**
- * Generate a single 6-panel fashion styling board image via Azure OpenAI Images.
- * Supports both gpt-image-* (preferred) and legacy dall-e-3 deployments.
+ * Generate a single 6-panel fashion styling board image via Azure OpenAI.
+ * The deployment name is AURAFIT_IMAGE_MODEL (default gpt-image-2.5-sunburst).
+ * This client never calls api.openai.com.
  *
- * Cost per call (gpt-image-2 GlobalStandard):
- *   - quality "low"    ≈ $0.008
- *   - quality "medium" ≈ $0.032
- *   - quality "high"   ≈ $0.125
+ * Size stays 1536x1024. Quality stays low, medium, or high.
+ * gpt-image-2.5-sunburst also accepts xhigh, max, and custom sizes.
  */
 type FetchedImageFile = {
   file: Awaited<ReturnType<typeof toFile>>;
@@ -200,13 +203,16 @@ export async function generateFashionBoard(
   referenceImageUrl?: string,
   productImageUrls?: string[]
 ): Promise<FashionBoardImage> {
-  const deployment =
-    process.env.AZURE_OPENAI_DEPLOYMENT_IMAGE ?? "dall-e-3";
+  const deployment = imageDeployment();
   const client = getImageClient();
 
   const isGptImage = deployment.includes("gpt-image");
   const gptImageQuality =
     quality === "hd" ? "high" : quality === "medium" ? "medium" : "low";
+  const allowed = new Set<string>(IMAGE_QUALITIES);
+  if (!allowed.has(gptImageQuality)) {
+    throw new Error(`Unsupported image quality: ${gptImageQuality}`);
+  }
 
   // Edit endpoint only supported by gpt-image-*. If no user photo is given, we
   // can't preserve identity — fall straight through to text-only generation.
@@ -219,9 +225,8 @@ export async function generateFashionBoard(
     .slice(0, MAX_PRODUCT_IMAGE_REFS);
   const hasProductRefs = canEdit && productUrls.length > 0;
 
-  // Hard ceiling on each Azure image API call. gpt-image-2 normally responds
-  // in 30–60 s; anything longer is a stuck request and we want to fail loud
-  // and let the job mark itself degraded rather than hang the worker.
+  // Hard ceiling on each Azure image API call. A try-on normally returns
+  // within a minute; anything longer is a stuck request.
   const IMAGE_API_TIMEOUT_MS = 90_000;
 
   // === Level 1: multi-image edit (user photo + product images) ===========
@@ -251,7 +256,7 @@ export async function generateFashionBoard(
           typeof client.images.edit
         >[0]["image"],
         n: 1,
-        size: "1536x1024",
+        size: IMAGE_SIZE,
         quality: gptImageQuality as "low" | "medium" | "high",
       },
       { timeout: IMAGE_API_TIMEOUT_MS }
@@ -274,7 +279,7 @@ export async function generateFashionBoard(
           prompt,
           image: userPhoto.file,
           n: 1,
-          size: "1536x1024",
+          size: IMAGE_SIZE,
           quality: gptImageQuality as "low" | "medium" | "high",
         },
         { timeout: IMAGE_API_TIMEOUT_MS }
@@ -291,7 +296,7 @@ export async function generateFashionBoard(
       model: deployment,
       prompt,
       n: 1,
-      size: isGptImage ? "1536x1024" : "1792x1024",
+      size: isGptImage ? IMAGE_SIZE : "1792x1024",
       ...(isGptImage
         ? { quality: gptImageQuality as "low" | "medium" | "high" }
         : { quality: "hd" as const, style: "natural" as const }),

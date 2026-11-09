@@ -50,12 +50,7 @@ function getDiscoveryLayers(): string[] {
   //   4. crawl     — async Playwright backfill when the pool is still thin
   //
   // `demo` is never in the default chain — opt in for tests/dev.
-  return parseProviderOrder("PRODUCT_DISCOVERY_LAYERS", [
-    "cache",
-    "index",
-    "shopping",
-    "crawl",
-  ]);
+  return parseProviderOrder("PRODUCT_DISCOVERY_LAYERS", ["cache", "index"]);
 }
 
 /**

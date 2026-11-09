@@ -11,9 +11,14 @@ const REGISTRY: Record<string, TryOnProvider> = {
 };
 
 export function getTryOnProvidersOrdered(): TryOnProvider[] {
-  const order = parseProviderOrder("TRYON_PROVIDERS", ["replicate", "noop"]);
+  const order = parseProviderOrder("TRYON_PROVIDERS", ["noop"]);
   return order
-    .map((name) => REGISTRY[name])
+    .map((name) => {
+      if (name === "replicate" && process.env.AURAFIT_ALLOW_REPLICATE !== "true") {
+        return undefined;
+      }
+      return REGISTRY[name];
+    })
     .filter((p): p is TryOnProvider => !!p);
 }
 

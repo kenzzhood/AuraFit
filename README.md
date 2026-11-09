@@ -18,6 +18,14 @@ AuraFit is a full-stack AI fashion platform:
 
 Built for hackathons, portfolios, and production deployment on **Azure Container Apps** or **Vercel + Supabase**.
 
+The store product is a separate surface for the Chennai kiosk. It runs locally with mock auth and an in-memory catalogue, and it does not need Clerk or a database.
+
+```bash
+npm run dev
+```
+
+Open `/kiosk`, `/staff`, `/owner`, `/admin`, and `/s/anna-nagar/kanjivaram`. Module notes live in `docs/architecture.md`. Design notes live in `docs/design.md`.
+
 ---
 
 ## Screenshots
@@ -183,8 +191,8 @@ These are read at runtime from the environment. Unset values keep today's search
 
 | Variable | Start default | Purpose |
 |----------|---------------|---------|
-| `GOOGLE_SHOPPING_ENABLED` | `true` | Crawler Google Shopping (`udm=28`) path |
-| `SERPAPI_ENABLED` | `true` | SerpAPI path, still requires `SERPAPI_KEY` |
+| `GOOGLE_SHOPPING_ENABLED` | `false` | Stays off unless `AURAFIT_ALLOW_GOOGLE_SHOPPING=true` |
+| `SERPAPI_ENABLED` | `false` | Stays off unless `AURAFIT_ALLOW_PAID_SEARCH=true` |
 | `LIVE_PLAYWRIGHT_IN_REQUEST` | `true` | In-request Playwright recovery crawl |
 | `VERIFIER_V2` | `false` | New link verifier |
 | `CLICK_REVALIDATE` | `false` | Re-check a link at click time |

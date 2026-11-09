@@ -27,7 +27,7 @@ export type DiscoveryFlags = {
 };
 
 function readBool(
-  env: NodeJS.ProcessEnv,
+  env: Record<string, string | undefined>,
   name: string,
   fallback: boolean
 ): boolean {
@@ -37,13 +37,16 @@ function readBool(
 }
 
 export function readDiscoveryFlags(
-  env: NodeJS.ProcessEnv = process.env
+  env: Record<string, string | undefined> = process.env
 ): DiscoveryFlags {
   const slot = (env.SLOT_QUERY_MODE ?? "v1").trim().toLowerCase();
   const cache = (env.CACHE_BACKEND ?? "memory").trim().toLowerCase();
   return {
-    googleShoppingEnabled: readBool(env, "GOOGLE_SHOPPING_ENABLED", true),
-    serpapiEnabled: readBool(env, "SERPAPI_ENABLED", true),
+    googleShoppingEnabled:
+      readBool(env, "GOOGLE_SHOPPING_ENABLED", false) &&
+      env.AURAFIT_ALLOW_GOOGLE_SHOPPING === "true",
+    serpapiEnabled:
+      readBool(env, "SERPAPI_ENABLED", false) && env.AURAFIT_ALLOW_PAID_SEARCH === "true",
     livePlaywrightInRequest: readBool(env, "LIVE_PLAYWRIGHT_IN_REQUEST", true),
     verifierV2: readBool(env, "VERIFIER_V2", false),
     clickRevalidate: readBool(env, "CLICK_REVALIDATE", false),

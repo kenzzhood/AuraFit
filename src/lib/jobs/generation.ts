@@ -172,10 +172,8 @@ function maxSlotsForLook(): number {
  * when the sync Playwright crawler is the sole source.
  */
 function fastShoppingConfigured(): boolean {
-  if (process.env.SERPAPI_KEY) return true;
-  const layers =
-    process.env.PRODUCT_DISCOVERY_LAYERS ?? "cache,index,shopping,crawl";
-  return layers.includes("index") || layers.includes("shopping");
+  const layers = process.env.PRODUCT_DISCOVERY_LAYERS ?? "cache,index";
+  return layers.includes("index");
 }
 
 // How many looks to resolve in parallel. SerpAPI can fan out; without it
@@ -183,14 +181,14 @@ function fastShoppingConfigured(): boolean {
 function lookConcurrency(): number {
   // Without SerpAPI every hero slot shares the crawler's 3-search semaphore.
   // 4-way look fan-out just queues 20s timeouts and blows the 2-minute budget.
-  const def = process.env.SERPAPI_KEY ? 4 : 3;
+  const def = 3;
   const n = Number(process.env.PRODUCT_LOOK_CONCURRENCY ?? def);
   return Number.isFinite(n) && n > 0 ? Math.min(n, 8) : def;
 }
 // How many slots within a single look to resolve in parallel. Supporting
 // slots skip live shopping when SerpAPI is off, so 2 is enough.
 function slotConcurrency(): number {
-  return process.env.SERPAPI_KEY ? 3 : 2;
+  return 2;
 }
 /** Hard cap on sync crawl attempts per missing slot during recovery. */
 const MAX_SLOT_QUERY_ATTEMPTS = 2;

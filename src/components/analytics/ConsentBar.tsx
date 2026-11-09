@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   CONSENT_EVENT,
   CONSENT_OPEN_EVENT,
@@ -30,6 +31,13 @@ async function persistConsentServer(accepted: boolean) {
  */
 export function ConsentBar() {
   const [visible, setVisible] = useState(false);
+  const pathname = usePathname() || "";
+  const storeSurface =
+    pathname.startsWith("/kiosk") ||
+    pathname.startsWith("/staff") ||
+    pathname.startsWith("/owner") ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/s/");
 
   useEffect(() => {
     setVisible(readConsent() === null);
@@ -54,7 +62,7 @@ export function ConsentBar() {
     setVisible(false);
   }, []);
 
-  if (!visible) return null;
+  if (!visible || storeSurface) return null;
 
   return (
     <div
