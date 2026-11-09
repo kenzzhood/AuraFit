@@ -1,0 +1,11 @@
+{
+  "total_files": 525,
+  "total_words": 373244,
+  "files_by_kind": {
+    "code": 439,
+    "document": 81,
+    "paper": 0,
+    "image": 5
+  },
+  "skipped_sensitive_count": 4
+}

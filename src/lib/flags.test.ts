@@ -26,10 +26,10 @@ afterEach(() => {
 });
 
 describe("readDiscoveryFlags", () => {
-  it("keeps today's search path when env vars are unset", () => {
+  it("keeps paid search off when env vars are unset", () => {
     const flags = readDiscoveryFlags({});
-    expect(flags.googleShoppingEnabled).toBe(true);
-    expect(flags.serpapiEnabled).toBe(true);
+    expect(flags.googleShoppingEnabled).toBe(false);
+    expect(flags.serpapiEnabled).toBe(false);
     expect(flags.livePlaywrightInRequest).toBe(true);
     expect(flags.verifierV2).toBe(false);
     expect(flags.clickRevalidate).toBe(false);

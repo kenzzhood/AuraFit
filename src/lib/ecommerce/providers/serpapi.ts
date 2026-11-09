@@ -91,8 +91,10 @@ function maxCandidates(): number {
 
 export const serpApiProductProvider: ProductSearchProvider = {
   name: "serpapi",
-  isConfigured: () => !!process.env.SERPAPI_KEY,
+  isConfigured: () =>
+    process.env.AURAFIT_ALLOW_PAID_SEARCH === "true" && !!process.env.SERPAPI_KEY,
   async search(q: ProductQuery): Promise<NormalizedProduct[]> {
+    if (process.env.AURAFIT_ALLOW_PAID_SEARCH !== "true") return [];
     const key = process.env.SERPAPI_KEY;
     if (!key) return [];
 

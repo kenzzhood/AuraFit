@@ -523,6 +523,11 @@ async def crawl_google_shopping(
     x_crawler_key: str | None = Header(default=None),
 ):
     verify_key(x_crawler_key)
+    if os.environ.get("AURAFIT_ALLOW_GOOGLE_SHOPPING", "").lower() != "true":
+        raise HTTPException(
+            status_code=410,
+            detail="Google Shopping is disabled. Use the owned catalogue.",
+        )
 
     async with _search_sem:
         google_result = await search_google_shopping(

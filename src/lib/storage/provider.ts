@@ -5,25 +5,19 @@ import { azureBlobStorageProvider } from "@/lib/storage/providers/azure-blob";
 export type StorageProviderName = "cloudinary" | "azure";
 
 export function getStorageProviderName(): StorageProviderName {
-  const p = (process.env.STORAGE_PROVIDER ?? "cloudinary").toLowerCase();
-  if (p === "azure") return "azure";
-  return "cloudinary";
+  const p = (process.env.STORAGE_PROVIDER ?? "azure").toLowerCase();
+  if (p === "cloudinary" && process.env.AURAFIT_ALLOW_CLOUDINARY === "true") {
+    return "cloudinary";
+  }
+  return "azure";
 }
 
 export function getStorageProvider(): StorageProvider {
   const preferred = getStorageProviderName();
-  if (preferred === "azure" && azureBlobStorageProvider.isConfigured()) {
-    return azureBlobStorageProvider;
-  }
-  if (cloudinaryStorageProvider.isConfigured()) {
+  if (preferred === "cloudinary" && cloudinaryStorageProvider.isConfigured()) {
     return cloudinaryStorageProvider;
   }
-  if (azureBlobStorageProvider.isConfigured()) {
-    return azureBlobStorageProvider;
-  }
-  return preferred === "azure"
-    ? azureBlobStorageProvider
-    : cloudinaryStorageProvider;
+  return azureBlobStorageProvider;
 }
 
 export function isStorageConfigured(): boolean {

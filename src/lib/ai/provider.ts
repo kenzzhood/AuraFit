@@ -35,6 +35,9 @@ export function getAIProvidersOrdered(): AIProvider[] {
     if (name === "openai" && process.env.ALLOW_OPENAI_AI_FALLBACK !== "true") {
       continue;
     }
+    if (name === "gemini" && process.env.AURAFIT_ALLOW_GEMINI !== "true") {
+      continue;
+    }
     const p = REGISTRY[name];
     if (p && (name !== "gemini" || p.isConfigured())) {
       seen.add(name);

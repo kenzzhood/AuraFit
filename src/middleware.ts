@@ -21,6 +21,21 @@ const isPublicRoute = createRouteMatcher([
   "/api/inngest(.*)",  // Inngest webhook — verified by signing key, not Clerk
   "/api/health(.*)",   // Container Apps liveness/readiness probes — must be unauthenticated
   "/api/internal/index/ingest(.*)", // Scrapy batch ingest — verified by INGEST_API_KEY
+  // Store kiosk and hosted product pages. Staff, owner and admin APIs
+  // authenticate inside the route with the store auth module, not Clerk.
+  "/kiosk(.*)",
+  "/staff(.*)",
+  "/owner(.*)",
+  "/admin(.*)",
+  "/s/(.*)",
+  "/api/kiosk(.*)",
+  "/api/staff(.*)",
+  "/api/owner(.*)",
+  "/api/admin(.*)",
+  "/api/auth(.*)",
+  "/api/storefront(.*)",
+  "/api/whatsapp(.*)",
+  "/api/analytics(.*)",
 ]);
 
 /** POST/PUT/PATCH/DELETE under /api/posts require auth even though GET is public. */
@@ -70,7 +85,28 @@ const withClerk: NextMiddleware = clerkMiddleware(async (auth, req) => {
  * In development without Clerk configured we allow through so local testing
  * of non-auth features still works — but we log a loud warning.
  */
+function isStoreSurface(req: NextRequest): boolean {
+  const path = req.nextUrl.pathname;
+  return (
+    path.startsWith("/kiosk") ||
+    path.startsWith("/staff") ||
+    path.startsWith("/owner") ||
+    path.startsWith("/admin") ||
+    path.startsWith("/s/") ||
+    path.startsWith("/api/kiosk") ||
+    path.startsWith("/api/staff") ||
+    path.startsWith("/api/owner") ||
+    path.startsWith("/api/admin") ||
+    path.startsWith("/api/auth") ||
+    path.startsWith("/api/storefront") ||
+    path.startsWith("/api/whatsapp") ||
+    path.startsWith("/api/analytics")
+  );
+}
+
 const guardOrAllow: NextMiddleware = (req: NextRequest) => {
+  // The store product authenticates itself. It must run when Clerk is absent.
+  if (isStoreSurface(req)) return NextResponse.next();
   if (process.env.NODE_ENV === "production") {
     // Hard-block in production — Clerk must be configured
     return NextResponse.json(
