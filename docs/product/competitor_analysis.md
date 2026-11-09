@@ -284,7 +284,7 @@ Legend: **[V]** = verified on a live page this session (URL given). **[Claim]** 
 
 | Company | Starts from shopper's needs (occasion, budget) | Complete looks | Photo try-on | Phone / QR handoff | Touch-free | Styles from real stock | POS / catalogue sync | Shows rack / section | Staff app | Analytics | Public price |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| **AuraFit (plan)** | Yes | Yes, 6 looks | Yes (GPT Image 2 / klein) | Yes, QR join | Yes, gesture | Yes | CSV / nightly sales file; works without POS | Yes, section / rack | Planned | Anonymous | Not yet |
+| **AuraFit (plan)** | Yes | Yes, 6 looks | Yes (GPT Image 2.5 Sunburst / klein) | Yes, QR join | Yes, gesture | Yes | CSV / nightly sales file; works without POS | Yes, section / rack | Planned | Anonymous | Not yet |
 | Alaaya | Occasion browse | Yes | Yes | — | No (touch) | Yes | — | — | Assisted selling (claim) | — | No |
 | Flickd | AI search / ask | Pairings (voice beta) | Yes (avatar) | WhatsApp QR | Voice (beta) | Yes | Shopify app + SDK | "Where to find it" (voice beta) | — | Every try logged | No |
 | Imersive.io | — | AI stylist pairings | Yes + sizing | — | — | — | Shopify | — | — | — | Shopify app only |
@@ -306,7 +306,7 @@ Legend: **[V]** = verified on a live page this session (URL given). **[Claim]** 
 | Fynd Magic Mirror | "in seconds"; try-on to checkout in 90 s | Claim |
 | Flickd | Avatar in under a minute, then instant feed | Avatar is built once, so later looks feel instant |
 | Alaaya | "in seconds"; <50 ms UI | Claim |
-| AuraFit today | GPT Image 2 is about 20 s per image (earlier research) | Problem 3 to fix |
+| AuraFit today | GPT Image 2.5 Sunburst is about 20 s per image (earlier research) | Problem 3 to fix |
 
 Pattern: the fast ones either pre-render (Flickd's avatar feed, StyleUAI's overnight bulk try-on, Breuninger's offline batch) or use overlays. Nobody claims fast live generative output for six looks at once.
 
@@ -340,7 +340,7 @@ Pattern: the fast ones either pre-render (Flickd's avatar feed, StyleUAI's overn
 2. **Stores with no POS or inventory system.** Every vendor assumes Shopify, a POS or a clean catalogue. Nobody offers "we photograph and barcode your stock, and you send a nightly sales file".
 3. **A touch-free, crowd-safe single-camera kiosk** (one active user, others join by QR). Most rivals use touch; Roopastra only claims a gesture sensor; Smartiam uses Kinect.
 4. **A reliable staff-side request app.** H&M learned this the hard way, and no Indian vendor shows one.
-5. **Kids' wear try-on.** Perfitly excludes children, GPT Image 2 blocks minors, and our klein fallback covers it.
+5. **Kids' wear try-on.** Perfitly excludes children, GPT Image 2.5 Sunburst blocks minors, and our klein fallback covers it.
 6. **Tamil and other regional-language voice or UI.** None found.
 7. **The six-look, need-first flow tied to stock and location.** Alaaya and Glance are the nearest. This gap is contested, not empty.
 
@@ -349,7 +349,7 @@ Pattern: the fast ones either pre-render (Flickd's avatar feed, StyleUAI's overn
 2. Alaaya is already in Tamil Nadu (Salem) with the same idea, and it is winning tier-2 stores.
 3. Fynd can bundle a mirror free inside its POS subscription for its retailers.
 4. Glance + Google: an Android TV on the shop floor could become a free try-on screen.
-5. Try-on itself is a commodity: Google's Vertex AI try-on API, FASHN and GPT Image 2 are open to anyone, so try-on alone is no moat.
+5. Try-on itself is a commodity: Google's Vertex AI try-on API, FASHN and GPT Image 2.5 Sunburst are open to anyone, so try-on alone is no moat.
 6. Flickd's cross-brand avatar could become a network effect.
 7. This category kills companies: Reactive Reality (insolvent), Vue.ai (distress sale), Dharpan (shrinking), Oak Labs (sold), Ultraleap (administration). Watch costs and services load.
 

@@ -52,7 +52,7 @@ param azureOpenAiEndpoint string
 @secure()
 param azureOpenAiApiKey string
 
-@description('Azure OpenAI image-gen endpoint (gpt-image-2).')
+@description('Azure OpenAI image endpoint. The deployment name is AURAFIT_IMAGE_MODEL.')
 param azureOpenAiImageEndpoint string
 
 @description('Azure OpenAI image-gen API key.')

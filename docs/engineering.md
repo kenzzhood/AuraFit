@@ -1,5 +1,15 @@
 # Engineering method
 
+## Image model
+
+Adult try-on and adult stock renders call Azure OpenAI only. The deployment name is the single env value `AURAFIT_IMAGE_MODEL`. The default is `gpt-image-2.5-sunburst`, version `2026-09-09` (GA on Azure). It retires on `2027-09-09`. `gpt-image-2` retires on `2027-10-21`. Microsoft's schedule names no replacement for either date.
+
+`gpt-image-2.6-sunburst` is the planned swap once Azure lists it. Set `AURAFIT_IMAGE_MODEL=gpt-image-2.6-sunburst` then. Do not call it before that, and do not call `api.openai.com` for images.
+
+The health check and process startup warn when the configured model is inside 90 days of a known retirement date. Face preservation for a consenting adult still uses the Azure edit call with the session photo. `src/modules/generation/face-preservation.fixture.ts` records that identity consistency on 2.5 Sunburst has not been checked yet. That check is required before the pilot. Children stay on synthetic models.
+
+Hosting is unchanged. The app still reads `AZURE_OPENAI_ENDPOINT` (or `AZURE_OPENAI_IMAGE_ENDPOINT`) and the matching key. Those are the Foundry resource the image call uses. No new Azure hosting was added for this switch.
+
 ## Superpowers
 
 Installed from https://github.com/obra/superpowers by copying each `skills/*/SKILL.md` into `.cursor/skills/superpowers-<name>/SKILL.md`. Cursor's marketplace install (`/add-plugin superpowers`) cannot be clicked from this environment. The upstream installer also wires Claude Code hooks. Those hooks were not installed. The skill text is the method, and it is followed by Grok.

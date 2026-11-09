@@ -22,7 +22,7 @@ import { sitesForCrawlerApi } from "@/lib/ecommerce/sites/dynamic-retailers";
  *
  * Either path returns:
  *   - a real merchant URL (Flipkart/Amazon.in/Myntra/Ajio/Nykaa/…)
- *   - an `imageUrl` we can feed into `gpt-image-2.edit()` as a reference
+ *   - an `imageUrl` we can feed into the Azure image edit call as a reference
  *   - `verified: true`
  *   - `matchCategory` so the UI/prompt can slot it into outerwear/top/…
  */

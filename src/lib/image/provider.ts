@@ -17,8 +17,9 @@ const REGISTRY: Record<string, ImageProvider> = {
 };
 
 export function getImageProvidersOrdered(): ImageProvider[] {
-  const order = parseProviderOrder("IMAGE_PROVIDERS", ["azure", "openai", "noop"]);
+  const order = parseProviderOrder("IMAGE_PROVIDERS", ["azure", "noop"]);
   return order
+    .filter((name) => name !== "openai")
     .map((name) => REGISTRY[name])
     .filter((p): p is ImageProvider => !!p);
 }

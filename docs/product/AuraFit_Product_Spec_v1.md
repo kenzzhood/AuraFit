@@ -40,10 +40,10 @@ Imersive.io (Chennai, smart mirror) and Alaaya are the closest threats.
    - That brings cost to about ₹9.7k, or about 35% margin [Est].
    - Add a one-time setup fee. We also need to test whether small stores will actually pay ₹15k.
 2. **The out-of-stock QR has nowhere to point.** Most unorganised stores have no website. Upgrade: AuraFit hosts a simple product page for each store, and its "Order on WhatsApp" button goes to the store [RR/decision needed].
-3. **GPT Image 2 quota is the bottleneck at about 10 stores.**
-   - Personal try-ons and the night pre-render job share about 6 requests a minute.
+3. **Image quota is the bottleneck at about 10 stores.**
+   - Personal try-ons and the night pre-render job share about 6 requests a minute on `gpt-image-2.5-sunburst`.
    - Pause the night job during store hours and ask Azure for a higher quota early.
-   - The model retires on 21 Oct 2027. Budget for re-rendering every store, about $10.8k for 100 stores under the 6-model plan [Est].
+   - `gpt-image-2.5-sunburst` retires on 9 Sep 2027. `gpt-image-2` retires on 21 Oct 2027. Microsoft names no replacement. The planned swap is `gpt-image-2.6-sunburst` once Azure lists it. Budget for re-rendering every store, about $10.8k for 100 stores under the 6-model plan [Est].
 4. **Kids.**
    - Never train or test on real children's photos without parental consent.
    - At launch, children get looks on synthetic child models only, with no camera photo.
@@ -332,7 +332,7 @@ Imersive.io (Chennai, smart mirror) and Alaaya are the closest threats.
 
 **How it works [D]**
 - **Stock models:** about 18 adults (2 genders × 3 body types × 3 tones) plus about 4 kids' models.
-- **Generation:** GPT Image 2 (`gpt-image-2-2026-04-21`, Global Standard: East US 2, Sweden Central, Poland Central, UAE North, West US 3) for adults. FLUX.2 klein 4B (Apache-2.0, fine-tuned) for kids and as the fallback.
+- **Generation:** Azure OpenAI `gpt-image-2.5-sunburst` (version 2026-09-09, deployment name `AURAFIT_IMAGE_MODEL`) for adults. FLUX.2 klein 4B (Apache-2.0, fine-tuned) for kids and as the fallback. Direct OpenAI is not used.
 - **Job:** a Container Apps Job finds new or changed looks, renders look × model pairs, runs QA, writes to Blob. The kiosk syncs the delta to its SSD before opening.
 - **Scale (decisions file, estimates):** 500 SKUs → about 5,400 images, about $325 once and about $36 a month. A first full render takes about 15 h at 6 RPM.
 - The plan as written: about 100 curated looks.
@@ -343,7 +343,7 @@ Imersive.io (Chennai, smart mirror) and Alaaya are the closest threats.
 1. **Coverage:** about 100 looks, filtered by occasion × budget × size × availability, leaves only a few per filter, so shoppers see repeats.
 2. **Cost:** the 18-model pre-render is the largest variable cost, about ₹3.2k a month per store [Est].
 3. **Quota:** 15 h doesn't fit in one night of about 10 closed hours.
-4. **Retirement:** GPT Image 2 leaves Azure on 21 Oct 2027, so everything must be re-rendered with the next model.
+4. **Retirement:** `gpt-image-2.5-sunburst` leaves Azure on 9 Sep 2027. `gpt-image-2` leaves on 21 Oct 2027. Microsoft names no replacement, so everything must be re-rendered with the next model Azure lists. The planned swap is `gpt-image-2.6-sunburst`.
 5. **Fidelity:** embroidery, saree borders and prints can drift. A wrong garment destroys trust.
 
 **Upgraded design**
@@ -353,7 +353,7 @@ Imersive.io (Chennai, smart mirror) and Alaaya are the closest threats.
 2. **Bigger look pool:** every in-stock style is at least one look, plus combos.
 3. **Fidelity QA:** reject renders where garment-embedding similarity falls below a threshold. Staff spot-check 20 renders a week.
 4. Run only when the store is closed. Pause whenever a kiosk needs a live render.
-5. **Pin `model_version` on each render.** Budget for re-rendering before Oct 2027: about $10.8k for 100 stores at 6 models, or about $32.4k at 18 [Est].
+5. **Pin `model_version` on each render.** The pinned default is `gpt-image-2.5-sunburst` (2026-09-09). Budget for re-rendering before 9 Sep 2027: about $10.8k for 100 stores at 6 models, or about $32.4k at 18 [Est].
 6. **Label [D]:** "Shown on a model like you."
 
 ### 3.6 Live personal try-on
@@ -361,7 +361,7 @@ Imersive.io (Chennai, smart mirror) and Alaaya are the closest threats.
 **Purpose.** The "wow": the tapped look on the shopper's own photo, in about 20 s.
 
 **How it works**
-- The kiosk sends the photo and garment images to the Azure API, which calls GPT Image 2 edit at medium quality (about $0.05 per image, about ₹4.4 [Est]).
+- The kiosk sends the photo and garment images to Azure OpenAI, which calls `gpt-image-2.5-sunburst` edit at medium quality (about $0.05 per image, about ₹4.4 [Est, carried from the previous model until Sunburst rates are confirmed]).
 - The result goes back to the kiosk and the cloud input is deleted.
 - **Fallback:** FLUX.2 klein 4B with `xocialize/tryon-FLUX.2-klein-4B-lora` on Azure Container Apps serverless GPU (A100 about ₹254/h [V: Azure retail prices API]).
 
@@ -370,7 +370,7 @@ Imersive.io (Chennai, smart mirror) and Alaaya are the closest threats.
 **Pressure test**
 - 20 s feels long when standing.
 - **Content policy:** swimwear has medium block risk, lingerie high.
-- **Data leaves India.** There is no Central India region for GPT Image 2, and the 30-day abuse-monitoring retention is unverified.
+- **Data leaves India.** There is no Central India region confirmed for `gpt-image-2.5-sunburst`, and the 30-day abuse-monitoring retention is unverified.
 - **Quota:** Saturday peaks across 10 stores could exceed 6 RPM.
 
 **Upgraded design**
@@ -669,7 +669,7 @@ The attract overlay stays on.
 | Database | PostgreSQL Flexible + pgvector | B1MS ≈ ₹1,703 a month (pilot); B2s ≈ ₹6,813 a month later |
 | Images | Blob Storage (Central India) | Negligible at pilot scale |
 | Queue and jobs | Storage Queue / Service Bus + Container Apps Jobs | Night render, onboarding |
-| Adult generation | Azure OpenAI GPT Image 2, Global Standard | **Outside India**; about 6 RPM default |
+| Adult generation | Azure OpenAI `gpt-image-2.5-sunburst` | **Outside India**; about 6 RPM default |
 | Kids / fallback generation | Container Apps serverless GPU A100 (≈ ₹254/h) + FLUX.2 klein | Scales to zero |
 | Tagging / OCR | Small Azure OpenAI vision model | Small per call [Est] |
 | Devices | IoT Hub, Free → S1 (₹3,333 a month) | Certificates, twins, OTA |
@@ -731,7 +731,7 @@ The attract overlay stays on.
 - **Roles:** the store is the Data Fiduciary, AuraFit the Processor (DPA contract). Using cross-store data for our own purposes could make AuraFit a fiduciary, so avoid that.
 - **Children:** verifiable parental consent for under-18s, and no tracking or targeted ads (s.9(3)). Hence the no-photo kids path.
 - **Requirements [D]:** a Tamil + English notice, opt-in before the photo, no face recognition, no age or gender inference.
-- **Cross-border:** GPT Image 2 processes photos outside India, so disclose it [Est: confirm the transfer position with the lawyer].
+- **Cross-border:** `gpt-image-2.5-sunburst` processes photos outside India, so disclose it [Est: confirm the transfer position with the lawyer].
 - **CCTV:** TN's 2012 rules require entrance CCTV at shops of 500 m² or more [V]. Reusing it for analytics still needs notice.
 - **Before the pilot:**
   1. Advocate's opinion (via the iTNT lawyer) on the photo flow, the heatmap and the WhatsApp opt-in.
@@ -820,7 +820,7 @@ The attract overlay stays on.
 | 3 | Wrong stock or location sends shoppers to empty racks | High | Confidence labels, freshness checks, missing taps, rack monitoring later |
 | 4 | Garment fidelity in try-on (borders, prints, drape) | High | QA gate, model-only categories, "AI preview" label |
 | 5 | Legal: camera heatmaps, photos processed outside India, kids | High | Lawyer first; heatmap off; kids no-photo; notices |
-| 6 | Image-model dependency (quota, policy, Oct 2027 retirement, price) | High | Quota request, klein fallback on Azure, version pinning, re-render budget |
+| 6 | Image-model dependency (quota, policy, 9 Sep 2027 retirement, price) | High | Quota request, klein fallback, version pinning, re-render budget |
 | 7 | Imersive / Alaaya / Glance move first in Chennai | Medium | Pilot by Q1 2027; the stock + WhatsApp + staff-alert bundle |
 | 8 | Jetson overload or field failures (heat, power) | Medium | Profiling, watchdog, UPS, spares |
 | 9 | Staff ignore the staff app | Medium | Minimal taps, chime, escalation, leaderboard |
@@ -831,8 +831,8 @@ The attract overlay stays on.
 | Scale | What breaks | Fix |
 |---|---|---|
 | **1 store** | Founders do everything; fixed cloud cost is unshared (≈ loss); the lawyer's opinion is a blocker | Accept the pilot loss; IoT Hub Free tier; B1MS |
-| **10 stores** | **GPT Image 2 quota at peaks** (Saturday evening, ~2 concurrent renders per store); onboarding labour (~20 person-days); spare kits; staff-alert support | Quota increase + priority queue; trained onboarding crew; BSP Pro; spares |
-| **100 stores** | Quota across regions; fleet OTA and monitoring; field technicians across TN; per-store WhatsApp numbers for chains; DPDP programme (DPO-lite, breach process); **Oct 2027 re-render (≈ $10.8k at 6 models / ≈ $32.4k at 18)**; database B2s+ with private networking; manual QA doesn't scale | Multi-region deployments, IoT Hub S1, partner installers, automated QA, a model-migration plan |
+| **10 stores** | **`gpt-image-2.5-sunburst` quota at peaks** (Saturday evening, ~2 concurrent renders per store); onboarding labour (~20 person-days); spare kits; staff-alert support | Quota increase + priority queue; trained onboarding crew; BSP Pro; spares |
+| **100 stores** | Quota across regions; fleet OTA and monitoring; field technicians across TN; per-store WhatsApp numbers for chains; DPDP programme (DPO-lite, breach process); **9 Sep 2027 re-render (≈ $10.8k at 6 models / ≈ $32.4k at 18)**; database B2s+ with private networking; manual QA doesn't scale | Multi-region deployments, IoT Hub S1, partner installers, automated QA, a model-migration plan |
 
 ---
 
@@ -865,7 +865,7 @@ flowchart LR
     GPU[Serverless GPU: FLUX.2 klein]
   end
   subgraph AzureGlobal[Azure Global Standard]
-    GPT[GPT Image 2]
+    GPT[gpt-image-2.5-sunburst]
   end
   WA[WhatsApp via BSP]
   SHOP[Shopper phone]
@@ -887,7 +887,7 @@ sequenceDiagram
   participant S as Shopper
   participant K as Kiosk (Jetson)
   participant C as Azure API
-  participant G as GPT Image 2
+  participant G as gpt-image-2.5-sunburst
   participant W as WhatsApp
   S->>K: Stand on footprints, raise hand 1 s
   K->>S: Who / occasion / budget

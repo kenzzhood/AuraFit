@@ -102,7 +102,7 @@ Without this, generation falls back to demo/heuristic behavior.
 2. Deploy models (Azure OpenAI Studio):
    - Chat: `gpt-4o` (or similar)
    - Embeddings: `text-embedding-3-large`
-   - Images: `dall-e-3` or `gpt-image-*`
+   - Images: Foundry deployment `gpt-image-2.5-sunburst` (`AURAFIT_IMAGE_MODEL`)
 3. Copy endpoint + keys from **Keys and Endpoint**.
 
 ```bash
@@ -110,7 +110,7 @@ AZURE_OPENAI_ENDPOINT=https://YOUR-RESOURCE.openai.azure.com
 AZURE_OPENAI_API_KEY=
 AZURE_OPENAI_DEPLOYMENT_GPT4O=gpt-4o
 AZURE_OPENAI_DEPLOYMENT_EMBED=text-embedding-3-large
-AZURE_OPENAI_DEPLOYMENT_IMAGE=dall-e-3
+AURAFIT_IMAGE_MODEL=gpt-image-2.5-sunburst
 AZURE_OPENAI_API_VERSION=2024-10-01-preview
 
 # If image resource is separate:

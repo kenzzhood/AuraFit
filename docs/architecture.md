@@ -27,7 +27,7 @@ Each module lives in `src/modules/<name>`. The typed contract is the exported fu
 | Module | What it does |
 | --- | --- |
 | vision | One active shopper on the footprints. Capture quality. Session photo memory that forgets on reset and after one hour. |
-| generation | Routes adults to GPT Image 2 (`gpt-image-2-2026-04-21`) and synthetic kids to FLUX.2 klein. Night queue pauses while the store is open. |
+| generation | Routes consenting adults to Azure OpenAI `gpt-image-2.5-sunburst` (version 2026-09-09, set by `AURAFIT_IMAGE_MODEL`) and synthetic kids to FLUX.2 klein. Night queue pauses while the store is open. |
 | recommendation | Six looks. Hard filters, a promote cap, colour diversity. Skin tone stays off the public payload. |
 | intelligence | Session rules: three personal try-ons, absence timers, no photo for a child or a gift. |
 | catalog | Canonical CSV, barcode shape, photo QA, 95 percent department coverage. |

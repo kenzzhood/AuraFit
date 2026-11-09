@@ -1383,7 +1383,7 @@
       "label": "Image generation",
       "file_type": "document",
       "source_file": "docs/product/AuraFit_image_stack_decisions.md",
-      "note": "GPT Image 2 for adults, FLUX.2 klein fallback, overnight pre-render.",
+      "note": "gpt-image-2.5-sunburst on Azure OpenAI for adults, FLUX.2 klein fallback, overnight pre-render.",
       "id": "concept:generation",
       "community": 18
     },

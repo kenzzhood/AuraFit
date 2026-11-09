@@ -2,21 +2,23 @@
 
 Last updated: 9 Nov 2026, 12:29 AM IST. This is a living record; update it as decisions change. Plan: solve problems one by one.
 
-## 1. Main model: GPT Image 2 on Azure OpenAI (adult try-on)
+## 1. Main model: GPT Image 2.5 Sunburst on Azure OpenAI (adult try-on)
+
+`gpt-image-2.5-sunburst`, version 2026-09-09, GA. The deployment name is `AURAFIT_IMAGE_MODEL`. It retires on 2027-09-09. `gpt-image-2` retires on 2027-10-21. Microsoft names no replacement. The planned swap is `gpt-image-2.6-sunburst` once Azure lists it. Image calls use the Foundry endpoint and key. Hosting of the app is unchanged. Direct OpenAI is not used.
 - Used for consenting adults, everyday clothes and traditional Indian wear.
 - Swimwear: medium block risk. Lingerie: high block risk (sexually suggestive content prohibited).
 - Photorealistic minors: blocked outright.
 
 ## 2. Fallback: FLUX.2 klein 4B
 - Apache-2.0 licence, commercial use OK.
-- To be fine-tuned on real store photos, including kids' outfits, since GPT Image 2 blocks minors.
+- To be fine-tuned on real store photos, including kids' outfits, since GPT Image 2.5 Sunburst blocks minors.
 
 ## 3. Hosting / region
 - No managed try-on API runs inside India.
-- GPT Image 2 on Azure is the best managed option; it runs in global regions only (not Central India).
+- GPT Image 2.5 Sunburst on Azure is the best managed option; it runs in global regions only (not Central India).
 
 ## 4. Cost
-- GPT Image 2: about ₹34–42 per six-look session at medium quality.
+- GPT Image 2.5 Sunburst: about ₹34–42 per six-look session at medium quality [Est, carried from the previous model until Sunburst rates are confirmed]. Quality stays medium. 2.5 also accepts xhigh and max.
 - FLUX.2 klein 4B: about ₹1 per image.
 
 ## 5. Open items
@@ -31,7 +33,7 @@ Last updated: 9 Nov 2026, 12:29 AM IST. This is a living record; update it as de
 ## AuraFit — do not forget (updated 9 Nov 2026, 12:49 AM IST)
 The five AuraFit problems from the first call (8 Nov evening), in order. Solutions were discussed for each on that call, but only image generation was chosen to tackle first.
 
-1. **Image generation**: solved. GPT Image 2 on Azure OpenAI is the main model for adult try-on; FLUX.2 klein 4B, fine-tuned, is the fallback for kids' outfits (GPT Image 2 blocks photorealistic minors).
+1. **Image generation**: solved. GPT Image 2.5 Sunburst on Azure OpenAI is the main model for adult try-on; FLUX.2 klein 4B, fine-tuned, is the fallback for kids' outfits (GPT Image 2.5 Sunburst blocks photorealistic minors).
 2. **Gesture control**: can't have multiple people interacting at the same time; crowded stores are a problem; all gesture-control issues. Constraint: single RGB camera only. Research done 9 Nov (aurafit_gesture_research.md), recommendation pending Goutham's decisions: one active user at a time (raise hand ~1 s to claim; must be on floor footprints, centred and close; resets after ~15 s), others join via phone QR; same camera takes the try-on photo; MediaPipe Pose picks the active user then hands; Logitech Brio + Core i5 mini PC + 55-inch portrait screen + front light + UPS, ~₹1.3–1.8 lakh per kiosk (budget ~₹70–90k; most prices unverified). Open: screen size, mounting, touch frame, pilot budget tier, camera model.
 3. **Image generation timing**: generation takes time and people won't wait for it.
 4. **Inventory**: how to handle inventory for any store in Chennai; most are unorganized with no inventory management, so the solution must work for them too. (Research done 8 Nov: pilot = InnoXR photographs/barcodes the catalogue + nightly POS sales file, unseen items show "available on request"; RFID in phase two.)
@@ -48,7 +50,7 @@ Biggest threat Imersive.io (Chennai, live at NEWME Bengaluru), then Alaaya (comp
 
 ## Feature gaps + overnight pre-render (9 Nov 2026)
 Page: https://cursor.com/canvas/store-bf6ec20a-b003-49c6-8afc-ffd055fc5d30/4bc5ea56-6399-44d2-b537-187add0df3bb ; copy /workspace/aurafit/feature_gaps_and_prerender.md.
-15 competitor features (11 add, 4 not yet). Pre-render proposal: each SKU on ~18 stock models + 100 curated looks overnight; first screen <1 s, shopper's own GPT Image 2 try-on only for tapped look (~20 s). 500-SKU store ~$325 once + ~$36/mo (estimate). MVP 6-8 weeks, 2 engineers (estimate). Azure Batch does not support GPT Image 2; default quota ~6 RPM, quota increase worth requesting (not submitted). Google Vertex try-on retiring by Mar 2027.
+15 competitor features (11 add, 4 not yet). Pre-render proposal: each SKU on ~18 stock models + 100 curated looks overnight; first screen <1 s, shopper's own GPT Image 2.5 Sunburst try-on only for tapped look (~20 s). 500-SKU store ~$325 once + ~$36/mo (estimate). MVP 6-8 weeks, 2 engineers (estimate). Azure Batch does not support GPT Image 2.5 Sunburst; default quota ~6 RPM, quota increase worth requesting (not submitted). Google Vertex try-on retiring by Mar 2027.
 DECISION (9 Nov 2026, Goutham on call): adopt overnight bulk pre-render approach for problem 3 (timing).
 
 ## APPROVED PLAN ADDITIONS (9 Nov 2026, Goutham on call, reading the competitor analysis)

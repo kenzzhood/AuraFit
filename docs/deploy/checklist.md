@@ -70,7 +70,7 @@ npm run db:push
 ### Azure OpenAI (required for full AI features)
 
 - [ ] Deploy `gpt-4o` (chat), `text-embedding-3-large` (embeddings)
-- [ ] Deploy image model (`dall-e-3` or `gpt-image-*`)
+- [ ] Foundry deployment name matches `AURAFIT_IMAGE_MODEL` (`gpt-image-2.5-sunburst`)
 - [ ] Set `AZURE_OPENAI_*` in `.env.local`
 - [ ] Optional: Azure AI Vision for wardrobe tagging
 
