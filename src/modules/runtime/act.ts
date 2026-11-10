@@ -15,6 +15,7 @@ import {
   type ToneCode,
 } from "@/modules/vision";
 import type { BudgetBand, Language, Look, Occasion, PublicLook } from "@/modules/shared/types";
+import { idlePlaylist } from "@/modules/ads";
 import { STORE, type StoreWorld } from "./world";
 
 export type Screen =
@@ -83,6 +84,7 @@ export interface ViewTile {
   label: string;
   labelTa: string;
   meta?: string;
+  image?: string;
 }
 
 export interface SessionView {
@@ -106,6 +108,7 @@ export interface SessionView {
   cameraNote: string;
   cameraNoteTa: string;
   renderNote: string | null;
+  ads: { id: string; title: string; titleTa: string }[];
 }
 
 const sessions = new Map<string, Session>();
@@ -418,6 +421,11 @@ function choose(world: StoreWorld, session: Session, tileId: string, now: number
   }
   if (tileId === "save") {
     session.shareCode = `AF-${world.seq++}`;
+    world.shares.push({
+      code: session.shareCode,
+      lookIds: [...session.lookIds],
+      at: now,
+    });
     go(session, "save");
     const look = session.activeLookId;
     if (look) {
@@ -536,6 +544,7 @@ export function toView(world: StoreWorld, session: Session): SessionView {
         category: detailLook.category,
         modelOnly: detailLook.modelOnly,
         caption: "Shown on a model like you",
+        image: detailLook.image,
       }
     : null;
   const copy = copyFor(session.screen, detail);
@@ -580,6 +589,14 @@ export function toView(world: StoreWorld, session: Session): SessionView {
     cameraNote: "Camera: tracking only. No recording.",
     cameraNoteTa: "கேமரா: கண்காணிப்பு மட்டும். பதிவு இல்லை.",
     renderNote: session.renderNote,
+    ads:
+      session.screen === "idle"
+        ? idlePlaylist(new Date(), world.ads).map((ad) => ({
+            id: ad.id,
+            title: ad.title,
+            titleTa: ad.titleTa,
+          }))
+        : [],
   };
 }
 
@@ -790,6 +807,7 @@ function tilesFor(world: StoreWorld, session: Session, detail: PublicLook | null
           label: item?.name ?? id,
           labelTa: item?.nameTa ?? id,
           meta: item ? `${inr(item.priceInr)} · ${item.availabilityText}` : undefined,
+          image: item?.image,
         };
       });
     case "detail":

@@ -9,6 +9,7 @@ import {
   IMAGE_QUALITIES,
   IMAGE_SIZE,
   imageRetirementWarning,
+  nearestModel,
   planNightRender,
   readGenerationConfig,
   renderPriority,
@@ -20,7 +21,7 @@ describe("generation routing", () => {
     expect(readGenerationConfig({}).model).toBe(IMAGE_MODEL_DEFAULT);
     expect(readGenerationConfig({}).model).toBe("gpt-image-2.5-sunburst");
     expect(readGenerationConfig({}).version).toBe(IMAGE_MODEL_VERSION);
-    expect(readGenerationConfig({}).version).toBe("2026-09-09");
+    expect(readGenerationConfig({}).version).toBe("2026-09-08");
     expect(readGenerationConfig({}).retiresOn).toBe(IMAGE_MODEL_RETIRES_ON);
     expect(readGenerationConfig({}).provider).toBe("azure-openai");
     expect(readGenerationConfig({ AURAFIT_IMAGE_MODEL: "gpt-image-2.6-sunburst" }).model).toBe(
@@ -48,7 +49,12 @@ describe("generation routing", () => {
       hasShopperPhoto: true,
       quotaRemaining: 0,
     });
-    expect(fallback).toMatchObject({ kind: "personal", backend: "flux-klein", faceEdit: false });
+    expect(fallback).toMatchObject({
+      kind: "personal",
+      backend: "azure-gpt-image",
+      faceEdit: false,
+      reason: "whatsapp_queue",
+    });
   });
 
   it("never renders a real child photo and keeps swimwear on a model", () => {
@@ -67,7 +73,12 @@ describe("generation routing", () => {
         hasShopperPhoto: false,
         quotaRemaining: 4,
       })
-    ).toMatchObject({ backend: "flux-klein", kind: "model", faceEdit: false });
+    ).toMatchObject({
+      backend: "azure-gpt-image",
+      kind: "model",
+      faceEdit: false,
+      reason: "synthetic_child_model",
+    });
     expect(
       routeGeneration({
         audience: "women",
@@ -106,18 +117,34 @@ describe("generation routing", () => {
     expect(night.jobs.find((job) => job.modelId === "adult-women-slim-t1")?.phase).toBe(
       "ondemand"
     );
-    expect(night.jobs.at(-1)?.backend).toBe("flux-klein");
-    expect(night.jobs.at(-1)?.modelVersion).toBe("flux-klein-4b");
+    expect(night.jobs.at(-1)?.backend).toBe("azure-gpt-image");
+    expect(night.jobs.at(-1)?.modelVersion).toBe("gpt-image-2.5-sunburst");
     expect(planNightRender({ storeOpen: true, liveDemand: false, pairs }).paused).toBe(
       true
     );
     expect(renderPriority("live")).toBeLessThan(renderPriority("night"));
   });
 
+  it("picks the closest rendered model without returning a tone label", () => {
+    const models = [
+      { id: "adult-women-slim-t1", audience: "women" as const, body: "slim" as const, tone: "t1" as const },
+      { id: "adult-women-average-t2", audience: "women" as const, body: "average" as const, tone: "t2" as const },
+      { id: "adult-men-average-t2", audience: "men" as const, body: "average" as const, tone: "t2" as const },
+    ];
+    const found = nearestModel(models, {
+      id: "want",
+      audience: "women",
+      body: "broad",
+      tone: "t3",
+    });
+    expect(found?.id).toBe("adult-women-average-t2");
+    expect(JSON.stringify(found)).not.toMatch(/fair|dark/);
+  });
+
   it("warns inside 90 days of retirement and records the face check as still open", () => {
     expect(imageRetirementWarning(new Date("2026-11-09T00:00:00.000Z"))).toBeNull();
     expect(imageRetirementWarning(new Date("2027-07-01T00:00:00.000Z"))).toMatch(
-      /2027-09-09/
+      /2027-09-08/
     );
     expect(FACE_PRESERVATION_CHECK.model).toBe("gpt-image-2.5-sunburst");
     expect(FACE_PRESERVATION_CHECK.identityCheckedOnSunburst).toBe(false);

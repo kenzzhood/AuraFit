@@ -1,5 +1,7 @@
 # Graph Report - /workspace  (2026-11-09)
 
+The 10 November 2026 store cut deletes the consumer provider graph (`getAIProvidersOrdered` and the crawler). Live boundaries are `src/modules/*`, `src/db`, and `src/app/(store)`. The JSON graph below is the previous extract and still names those deleted nodes.
+
 ## Corpus Check
 - Full-repo detect counted the files above. AST extraction was scoped to the store modules and the provider gates so the graph stays reviewable. Semantic nodes were written by Grok from the product docs. Claude subagents were not used.
 

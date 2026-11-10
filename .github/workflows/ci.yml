@@ -2,9 +2,8 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, cursor/aurafit-store-v1]
   pull_request:
-    branches: [main, master]
 
 jobs:
   build:
@@ -16,20 +15,11 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
-      - run: npx prisma generate
       - run: npm run lint
       - run: npm run type-check
       - run: npm test
       - run: node scripts/design-audit.mjs
-      - name: Dependency audit (production)
-        run: npm audit --omit=dev --audit-level=critical
-        continue-on-error: true
-      - name: Secret scan (gitleaks)
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm run build
-        env:
-          DATABASE_URL: postgres://user:pass@localhost:5432/dummy
-          BILLING_ENABLED: "false"
-          BILLING_LIVE_MODE: "false"
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e:prod

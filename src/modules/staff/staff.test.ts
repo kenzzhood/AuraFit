@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { acceptAlert, checklistFor, escalationFor, type StaffAlert } from "./index";
+import { acceptAlert, checklistFor, escalationFor, queueDelivery, retryDelivery, type StaffAlert } from "./index";
 
 function alert(createdAt: number): StaffAlert {
   return {
@@ -18,6 +18,15 @@ describe("staff alerts", () => {
     expect(escalationFor(alert(0), 60_000)).toBe("all_staff");
     expect(escalationFor(alert(0), 120_000)).toBe("manager");
     expect(escalationFor(acceptAlert(alert(0), "ravi", 10_000), 200_000)).toBe("floor");
+  });
+
+  it("retries a dropped alert and then marks it delivered", () => {
+    const queued = queueDelivery("a1", 0, false);
+    expect(queued.queuedOffline).toBe(true);
+    const retried = retryDelivery(queued, 1_000, false);
+    expect(retried.attempts).toBe(1);
+    expect(retried.nextAttemptAt).toBeGreaterThan(1_000);
+    expect(retryDelivery(retried, 5_000, true).deliveredAt).toBe(5_000);
   });
 
   it("names the battery checklist for the phones that drop pushes", () => {

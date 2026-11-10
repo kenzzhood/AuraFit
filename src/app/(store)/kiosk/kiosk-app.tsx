@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type Tile = { id: string; label: string; labelTa: string; meta?: string };
+type Tile = { id: string; label: string; labelTa: string; meta?: string; image?: string };
 
 type View = {
   sessionId: string;
@@ -21,6 +21,7 @@ type View = {
     availabilityText: string;
     location: string;
     caption: string;
+    image?: string;
   } | null;
   notice: string | null;
   noticeTa: string | null;
@@ -32,6 +33,7 @@ type View = {
   cameraNote: string;
   cameraNoteTa: string;
   renderNote: string | null;
+  ads: { id: string; title: string; titleTa: string }[];
 };
 
 async function post(sessionId: string | null, action: unknown): Promise<View> {
@@ -47,6 +49,7 @@ async function post(sessionId: string | null, action: unknown): Promise<View> {
 export function KioskApp({ mode }: { mode: "kiosk" | "phone" }) {
   const [view, setView] = useState<View | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [offline, setOffline] = useState(false);
   const hold = useRef<number | null>(null);
   const held = useRef(false);
 
@@ -68,6 +71,20 @@ export function KioskApp({ mode }: { mode: "kiosk" | "phone" }) {
     // Boot once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
+
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      void navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+    }
+    const sync = () => setOffline(!navigator.onLine);
+    sync();
+    window.addEventListener("online", sync);
+    window.addEventListener("offline", sync);
+    return () => {
+      window.removeEventListener("online", sync);
+      window.removeEventListener("offline", sync);
+    };
+  }, []);
 
   useEffect(() => {
     const sessionId = view?.sessionId;
@@ -121,11 +138,24 @@ export function KioskApp({ mode }: { mode: "kiosk" | "phone" }) {
     <main className="kiosk" lang={view.language}>
       <header>
         <p className="brand">AuraFit · Kasavu & Co</p>
-        <p className="quiet">{ta ? view.cameraNoteTa : view.cameraNote}</p>
+        <p className="quiet">{offline ? (ta ? "இணைப்பு இல்லை" : "Offline. Saved looks stay on this screen.") : ta ? view.cameraNoteTa : view.cameraNote}</p>
       </header>
       <section className="stage" key={view.screen}>
         <h1>{ta ? view.headlineTa : view.headline}</h1>
         <p className="lead">{ta ? view.bodyTa : view.body}</p>
+        {view.detail?.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className="garment" src={view.detail.image} alt="" />
+        ) : null}
+        {view.screen === "idle" && view.ads.length > 0 ? (
+          <div className="ads">
+            {view.ads.map((ad) => (
+              <p className="ad" key={ad.id}>
+                {ta ? ad.titleTa : ad.title}
+              </p>
+            ))}
+          </div>
+        ) : null}
         {view.detail ? (
           <p className="lead">
             ₹{view.detail.priceInr.toLocaleString("en-IN")} · {view.detail.availabilityText}
@@ -178,6 +208,10 @@ export function KioskApp({ mode }: { mode: "kiosk" | "phone" }) {
                 onTile(tile.id);
               }}
             >
+              {tile.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="garment" src={tile.image} alt="" />
+              ) : null}
               {ta ? tile.labelTa : tile.label}
               {tile.meta ? <span>{tile.meta}</span> : null}
             </button>

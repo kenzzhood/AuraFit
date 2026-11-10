@@ -6,7 +6,7 @@
  */
 export const FACE_PRESERVATION_CHECK = {
   model: "gpt-image-2.5-sunburst",
-  version: "2026-09-09",
+  version: "2026-09-08",
   audience: "adult-with-consent",
   method: "Azure OpenAI images.edit, session photo plus the garment",
   identityCheckedOnSunburst: false,

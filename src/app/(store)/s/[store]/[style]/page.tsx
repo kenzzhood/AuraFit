@@ -32,6 +32,10 @@ export default async function ProductPage({
     <main className="product">
       <article className="product-inner">
         <p className="brand">{STORE.name}</p>
+        {look.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className="garment" src={look.image} alt="" />
+        ) : null}
         <h1>{page.title}</h1>
         <p className="lead">{page.titleTa}</p>
         <p className="price">₹{page.priceInr.toLocaleString("en-IN")}</p>

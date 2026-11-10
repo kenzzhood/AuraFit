@@ -1,279 +1,93 @@
 # AuraFit
 
-**AI-native fashion styling** — upload your photo, define your vibe, get six editorial looks with shoppable product links.
+AuraFit is the screen on the wall at Kasavu & Co, Anna Nagar. A shopper raises a hand, answers a few questions, and gets six looks from this store. A photo is optional, stays in memory, and is deleted when they leave. Kids never have a photo taken. Nothing is paid for at the kiosk.
 
-[![CI](https://github.com/kenzzhood/AuraFit/actions/workflows/ci.yml/badge.svg)](https://github.com/kenzzhood/AuraFit/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+The demo runs with no API keys.
 
----
-
-## Overview
-
-AuraFit is a full-stack AI fashion platform:
-
-- **Web** — Next.js studio for style preferences, look generation, wardrobe, and social explore
-- **Mobile** — Expo (React Native) app with local-first photos and native UX
-- **Product discovery** — Self-hosted Playwright crawler (no SerpAPI required)
-- **AI pipeline** — Azure OpenAI for chat, vision, embeddings, and multi-image fashion boards
-
-Built for hackathons, portfolios, and production deployment on **Azure Container Apps** or **Vercel + Supabase**.
-
-The store product is a separate surface for the Chennai kiosk. It runs locally with mock auth and an in-memory catalogue, and it does not need Clerk or a database.
+## Mac
 
 ```bash
+npm ci
+npx playwright install chromium
 npm run dev
 ```
 
-Open `/kiosk`, `/staff`, `/owner`, `/admin`, and `/s/anna-nagar/kanjivaram`. Module notes live in `docs/architecture.md`. Design notes live in `docs/design.md`.
+Open http://localhost:3000
 
----
+## Windows
 
-## Screenshots
+Use PowerShell or Command Prompt from the repo root. The scripts are npm scripts, not bash.
 
-> Add captures to [`docs/screenshots/`](docs/screenshots/) before submission.
-
-| Generate | Looks | Mobile |
-|----------|-------|--------|
-| *Coming soon* | *Coming soon* | *Coming soon* |
-
----
-
-## Demo
-
-| Asset | Link |
-|-------|------|
-| **Live demo** | Start with `npm run azure:start` — URL in [docs/deploy/azure-runbook.md](docs/deploy/azure-runbook.md) |
-| **Demo video** | *Add YouTube/Loom URL* |
-| **Android APK** | Build with [docs/MOBILE_BUILD.md](docs/MOBILE_BUILD.md) — *add Expo artifact or Release URL* |
-| **Pitch deck** | *Add link or commit to `docs/`* |
-
----
-
-## Architecture
-
-```mermaid
-flowchart TB
-  subgraph clients [Clients]
-    Web[Next.js Web]
-    Mobile[Expo Mobile]
-  end
-
-  subgraph api [AuraFit API]
-    Auth[Clerk Auth]
-    Gen[Generation Pipeline]
-    Disc[Product Discovery]
-    Store[Storage Layer]
-  end
-
-  subgraph ai [AI Services]
-    AzureOAI[Azure OpenAI]
-    Vision[Azure Vision]
-  end
-
-  subgraph data [Data]
-    PG[(PostgreSQL + pgvector)]
-    Redis[(Redis)]
-    Blob[Cloudinary / Azure Blob]
-  end
-
-  subgraph crawl [Product Crawler]
-    Crawler[FastAPI + Playwright]
-    Retailers[Multi-retailer Search]
-  end
-
-  Web --> Auth
-  Mobile --> Auth
-  Auth --> Gen
-  Gen --> AzureOAI
-  Gen --> Vision
-  Gen --> Disc
-  Disc --> Crawler
-  Crawler --> Retailers
-  Gen --> PG
-  Disc --> PG
-  Store --> Blob
-  Gen --> Store
-  api --> Redis
-```
-
-![AuraFit Architecture](docs/screenshots/architecture.png)
-
-Extended design: [docs/architecture-v2.md](docs/architecture-v2.md) · [docs/product-discovery.md](docs/product-discovery.md)
-
----
-
-## Tech stack
-
-| Layer | Technology |
-|-------|------------|
-| Frontend | Next.js 15, React 19, Tailwind CSS, Framer Motion |
-| Mobile | Expo 52, React Native, NativeWind |
-| Backend | Next.js App Router API routes, Prisma ORM |
-| Database | PostgreSQL 16 + pgvector |
-| Auth | Clerk |
-| AI | Azure OpenAI (GPT-4o, embeddings, DALL-E / gpt-image) |
-| Crawler | FastAPI, Playwright, Crawl4AI |
-| Queue | Inngest (or inline for dev) |
-| Storage | Cloudinary or Azure Blob |
-| Infra | Azure Container Apps, Bicep, azd |
-| CI | GitHub Actions |
-
----
-
-## Quick start
-
-### Backend (local)
-
-```bash
-git clone https://github.com/kenzzhood/AuraFit.git
-cd AuraFit
-npm install
-
-cp .env.example .env.local
-cp apps/mobile/.env.example apps/mobile/.env
-# Add YOUR keys — docs/SETUP_YOUR_KEYS.md
-
-docker compose -f docker-compose.postgres.yml up -d   # optional local DB
-npm run db:push
+```bat
+npm ci
+npx playwright install chromium
 npm run dev
 ```
 
-Open [http://localhost:3000/generate](http://localhost:3000/generate)
+Open http://localhost:3000
 
-### Product crawler (local)
+Node 22 or newer. No Docker, no database server, and no `.env` file. The local database is PGlite under `.data/`, created on first boot.
 
-```bash
-export CRAWLER_API_KEY=$(openssl rand -hex 32)
-echo "CRAWLER_API_KEY=$CRAWLER_API_KEY" >> .env.local
-docker compose -f docker-compose.crawler.yml up --build
-```
-
-### Mobile
+A production build on your machine still uses the mock sign-in. Mac:
 
 ```bash
-cp apps/mobile/.env.example apps/mobile/.env
-# Set EXPO_PUBLIC_API_URL to your LAN IP + Clerk publishable key
-
-npm run dev          # API :3000
-npm run dev:mobile   # Expo
+npm run build
+AURAFIT_AUTH_MODE=mock AURAFIT_ALLOW_MOCK_AUTH=true npm run start
 ```
 
-Full guide: [docs/mobile-setup.md](docs/mobile-setup.md)
+Windows PowerShell:
 
----
+```powershell
+npm run build
+$env:AURAFIT_AUTH_MODE="mock"; $env:AURAFIT_ALLOW_MOCK_AUTH="true"; npm run start
+```
 
-## Environment variables
-
-**No keys ship with this repo.** Each developer uses their own accounts:
+Playwright's production config sets those two variables for you:
 
 ```bash
-cp .env.example .env.local
-cp apps/mobile/.env.example apps/mobile/.env
+npm run build
+npm run test:e2e:prod
 ```
 
-**→ [docs/SETUP_YOUR_KEYS.md](docs/SETUP_YOUR_KEYS.md)** — Clerk, Postgres, Azure OpenAI, storage, crawler, mobile.
+## Two-minute demo
 
-| Variable | Required | Purpose |
-|----------|----------|---------|
-| `DATABASE_URL` | Yes | PostgreSQL connection |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Yes | Auth (your Clerk app) |
-| `CLERK_SECRET_KEY` | Yes | Auth (your Clerk app) |
-| `AZURE_OPENAI_*` | Yes* | Chat, looks, embeddings, images |
-| `STORAGE_PROVIDER` + keys | Yes | Photo uploads |
-| `PRODUCT_CRAWLER_URL` | Recommended | Real product links |
-| `CRAWLER_API_KEY` | With crawler | Crawler authentication |
-| `INNGEST_*` | Production | Background jobs |
-| `REDIS_URL` | Production | Distributed rate limits |
+1. Open `/kiosk`. Choose "I'm on the footprints", then "Raise your hand".
+2. English, "Me, women's", Office, ₹1,000–2,500, Skip, "No photo", Model B.
+3. Six looks appear, each with a picture. Open one. "See it on me" keeps the garment on a model. "Save to phone" shows a code and a WhatsApp link.
+4. Open `/whatsapp`, send that code, and the reply lists the looks.
+5. Open `/staff` and continue. Open `/owner` for tried-but-not-bought. Open `/owner/heatmap` for anonymous zone counts.
+6. Open `/admin/catalogue`, continue as admin, and mark a style "Ask staff". Open `/s/anna-nagar/missing-saree` for the hosted page. It says order on WhatsApp. It does not take payment.
 
-### Catalogue search flags
+## Routes
 
-These are read at runtime from the environment. Unset values keep today's search path. Set a flag to `false` to turn that behaviour off without deleting the code.
+| Route | Who |
+| --- | --- |
+| `/` | Directory of the demo |
+| `/kiosk` | The shop TV |
+| `/kiosk/phone` | The person holding the phone for a group |
+| `/staff` | Floor staff |
+| `/owner` | Tried, not bought |
+| `/owner/heatmap` | Anonymous zone counts |
+| `/admin` | Stores. Heatmaps stay off until legal sign-off |
+| `/admin/catalogue` | Availability labels |
+| `/admin/renders` | Six core models done, the rest queued |
+| `/whatsapp` | Local stand-in for Meta |
+| `/s/anna-nagar/[style]` | Hosted product page |
 
-| Variable | Start default | Purpose |
-|----------|---------------|---------|
-| `GOOGLE_SHOPPING_ENABLED` | `false` | Stays off unless `AURAFIT_ALLOW_GOOGLE_SHOPPING=true` |
-| `SERPAPI_ENABLED` | `false` | Stays off unless `AURAFIT_ALLOW_PAID_SEARCH=true` |
-| `LIVE_PLAYWRIGHT_IN_REQUEST` | `true` | In-request Playwright recovery crawl |
-| `VERIFIER_V2` | `false` | New link verifier |
-| `CLICK_REVALIDATE` | `false` | Re-check a link at click time |
-| `HYBRID_SEARCH` | `false` | Postgres full-text plus vector search |
-| `DISCOVERY_V2` | `false` | Index-only discovery, scoring, and diversity |
-| `SLOT_QUERY_MODE` | `v1` | `v2` fans out several queries per slot |
-| `REQUIRE_GENDER` | `false` | Do not assume men when gender is missing |
-| `CACHE_BACKEND` | `memory` | `postgres` uses the shared discovery cache table |
-| `DELIVERY_TIERS` | `false` | India delivery labels |
-| `GENERATION_SHORTLIST` | `false` | Verify a shortlist before painting a board |
-| `INGEST_FLIPKART_ENABLED` | `false` | Flipkart feed job |
-| `INGEST_ADMITAD_ENABLED` | `false` | Admitad feed job |
-| `INGEST_AMAZON_ENABLED` | `false` | Amazon Creators API job |
-| `INGEST_SHOPIFY_ENABLED` | `false` | Shopify `/products.json` job |
-| `INGEST_SITEMAP_ENABLED` | `false` | Sitemap JSON-LD job |
+APIs: `/api/health`, `/api/kiosk/act`, `/api/auth/session`, `/api/staff/today`, `/api/staff/stream`, `/api/staff/missing`, `/api/owner/report`, `/api/admin/stores`, `/api/admin/catalogue`, `/api/analytics/heatmap`, `/api/whatsapp/inbound`.
 
-\* Without Azure OpenAI, generation degrades to demo products and heuristics.
-
-See [`.env.example`](.env.example) for all variables.
-
----
-
-## Deployment
-
-| Path | Guide |
-|------|-------|
-| Azure (production + pause/resume) | [docs/deploy/azure-runbook.md](docs/deploy/azure-runbook.md) |
-| Vercel + Supabase (hackathon MVP) | [docs/hackathon/setup.md](docs/hackathon/setup.md) |
-| Step-by-step checklist | [docs/deploy/checklist.md](docs/deploy/checklist.md) |
-
-```bash
-# Azure one-liner flow
-npm run azure:setup && npm run azure:up && npm run azure:db-init
-npm run azure:stop   # pause billing when done
-```
-
----
-
-## Development
+## Checks
 
 ```bash
 npm run type-check
-npm test                              # SSRF + security unit tests
+npm run lint
+npm test
 npm run build
-cd services/product-crawler && python3 -m pytest tests/
+npm run test:e2e:dev
+npm run test:e2e:prod
+node scripts/design-audit.mjs
 ```
 
----
+## Not proven here
 
-## Security
-
-- Report vulnerabilities privately — see [SECURITY.md](SECURITY.md)
-- **No API keys in this repo** — [docs/SETUP_YOUR_KEYS.md](docs/SETUP_YOUR_KEYS.md)
-- Before public release: [docs/security/git-history-purge.md](docs/security/git-history-purge.md) if secrets were ever committed
-- Latest audit: [docs/security/audit.md](docs/security/audit.md)
-
----
-
-## Contributing
-
-We welcome contributions. See [CONTRIBUTING.md](CONTRIBUTING.md).
-
----
-
-## Documentation index
-
-| Document | Description |
-|----------|-------------|
-| [docs/README.md](docs/README.md) | **Full documentation index** |
-| [docs/SETUP_YOUR_KEYS.md](docs/SETUP_YOUR_KEYS.md) | **Bring your own API keys** |
-| [docs/deploy/checklist.md](docs/deploy/checklist.md) | Zero-to-production deploy |
-| [docs/deploy/azure-runbook.md](docs/deploy/azure-runbook.md) | Azure ops runbook |
-| [docs/hackathon/setup.md](docs/hackathon/setup.md) | Vercel + Supabase stack |
-| [docs/hackathon/submission-checklist.md](docs/hackathon/submission-checklist.md) | Submission pass/fail |
-| [docs/security/release-readiness.md](docs/security/release-readiness.md) | Public release gate |
-| [docs/architecture-v2.md](docs/architecture-v2.md) | System design |
-| [docs/MOBILE_BUILD.md](docs/MOBILE_BUILD.md) | EAS / APK builds |
-| [docs/mobile-setup.md](docs/mobile-setup.md) | Mobile dev setup |
-
----
-
-## License
-
-[MIT](LICENSE) © AuraFit contributors
+A real WhatsApp delivery, a Jetson camera, and a live Azure Container Apps deploy. `gpt-image-2.5-sunburst` is deployed on the `aurafit-image` account. `npm run assets` does not spend unless `AURAFIT_ASSET_RUN=1` and an image key are set. The pictures in the demo are the committed drawings in `public/catalog`.

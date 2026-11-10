@@ -1,0 +1,722 @@
+[
+  {
+    "id": "sku-01",
+    "name": "Indigo saree",
+    "nameTa": "பெண்கள் தினசரி",
+    "priceInr": 2100,
+    "color": "indigo",
+    "audience": "women",
+    "occasions": [
+      "daily"
+    ],
+    "category": "saree",
+    "fabric": "Linen",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 2
+  },
+  {
+    "id": "sku-02",
+    "name": "Sand coord",
+    "nameTa": "பெண்கள் தினசரி",
+    "priceInr": 2800,
+    "color": "sand",
+    "audience": "women",
+    "occasions": [
+      "daily"
+    ],
+    "category": "coord",
+    "fabric": "Silk",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 3
+  },
+  {
+    "id": "sku-03",
+    "name": "Maroon shirt",
+    "nameTa": "பெண்கள் தினசரி",
+    "priceInr": 3500,
+    "color": "maroon",
+    "audience": "women",
+    "occasions": [
+      "daily"
+    ],
+    "category": "shirt",
+    "fabric": "Handloom",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 4
+  },
+  {
+    "id": "sku-04",
+    "name": "Green kurta",
+    "nameTa": "பெண்கள் தினசரி",
+    "priceInr": 4200,
+    "color": "green",
+    "audience": "women",
+    "occasions": [
+      "daily"
+    ],
+    "category": "kurta",
+    "fabric": "Cotton",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 5
+  },
+  {
+    "id": "sku-05",
+    "name": "Ivory saree",
+    "nameTa": "பெண்கள் தினசரி",
+    "priceInr": 4900,
+    "color": "ivory",
+    "audience": "women",
+    "occasions": [
+      "daily"
+    ],
+    "category": "saree",
+    "fabric": "Linen",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 6
+  },
+  {
+    "id": "sku-06",
+    "name": "Black coord",
+    "nameTa": "பெண்கள் தினசரி",
+    "priceInr": 5600,
+    "color": "black",
+    "audience": "women",
+    "occasions": [
+      "daily"
+    ],
+    "category": "coord",
+    "fabric": "Silk",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 1
+  },
+  {
+    "id": "sku-07",
+    "name": "Indigo shirt",
+    "nameTa": "பெண்கள் அலுவலகம்",
+    "priceInr": 6300,
+    "color": "indigo",
+    "audience": "women",
+    "occasions": [
+      "office"
+    ],
+    "category": "shirt",
+    "fabric": "Handloom",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 2
+  },
+  {
+    "id": "sku-08",
+    "name": "Sand kurta",
+    "nameTa": "பெண்கள் அலுவலகம்",
+    "priceInr": 7000,
+    "color": "sand",
+    "audience": "women",
+    "occasions": [
+      "office"
+    ],
+    "category": "kurta",
+    "fabric": "Cotton",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 3
+  },
+  {
+    "id": "sku-09",
+    "name": "Maroon saree",
+    "nameTa": "பெண்கள் அலுவலகம்",
+    "priceInr": 7700,
+    "color": "maroon",
+    "audience": "women",
+    "occasions": [
+      "office"
+    ],
+    "category": "saree",
+    "fabric": "Linen",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 4
+  },
+  {
+    "id": "sku-10",
+    "name": "Green coord",
+    "nameTa": "பெண்கள் அலுவலகம்",
+    "priceInr": 8400,
+    "color": "green",
+    "audience": "women",
+    "occasions": [
+      "office"
+    ],
+    "category": "coord",
+    "fabric": "Silk",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 5
+  },
+  {
+    "id": "sku-11",
+    "name": "Ivory shirt",
+    "nameTa": "பெண்கள் அலுவலகம்",
+    "priceInr": 9100,
+    "color": "ivory",
+    "audience": "women",
+    "occasions": [
+      "office"
+    ],
+    "category": "shirt",
+    "fabric": "Handloom",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 6
+  },
+  {
+    "id": "sku-12",
+    "name": "Black kurta",
+    "nameTa": "பெண்கள் அலுவலகம்",
+    "priceInr": 1400,
+    "color": "black",
+    "audience": "women",
+    "occasions": [
+      "office"
+    ],
+    "category": "kurta",
+    "fabric": "Cotton",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 1
+  },
+  {
+    "id": "sku-13",
+    "name": "Indigo saree",
+    "nameTa": "பெண்கள் விருந்து",
+    "priceInr": 2100,
+    "color": "indigo",
+    "audience": "women",
+    "occasions": [
+      "party"
+    ],
+    "category": "saree",
+    "fabric": "Linen",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 2
+  },
+  {
+    "id": "sku-14",
+    "name": "Sand coord",
+    "nameTa": "பெண்கள் விருந்து",
+    "priceInr": 2800,
+    "color": "sand",
+    "audience": "women",
+    "occasions": [
+      "party"
+    ],
+    "category": "coord",
+    "fabric": "Silk",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 3
+  },
+  {
+    "id": "sku-15",
+    "name": "Maroon shirt",
+    "nameTa": "பெண்கள் விருந்து",
+    "priceInr": 3500,
+    "color": "maroon",
+    "audience": "women",
+    "occasions": [
+      "party"
+    ],
+    "category": "shirt",
+    "fabric": "Handloom",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 4
+  },
+  {
+    "id": "sku-16",
+    "name": "Green kurta",
+    "nameTa": "பெண்கள் விருந்து",
+    "priceInr": 4200,
+    "color": "green",
+    "audience": "women",
+    "occasions": [
+      "party"
+    ],
+    "category": "kurta",
+    "fabric": "Cotton",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 5
+  },
+  {
+    "id": "sku-17",
+    "name": "Ivory saree",
+    "nameTa": "பெண்கள் விருந்து",
+    "priceInr": 4900,
+    "color": "ivory",
+    "audience": "women",
+    "occasions": [
+      "party"
+    ],
+    "category": "saree",
+    "fabric": "Linen",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 6
+  },
+  {
+    "id": "sku-18",
+    "name": "Black coord",
+    "nameTa": "பெண்கள் விருந்து",
+    "priceInr": 5600,
+    "color": "black",
+    "audience": "women",
+    "occasions": [
+      "party"
+    ],
+    "category": "coord",
+    "fabric": "Silk",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 1
+  },
+  {
+    "id": "sku-19",
+    "name": "Indigo shirt",
+    "nameTa": "பெண்கள் திருமணம்",
+    "priceInr": 6300,
+    "color": "indigo",
+    "audience": "women",
+    "occasions": [
+      "wedding"
+    ],
+    "category": "shirt",
+    "fabric": "Handloom",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 2
+  },
+  {
+    "id": "sku-20",
+    "name": "Sand kurta",
+    "nameTa": "பெண்கள் திருமணம்",
+    "priceInr": 7000,
+    "color": "sand",
+    "audience": "women",
+    "occasions": [
+      "wedding"
+    ],
+    "category": "kurta",
+    "fabric": "Cotton",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 3
+  },
+  {
+    "id": "sku-21",
+    "name": "Maroon saree",
+    "nameTa": "பெண்கள் திருமணம்",
+    "priceInr": 7700,
+    "color": "maroon",
+    "audience": "women",
+    "occasions": [
+      "wedding"
+    ],
+    "category": "saree",
+    "fabric": "Linen",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 4
+  },
+  {
+    "id": "sku-22",
+    "name": "Green coord",
+    "nameTa": "பெண்கள் திருமணம்",
+    "priceInr": 8400,
+    "color": "green",
+    "audience": "women",
+    "occasions": [
+      "wedding"
+    ],
+    "category": "coord",
+    "fabric": "Silk",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 5
+  },
+  {
+    "id": "sku-23",
+    "name": "Ivory shirt",
+    "nameTa": "பெண்கள் திருமணம்",
+    "priceInr": 9100,
+    "color": "ivory",
+    "audience": "women",
+    "occasions": [
+      "wedding"
+    ],
+    "category": "shirt",
+    "fabric": "Handloom",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 6
+  },
+  {
+    "id": "sku-24",
+    "name": "Black kurta",
+    "nameTa": "பெண்கள் திருமணம்",
+    "priceInr": 1400,
+    "color": "black",
+    "audience": "women",
+    "occasions": [
+      "wedding"
+    ],
+    "category": "kurta",
+    "fabric": "Cotton",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 1
+  },
+  {
+    "id": "sku-25",
+    "name": "Indigo saree",
+    "nameTa": "பெண்கள் திருவிழா",
+    "priceInr": 2100,
+    "color": "indigo",
+    "audience": "women",
+    "occasions": [
+      "festival"
+    ],
+    "category": "saree",
+    "fabric": "Linen",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 2
+  },
+  {
+    "id": "sku-26",
+    "name": "Sand coord",
+    "nameTa": "பெண்கள் திருவிழா",
+    "priceInr": 2800,
+    "color": "sand",
+    "audience": "women",
+    "occasions": [
+      "festival"
+    ],
+    "category": "coord",
+    "fabric": "Silk",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 3
+  },
+  {
+    "id": "sku-27",
+    "name": "Maroon shirt",
+    "nameTa": "பெண்கள் திருவிழா",
+    "priceInr": 3500,
+    "color": "maroon",
+    "audience": "women",
+    "occasions": [
+      "festival"
+    ],
+    "category": "shirt",
+    "fabric": "Handloom",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 4
+  },
+  {
+    "id": "sku-28",
+    "name": "Green kurta",
+    "nameTa": "பெண்கள் திருவிழா",
+    "priceInr": 4200,
+    "color": "green",
+    "audience": "women",
+    "occasions": [
+      "festival"
+    ],
+    "category": "kurta",
+    "fabric": "Cotton",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 5
+  },
+  {
+    "id": "sku-29",
+    "name": "Ivory saree",
+    "nameTa": "பெண்கள் திருவிழா",
+    "priceInr": 4900,
+    "color": "ivory",
+    "audience": "women",
+    "occasions": [
+      "festival"
+    ],
+    "category": "saree",
+    "fabric": "Linen",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 6
+  },
+  {
+    "id": "sku-30",
+    "name": "Black coord",
+    "nameTa": "பெண்கள் திருவிழா",
+    "priceInr": 5600,
+    "color": "black",
+    "audience": "women",
+    "occasions": [
+      "festival"
+    ],
+    "category": "coord",
+    "fabric": "Silk",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 1
+  },
+  {
+    "id": "sku-31",
+    "name": "Indigo shirt",
+    "nameTa": "பெண்கள் சாதாரணம்",
+    "priceInr": 6300,
+    "color": "indigo",
+    "audience": "women",
+    "occasions": [
+      "casual"
+    ],
+    "category": "shirt",
+    "fabric": "Handloom",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 2
+  },
+  {
+    "id": "sku-32",
+    "name": "Sand kurta",
+    "nameTa": "பெண்கள் சாதாரணம்",
+    "priceInr": 7000,
+    "color": "sand",
+    "audience": "women",
+    "occasions": [
+      "casual"
+    ],
+    "category": "kurta",
+    "fabric": "Cotton",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 3
+  },
+  {
+    "id": "sku-33",
+    "name": "Maroon saree",
+    "nameTa": "பெண்கள் சாதாரணம்",
+    "priceInr": 7700,
+    "color": "maroon",
+    "audience": "women",
+    "occasions": [
+      "casual"
+    ],
+    "category": "saree",
+    "fabric": "Linen",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 4
+  },
+  {
+    "id": "sku-34",
+    "name": "Green coord",
+    "nameTa": "பெண்கள் சாதாரணம்",
+    "priceInr": 8400,
+    "color": "green",
+    "audience": "women",
+    "occasions": [
+      "casual"
+    ],
+    "category": "coord",
+    "fabric": "Silk",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 5
+  },
+  {
+    "id": "sku-35",
+    "name": "Ivory shirt",
+    "nameTa": "பெண்கள் சாதாரணம்",
+    "priceInr": 9100,
+    "color": "ivory",
+    "audience": "women",
+    "occasions": [
+      "casual"
+    ],
+    "category": "shirt",
+    "fabric": "Handloom",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 6
+  },
+  {
+    "id": "sku-36",
+    "name": "Black kurta",
+    "nameTa": "பெண்கள் சாதாரணம்",
+    "priceInr": 1400,
+    "color": "black",
+    "audience": "women",
+    "occasions": [
+      "casual"
+    ],
+    "category": "kurta",
+    "fabric": "Cotton",
+    "location": "Floor 1 · Daily · Rack D4",
+    "popularity": 1
+  },
+  {
+    "id": "sku-37",
+    "name": "Indigo kurta",
+    "nameTa": "ஆண்கள் தினசரி",
+    "priceInr": 2100,
+    "color": "indigo",
+    "audience": "men",
+    "occasions": [
+      "daily"
+    ],
+    "category": "kurta",
+    "fabric": "Linen",
+    "location": "Floor 2 · Men · Rack M4",
+    "popularity": 2
+  },
+  {
+    "id": "sku-38",
+    "name": "Sand bandhgala",
+    "nameTa": "ஆண்கள் தினசரி",
+    "priceInr": 2800,
+    "color": "sand",
+    "audience": "men",
+    "occasions": [
+      "daily"
+    ],
+    "category": "bandhgala",
+    "fabric": "Silk",
+    "location": "Floor 2 · Men · Rack M4",
+    "popularity": 3
+  },
+  {
+    "id": "sku-39",
+    "name": "Maroon trouser",
+    "nameTa": "ஆண்கள் தினசரி",
+    "priceInr": 3500,
+    "color": "maroon",
+    "audience": "men",
+    "occasions": [
+      "daily"
+    ],
+    "category": "trouser",
+    "fabric": "Handloom",
+    "location": "Floor 2 · Men · Rack M4",
+    "popularity": 4
+  },
+  {
+    "id": "sku-40",
+    "name": "Green shirt",
+    "nameTa": "ஆண்கள் தினசரி",
+    "priceInr": 4200,
+    "color": "green",
+    "audience": "men",
+    "occasions": [
+      "daily"
+    ],
+    "category": "shirt",
+    "fabric": "Cotton",
+    "location": "Floor 2 · Men · Rack M4",
+    "popularity": 5
+  },
+  {
+    "id": "sku-41",
+    "name": "Ivory kurta",
+    "nameTa": "ஆண்கள் தினசரி",
+    "priceInr": 4900,
+    "color": "ivory",
+    "audience": "men",
+    "occasions": [
+      "daily"
+    ],
+    "category": "kurta",
+    "fabric": "Linen",
+    "location": "Floor 2 · Men · Rack M4",
+    "popularity": 6
+  },
+  {
+    "id": "sku-42",
+    "name": "Black bandhgala",
+    "nameTa": "ஆண்கள் தினசரி",
+    "priceInr": 5600,
+    "color": "black",
+    "audience": "men",
+    "occasions": [
+      "daily"
+    ],
+    "category": "bandhgala",
+    "fabric": "Silk",
+    "location": "Floor 2 · Men · Rack M4",
+    "popularity": 1
+  },
+  {
+    "id": "sku-43",
+    "name": "Indigo trouser",
+    "nameTa": "ஆண்கள் அலுவலகம்",
+    "priceInr": 6300,
+    "color": "indigo",
+    "audience": "men",
+    "occasions": [
+      "office"
+    ],
+    "category": "trouser",
+    "fabric": "Handloom",
+    "location": "Floor 2 · Men · Rack M4",
+    "popularity": 2
+  },
+  {
+    "id": "sku-44",
+    "name": "Sand shirt",
+    "nameTa": "ஆண்கள் அலுவலகம்",
+    "priceInr": 7000,
+    "color": "sand",
+    "audience": "men",
+    "occasions": [
+      "office"
+    ],
+    "category": "shirt",
+    "fabric": "Cotton",
+    "location": "Floor 2 · Men · Rack M4",
+    "popularity": 3
+  },
+  {
+    "id": "sku-45",
+    "name": "Maroon kurta",
+    "nameTa": "ஆண்கள் அலுவலகம்",
+    "priceInr": 7700,
+    "color": "maroon",
+    "audience": "men",
+    "occasions": [
+      "office"
+    ],
+    "category": "kurta",
+    "fabric": "Linen",
+    "location": "Floor 2 · Men · Rack M4",
+    "popularity": 4
+  },
+  {
+    "id": "sku-46",
+    "name": "Green bandhgala",
+    "nameTa": "ஆண்கள் அலுவலகம்",
+    "priceInr": 8400,
+    "color": "green",
+    "audience": "men",
+    "occasions": [
+      "office"
+    ],
+    "category": "bandhgala",
+    "fabric": "Silk",
+    "location": "Floor 2 · Men · Rack M4",
+    "popularity": 5
+  },
+  {
+    "id": "sku-47",
+    "name": "Ivory trouser",
+    "nameTa": "ஆண்கள் அலுவலகம்",
+    "priceInr": 9100,
+    "color": "ivory",
+    "audience": "men",
+    "occasions": [
+      "office"
+    ],
+    "category": "trouser",
+    "fabric": "Handloom",
+    "location": "Floor 2 · Men · Rack M4",
+    "popularity": 6
+  },
+  {
+    "id": "sku-48",
+    "name": "Black shirt",
+    "nameTa": "ஆண்கள் அலுவலகம்",
+    "priceInr": 1400,
+    "color": "black",
+    "audience": "men",
+    "occasions": [
+      "office"
+    ],
+    "category": "shirt",
+    "fabric": "Cotton",
+    "location": "Floor 2 · Men · Rack M4",
+    "popularity": 1
+  }
+]

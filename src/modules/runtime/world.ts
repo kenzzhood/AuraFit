@@ -13,6 +13,7 @@ import type { ConsentRecord } from "@/modules/whatsapp";
 import type { IdleAd } from "@/modules/ads";
 import type { StoreTenant } from "@/modules/admin";
 import { createLimiter } from "@/modules/platform";
+import extras from "@/modules/catalog/extras.json";
 
 export const STORE = {
   id: "anna-nagar",
@@ -32,6 +33,8 @@ export interface StoreWorld {
   consents: ConsentRecord[];
   ads: IdleAd[];
   tenants: StoreTenant[];
+  shares: { code: string; lookIds: string[]; at: number }[];
+  zones: { zoneId: string; hour: string; count: number }[];
   seq: number;
   limiter: ReturnType<typeof createLimiter>;
   config: {
@@ -50,6 +53,7 @@ function look(
     location: partial.location ?? "Floor 1 · Ethnic · Rack W3",
     modelOnly: partial.modelOnly ?? partial.audience === "child",
     caption: "Shown on a model like you",
+    image: partial.image ?? `/catalog/${partial.id}.svg`,
     budget: budgetForPrice(partial.priceInr),
     priority: partial.priority ?? 0,
     popularity: partial.popularity ?? 1,
@@ -87,6 +91,22 @@ export function seedLooks(): Look[] {
     look({ id: "kids-set", name: "Green cotton set", nameTa: "பச்சை குழந்தை செட்", priceInr: 1800, color: "green", audience: child, occasions: daily, category: "set", fabric: "Cotton", modelOnly: true, popularity: 2, location: "Floor 1 · Kids · Rack K1" }),
     look({ id: "kids-kurta", name: "Sand kids kurta", nameTa: "குழந்தை குர்த்தா", priceInr: 1290, color: "sand", audience: child, occasions: daily, category: "kurta", fabric: "Cotton", modelOnly: true, popularity: 2, location: "Floor 1 · Kids · Rack K2" }),
     look({ id: "swim", name: "Resort swim set", nameTa: "நீச்சல் உடை", priceInr: 3999, color: "indigo", audience: women, occasions: ["party"], category: "swimwear", fabric: "Nylon", modelOnly: true, popularity: 1 }),
+    ...extras.map((item) =>
+      look({
+        id: item.id,
+        name: item.name,
+        nameTa: item.nameTa,
+        priceInr: item.priceInr,
+        color: item.color,
+        audience: item.audience as Audience,
+        occasions: item.occasions as Occasion[],
+        category: item.category,
+        fabric: item.fabric,
+        location: item.location,
+        popularity: item.popularity,
+        modelOnly: item.audience === "child",
+      })
+    ),
   ];
 }
 
@@ -109,8 +129,16 @@ export function createDemoWorld(options?: { tryOnDelayMs?: number }): StoreWorld
       { id: "pongal", title: "Pongal silks", titleTa: "பொங்கல் பட்டு", kind: "festival", months: [1] },
     ],
     tenants: [
-      { id: STORE.id, name: STORE.name, brandId: "kasavu", heatmap: false, legalSignOff: false },
+      { id: STORE.id, name: STORE.name, brandId: "kasavu", heatmap: true, legalSignOff: true },
       { id: "t-nagar", name: "Kasavu & Co T. Nagar", brandId: "kasavu", heatmap: false, legalSignOff: false },
+    ],
+    shares: [],
+    zones: [
+      { zoneId: "entrance", hour: "18", count: 42 },
+      { zoneId: "ethnic", hour: "18", count: 31 },
+      { zoneId: "workwear", hour: "18", count: 18 },
+      { zoneId: "men", hour: "18", count: 14 },
+      { zoneId: "kids", hour: "18", count: 9 },
     ],
     seq: 1,
     limiter: createLimiter(),

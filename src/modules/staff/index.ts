@@ -40,6 +40,35 @@ export function checklistFor(brand: string): readonly string[] {
   return (found ?? PHONE_CHECKLIST[3]).steps;
 }
 
+export interface Delivery {
+  alertId: string;
+  attempts: number;
+  nextAttemptAt: number;
+  deliveredAt: number | null;
+  queuedOffline: boolean;
+}
+
+export function queueDelivery(alertId: string, now: number, online: boolean): Delivery {
+  return {
+    alertId,
+    attempts: 0,
+    nextAttemptAt: now,
+    deliveredAt: null,
+    queuedOffline: !online,
+  };
+}
+
+export function retryDelivery(delivery: Delivery, now: number, ok: boolean): Delivery {
+  if (ok) return { ...delivery, deliveredAt: now, queuedOffline: false };
+  const attempts = delivery.attempts + 1;
+  return {
+    ...delivery,
+    attempts,
+    queuedOffline: true,
+    nextAttemptAt: now + Math.min(30_000, 1_000 * 2 ** attempts),
+  };
+}
+
 export function readStaffConfig() {
   return { ackTargetMs: 120_000, escalateAllMs: 60_000, escalateManagerMs: 120_000 };
 }
