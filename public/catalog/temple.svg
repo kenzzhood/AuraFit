@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+  <rect width="800" height="1000" fill="#f7f1e8"/>
+  <path d="M250 180 C250 120 550 120 550 180 L620 280 L560 320 L520 260 L520 860 L280 860 L280 260 L240 320 L180 280 Z" fill="#1f6b4a"/>
+  <path d="M360 180 C360 150 440 150 440 180" fill="none" stroke="#f7f1e8" stroke-width="8"/>
+  <text x="40" y="960" fill="#6e6e73" font-family="Georgia, serif" font-size="28">Temple border</text>
+</svg>

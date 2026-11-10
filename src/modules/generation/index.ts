@@ -1,8 +1,8 @@
 /** Newest GPT image model confirmed on Azure OpenAI (Microsoft Foundry), GA. */
 export const IMAGE_MODEL_DEFAULT = "gpt-image-2.5-sunburst";
-export const IMAGE_MODEL_VERSION = "2026-09-09";
+export const IMAGE_MODEL_VERSION = "2026-09-08";
 /** Microsoft retirement schedule. No replacement is named. */
-export const IMAGE_MODEL_RETIRES_ON = "2027-09-09";
+export const IMAGE_MODEL_RETIRES_ON = "2027-09-08";
 /** gpt-image-2 retires later. It is not the store default. */
 export const PRIOR_IMAGE_MODEL_RETIRES_ON = "2027-10-21";
 /** Drop-in once Azure lists it. Not selected until then. */
@@ -36,19 +36,12 @@ export type GenerationRoute =
       kind: "personal";
       backend: "azure-gpt-image";
       model: string;
-      faceEdit: true;
-      reason: string;
-    }
-  | {
-      kind: "personal";
-      backend: "flux-klein";
-      model: string;
-      faceEdit: false;
+      faceEdit: boolean;
       reason: string;
     }
   | {
       kind: "model";
-      backend: "azure-gpt-image" | "flux-klein";
+      backend: "azure-gpt-image";
       model: string;
       faceEdit: false;
       reason: string;
@@ -69,8 +62,8 @@ export function routeGeneration(input: {
     }
     return {
       kind: "model",
-      backend: "flux-klein",
-      model: "flux-klein-4b",
+      backend: "azure-gpt-image",
+      model: readGenerationConfig().model,
       faceEdit: false,
       reason: "synthetic_child_model",
     };
@@ -95,7 +88,13 @@ export function routeGeneration(input: {
     };
   }
   if (input.quotaRemaining <= 0) {
-    return { kind: "personal", backend: "flux-klein", model: "flux-klein-4b", faceEdit: false, reason: "quota_fallback" };
+    return {
+      kind: "personal",
+      backend: "azure-gpt-image",
+      model,
+      faceEdit: false,
+      reason: "whatsapp_queue",
+    };
   }
   return {
     kind: "personal",
@@ -116,7 +115,7 @@ export interface RenderPair {
 export interface RenderJob {
   lookId: string;
   modelId: string;
-  backend: "azure-gpt-image" | "flux-klein";
+  backend: "azure-gpt-image";
   modelVersion: string;
   phase: "core" | "ondemand";
 }
@@ -147,11 +146,36 @@ export function planNightRender(input: {
     jobs: ordered.map((pair) => ({
       lookId: pair.lookId,
       modelId: pair.modelId,
-      backend: pair.audience === "child" ? ("flux-klein" as const) : ("azure-gpt-image" as const),
-      modelVersion: pair.audience === "child" ? "flux-klein-4b" : model,
+      backend: "azure-gpt-image" as const,
+      modelVersion: model,
       phase: isCoreModel(pair.modelId) ? ("core" as const) : ("ondemand" as const),
     })),
   };
+}
+
+export interface StockModelRef {
+  id: string;
+  audience: "women" | "men" | "child";
+  body: "slim" | "average" | "broad";
+  tone: "t1" | "t2" | "t3";
+}
+
+/** The shopper sees the closest already-rendered model. Tone never leaves this function. */
+export function nearestModel(models: StockModelRef[], want: StockModelRef): StockModelRef | null {
+  const sameAudience = models.filter((model) => model.audience === want.audience);
+  const pool = sameAudience.length > 0 ? sameAudience : models;
+  if (pool.length === 0) return null;
+  const bodyRank = { slim: 0, average: 1, broad: 2 };
+  const toneRank = { t1: 0, t2: 1, t3: 2 };
+  return [...pool].sort((a, b) => {
+    const da =
+      Math.abs(bodyRank[a.body] - bodyRank[want.body]) +
+      Math.abs(toneRank[a.tone] - toneRank[want.tone]);
+    const db =
+      Math.abs(bodyRank[b.body] - bodyRank[want.body]) +
+      Math.abs(toneRank[b.tone] - toneRank[want.tone]);
+    return da - db;
+  })[0];
 }
 
 export function renderPriority(kind: "live" | "ondemand" | "night"): number {

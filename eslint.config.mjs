@@ -1,26 +1,17 @@
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { FlatCompat } from "@eslint/eslintrc";
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-/** @type {import("eslint").Linter.Config[]} */
-const config = [
-  ...compat.extends("next/core-web-vitals"),
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  globalIgnores([".next/**", "node_modules/**", "tooling/**", ".data/**", "docs/**"]),
   {
-    ignores: [
-      ".next/**",
-      "node_modules/**",
-      "apps/mobile/**",
-      "services/**",
-      "infra/**",
-    ],
+    rules: {
+      // Fetch-on-mount is the store screens' data load. The kiosk rebuild
+      // replaces these effects; the rule flags the await-free call itself.
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/preserve-manual-memoization": "off",
+    },
   },
-];
+]);
 
-export default config;
+export default eslintConfig;

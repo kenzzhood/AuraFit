@@ -48,6 +48,10 @@ No P0 or P1 findings in the store surface. P2: Tamil strings are drafted, not re
 
 `scripts/design-audit.mjs` fails the build if store UI introduces a purple hex, a glass blur, an emoji, a pay button, a stock count, or fair/dark skin language.
 
+## This cut
+
+Newsreader and Noto Sans Tamil are files in `src/design/fonts`, loaded with `next/font/local`. Nothing fetches Google Fonts. The skip link stays off screen until it is focused. Catalogue pictures are flat garment drawings in `public/catalog` so every screen has an image with no key. The product page keeps the serif headline and one blue order link.
+
 ## Other principle sources
 
 google-labs-code/design.md, Anthropic's frontend-design notes, and OpenAI's Figma design-system notes were read as principles only: hierarchy, restraint, and tokens in one file. Those model integrations were not configured. This build runs on Grok.

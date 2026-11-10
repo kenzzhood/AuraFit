@@ -43,9 +43,11 @@ yarn-error.log*
 .DS_Store
 *.pptx
 
-# Prisma
-prisma/*.db
-prisma/*.db-journal
+# Local database and generated blobs
+.data/
+artifacts/
+test-results/
+playwright-report/
 
 # Testing / tooling
 coverage
@@ -59,10 +61,4 @@ vercel
 # Graphify AST cache. The report lives in tooling/graphify.
 graphify-out/
 
-# Mobile secrets (never commit)
-apps/mobile/.env
-apps/mobile/google-play-key.json
-
-# Debug instrumentation
-apps/mobile/.aurafit-debug.log
 .aurafit-debug.log

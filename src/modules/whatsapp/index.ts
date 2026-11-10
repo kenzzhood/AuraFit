@@ -80,6 +80,15 @@ export function marketingAllowed(input: {
   return { allowed: true, reason: "yes" };
 }
 
+export function shareFromText(
+  text: string,
+  shares: { code: string; lookIds: string[] }[]
+): { code: string; lookIds: string[] } | null {
+  const match = text.toUpperCase().match(/AF-\d+/);
+  if (!match) return null;
+  return shares.find((share) => share.code === match[0]) ?? { code: match[0], lookIds: [] };
+}
+
 export function readWhatsappConfig(env: Record<string, string | undefined> = process.env) {
   return {
     number: env.AURAFIT_WHATSAPP_NUMBER ?? "919999000000",

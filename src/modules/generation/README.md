@@ -2,7 +2,7 @@
 
 Typed contract: `index.ts`.
 
-The image model is one value, `AURAFIT_IMAGE_MODEL`. The default is `gpt-image-2.5-sunburst`, version `2026-09-09`. It retires on `2027-09-09`. That string is the Microsoft Foundry deployment name. Calls use `AZURE_OPENAI_ENDPOINT` or `AZURE_OPENAI_IMAGE_ENDPOINT` and the matching key. Direct OpenAI is not used.
+The image model is one value, `AURAFIT_IMAGE_MODEL`. The default is `gpt-image-2.5-sunburst`, version `2026-09-08`. It retires on `2027-09-08`. That string is the Microsoft Foundry deployment name. Calls use `AZURE_OPENAI_ENDPOINT` or `AZURE_OPENAI_IMAGE_ENDPOINT` and the matching key. Direct OpenAI is not used.
 
 `gpt-image-2.6-sunburst` is the planned swap once Azure lists it.
 

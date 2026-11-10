@@ -27,6 +27,7 @@ export interface PublicLook {
   category: string;
   modelOnly: boolean;
   caption: string;
+  image?: string;
 }
 
 export interface Look extends PublicLook {
@@ -65,5 +66,6 @@ export function toPublicLook(look: Look): PublicLook {
     category: look.category,
     modelOnly: look.modelOnly,
     caption: "Shown on a model like you",
+    image: look.image,
   };
 }

@@ -1,82 +1,41 @@
 import type { Metadata } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
-import { DM_Sans, Playfair_Display } from "next/font/google";
-import "./globals.css";
-import { Providers } from "./providers";
+import localFont from "next/font/local";
+import "@/design/store.css";
 
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-dm-sans",
-  weight: ["400", "500", "600", "700"],
+const tamil = localFont({
+  src: [
+    { path: "../design/fonts/NotoSansTamil-Regular.woff2", weight: "400", style: "normal" },
+    { path: "../design/fonts/NotoSansTamil-Semibold.woff2", weight: "600", style: "normal" },
+  ],
+  variable: "--font-store-tamil",
+  display: "swap",
 });
 
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  variable: "--font-playfair",
-  weight: ["400", "500", "600", "700"],
+const serif = localFont({
+  src: [
+    { path: "../design/fonts/Newsreader-Regular.woff2", weight: "400", style: "normal" },
+    { path: "../design/fonts/Newsreader-Medium.woff2", weight: "500", style: "normal" },
+  ],
+  variable: "--font-store-serif",
+  display: "swap",
 });
-
-const appUrl =
-  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
-  "https://aurafit-web.blackstone-033a1f17.eastus2.azurecontainerapps.io";
-
-const googleVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim();
 
 export const metadata: Metadata = {
-  metadataBase: new URL(appUrl),
   title: {
-    default: "Aurafit — AI Fashion Styling",
-    template: "%s · Aurafit",
+    default: "AuraFit",
+    template: "%s · AuraFit",
   },
-  description:
-    "Premium AI-native styling, wardrobe intelligence, and virtual try-on.",
-  openGraph: {
-    title: "Aurafit — AI Fashion Styling",
-    description:
-      "Premium AI-native styling, wardrobe intelligence, and virtual try-on.",
-    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Aurafit" }],
-    type: "website",
-    siteName: "Aurafit",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Aurafit — AI Fashion Styling",
-    description:
-      "Premium AI-native styling, wardrobe intelligence, and virtual try-on.",
-    images: ["/og.png"],
-  },
-  ...(googleVerification
-    ? { verification: { google: googleVerification } }
-    : {}),
+  description: "In-store try-on for Kasavu & Co. Six looks from the shop, on a model like you.",
 };
 
-const clerkPk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="en"
-      className={`dark ${dmSans.variable} ${playfair.variable}`}
-      suppressHydrationWarning
-    >
-      <body
-        className="grain min-h-screen bg-aura-void"
-        suppressHydrationWarning
-      >
+    <html lang="en" className={`${tamil.variable} ${serif.variable}`}>
+      <body>
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
-        {clerkPk ? (
-          <ClerkProvider publishableKey={clerkPk}>
-            <Providers>{children}</Providers>
-          </ClerkProvider>
-        ) : (
-          <Providers>{children}</Providers>
-        )}
+        {children}
       </body>
     </html>
   );
